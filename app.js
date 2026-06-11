@@ -55,6 +55,10 @@ const COMMENTS_KEY = 'perspecteave_comments_v3';
 let appPosts = [];
 let appComments = {};
 let currentSession = null;
+let pendingVerificationEmail = null;
+let pendingVerificationUsername = null;
+let pendingVerificationPassword = null;
+
 
 // ---- Storage Helpers (Local Fallback) ----
 function load(key) {
@@ -265,6 +269,210 @@ function setPostVote(postId, voteType) {
   localStorage.setItem('perspecteave_votes', JSON.stringify(votes));
 }
 
+// ---- Email Verification & Guest Restrictions Helpers ----
+function isClientVerified(session) {
+  const loggedIn = isLoggedIn(session);
+  if (!loggedIn) return false;
+  
+  if (isConfigured) {
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@perspecteave.com';
+    if (session?.user?.email === adminEmail) return true;
+    return session?.user?.user_metadata?.verified === true;
+  } else {
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@perspecteave.com';
+    const email = sessionStorage.getItem('perspecteave_auth_email');
+    if (email === adminEmail) return true;
+    return sessionStorage.getItem('perspecteave_auth_verified') === 'true';
+  }
+}
+
+async function sendVerificationCode() {
+  const verifyError = document.getElementById('verifyError');
+  const verifyModalSubtitle = document.getElementById('verifyModalSubtitle');
+  if (verifyError) verifyError.style.display = 'none';
+
+  const email = pendingVerificationEmail;
+  if (!email) {
+    console.error('No pending verification email found.');
+    return;
+  }
+
+  if (verifyModalSubtitle) {
+    verifyModalSubtitle.textContent = `We've sent a 6-digit verification code to ${email}.`;
+  }
+
+  if (isConfigured) {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false
+        }
+      });
+      if (error) throw error;
+      console.log('OTP sent successfully to:', email);
+    } catch (err) {
+      console.error('Error sending OTP via Supabase:', err);
+      if (verifyError) {
+        verifyError.textContent = err.message || 'Error sending verification code';
+        verifyError.style.display = 'block';
+      }
+    }
+  } else {
+    console.log(`[Mock Auth] Verification code requested for ${email}. Use code 123456 or 888888.`);
+    alert(`[Mock Auth] Code sent to ${email}.\nFor mock verification, enter 123456 or 888888.`);
+  }
+}
+
+async function verifyCode(code) {
+  const verifyError = document.getElementById('verifyError');
+  if (verifyError) verifyError.style.display = 'none';
+
+  const email = pendingVerificationEmail;
+  if (!email) {
+    if (verifyError) {
+      verifyError.textContent = 'Session expired. Please sign up again.';
+      verifyError.style.display = 'block';
+    }
+    return false;
+  }
+
+  if (isConfigured) {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: 'email'
+      });
+      if (error) {
+        console.warn('verifyOtp with type "email" failed, trying type "signup"...', error);
+        const { error: error2 } = await supabase.auth.verifyOtp({
+          email,
+          token: code,
+          type: 'signup'
+        });
+        if (error2) throw error;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { verified: true }
+      });
+      if (updateError) throw updateError;
+
+      console.log('Supabase user verified successfully.');
+      return true;
+    } catch (err) {
+      console.error('Error verifying OTP with Supabase:', err);
+      if (verifyError) {
+        verifyError.textContent = err.message || 'Incorrect verification code';
+        verifyError.style.display = 'block';
+      }
+      return false;
+    }
+  } else {
+    if (code === '123456' || code === '888888') {
+      const mockUsers = JSON.parse(localStorage.getItem('perspecteave_mock_users') || '[]');
+      const existingUserIdx = mockUsers.findIndex(u => u.email === email);
+      
+      if (existingUserIdx === -1) {
+        mockUsers.push({
+          username: pendingVerificationUsername || 'Anonymous',
+          email,
+          password: pendingVerificationPassword || '',
+          verified: true
+        });
+        localStorage.setItem('perspecteave_mock_users', JSON.stringify(mockUsers));
+      } else {
+        mockUsers[existingUserIdx].verified = true;
+        localStorage.setItem('perspecteave_mock_users', JSON.stringify(mockUsers));
+      }
+
+      sessionStorage.setItem('perspecteave_auth_session', 'true');
+      sessionStorage.setItem('perspecteave_auth_username', pendingVerificationUsername || 'Anonymous');
+      sessionStorage.setItem('perspecteave_auth_email', email);
+      sessionStorage.setItem('perspecteave_auth_verified', 'true');
+      
+      console.log('Mock user verified successfully.');
+      return true;
+    } else {
+      if (verifyError) {
+        verifyError.textContent = 'Incorrect verification code. Try 123456 or 888888.';
+        verifyError.style.display = 'block';
+      }
+      return false;
+    }
+  }
+}
+
+function handleVerificationTrigger() {
+  const loggedIn = isLoggedIn(currentSession);
+  if (loggedIn) {
+    const verifyOverlay = document.getElementById('verifyOverlay');
+    if (verifyOverlay) {
+      verifyOverlay.classList.add('open');
+      sendVerificationCode();
+    }
+  } else {
+    const loginOverlay = document.getElementById('loginOverlay');
+    if (loginOverlay) {
+      loginOverlay.classList.add('open');
+    }
+  }
+}
+
+function renderLockedEntry(post, index) {
+  const qNum = `Q${index + 1}`;
+  return `
+    <article class="entry locked-entry" data-entry-id="${post.id}" id="entry-${post.id}">
+      <div class="entry-summary">
+        <div class="entry-number">${qNum}</div>
+        <h2 class="question">${escapeHTML(post.question)}</h2>
+        <div class="expand-indicator">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="arrow-svg"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+      <div class="entry-body locked">
+        <div class="locked-content-blur">
+          <p class="perspective">${escapeHTML(post.perspective)}</p>
+          <div class="entry-actions-row" style="pointer-events: none; opacity: 0.5;">
+            <div class="agree-question-wrapper">
+              <span class="agree-label">Do you agree?</span>
+              <div class="agree-buttons">
+                <button type="button" class="btn-vote btn-agree">
+                  <span class="vote-icon">👍</span>
+                  <span class="vote-count">0</span>
+                </button>
+                <button type="button" class="btn-vote btn-disagree">
+                  <span class="vote-icon">👎</span>
+                  <span class="vote-count">0</span>
+                </button>
+              </div>
+            </div>
+            <button type="button" class="btn-view-comments">
+              <span class="comment-icon">💬</span>
+              <span>Comments</span>
+              <span class="total-comment-count">0</span>
+            </button>
+          </div>
+        </div>
+        <div class="lock-overlay-wrapper">
+          <div class="lock-card">
+            <div class="lock-icon-container">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <h3>Unlock all perspectives</h3>
+            <p>Log in or sign up to read the rest of the perspectives and join the discussion.</p>
+            <button type="button" class="btn-verify-trigger-inline">Log In to Unlock</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
 // ---- Render a Single Entry ----
 function renderEntry(post, index) {
   const qNum = `Q${index + 1}`;
@@ -420,7 +628,13 @@ function renderCommentCard(item) {
 // ---- Render all entries ----
 function renderAllEntries(posts) {
   const container = document.getElementById('entriesList');
-  container.innerHTML = posts.map((p, i) => renderEntry(p, i)).join('');
+  const verified = isClientVerified(currentSession);
+  container.innerHTML = posts.map((p, i) => {
+    if (!verified && i >= 2) {
+      return renderLockedEntry(p, i);
+    }
+    return renderEntry(p, i);
+  }).join('');
 }
 
 // ---- Render comments for one entry ----
@@ -430,9 +644,19 @@ function renderComments(entryId, comments) {
   const tCount = document.getElementById(`totalCount-${entryId}`);
 
   if (listEl) {
-    listEl.innerHTML = list.length
+    let html = list.length
       ? list.map(renderCommentCard).join('')
       : '<li class="no-comments">None yet.</li>';
+
+    if (!isLoggedIn(currentSession)) {
+      html += `
+        <li class="comment-login-prompt" style="list-style: none; margin-top: var(--space-md); text-align: center; padding: var(--space-sm); border: 1px dashed var(--border-light); border-radius: var(--radius-sm); background: rgba(214, 142, 73, 0.03);">
+          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: var(--space-xs); font-family: var(--font-body);">Want to share your perspective?</p>
+          <a href="#" class="btn-comment-login-trigger" style="font-size: 0.82rem; font-weight: 600; color: var(--accent-matcha); text-decoration: none; font-family: var(--font-body);">Log in or Sign up to comment</a>
+        </li>
+      `;
+    }
+    listEl.innerHTML = html;
   }
   if (tCount) tCount.textContent = list.length;
 
@@ -458,6 +682,13 @@ function getCurrentUsername(session) {
 
 // ---- Submit a reply ----
 async function submitReply(entryId) {
+  if (!isLoggedIn(currentSession)) {
+    alert('Please log in or sign up to comment and join the discussion.');
+    const loginOverlay = document.getElementById('loginOverlay');
+    if (loginOverlay) loginOverlay.classList.add('open');
+    return;
+  }
+
   const entry = document.querySelector(`.entry[data-entry-id="${entryId}"]`);
   const form = entry.querySelector(`.reply-form`);
   const nameInput = form.querySelector('.reply-name');
@@ -670,6 +901,13 @@ async function saveCommentEdit(commentId) {
 
 // ---- Thumbs Up/Down Voting Logic ----
 async function toggleVote(entryId, voteType) {
+  if (!isLoggedIn(currentSession)) {
+    alert('Please log in or sign up to cast your vote and join the discussion.');
+    const loginOverlay = document.getElementById('loginOverlay');
+    if (loginOverlay) loginOverlay.classList.add('open');
+    return;
+  }
+
   const postIndex = appPosts.findIndex(x => x.id === entryId);
   if (postIndex === -1) return;
 
@@ -935,6 +1173,16 @@ async function updateAuthUI(session) {
   currentSession = session;
   const loggedIn = isLoggedIn(session);
   const adminLoggedIn = isAdmin(session);
+
+  // Render entries and comments dynamically based on auth/verification state
+  renderAllEntries(appPosts);
+  if (appPosts.length > 0) {
+    appPosts.forEach(post => renderComments(post.id, appComments));
+  }
+
+  // Refresh event listeners since entries list was re-rendered
+  attachEventListeners();
+
   updateCommentForms(session);
 
   // Toggle Edit/Delete options for individual entries
@@ -965,6 +1213,17 @@ async function updateAuthUI(session) {
     if (profileAvatarInitial && username) {
       profileAvatarInitial.textContent = username.trim().charAt(0).toUpperCase();
     }
+
+    // Set verified badge/button
+    const verified = isClientVerified(session);
+    const profileVerifyContainer = document.getElementById('profileVerifyContainer');
+    if (profileVerifyContainer) {
+      if (verified) {
+        profileVerifyContainer.innerHTML = `<span class="badge-verified">Verified</span>`;
+      } else {
+        profileVerifyContainer.innerHTML = `<button type="button" class="btn-verify-dropdown">Verify Email</button>`;
+      }
+    }
     
     // Hide New Post button if signed-in user is not the admin
     if (adminLoggedIn) {
@@ -977,11 +1236,6 @@ async function updateAuthUI(session) {
     if (profileWidget) profileWidget.style.display = 'none';
     newPostBtn.style.display = 'none';
     panel.classList.remove('open');
-  }
-
-  // Re-render comments to update Edit buttons dynamically based on new authentication state
-  if (appPosts.length > 0 && Object.keys(appComments).length > 0) {
-    appPosts.forEach(post => renderComments(post.id, appComments));
   }
 }
 
@@ -1017,7 +1271,7 @@ function setupAuth() {
     if (authMode === 'signin') {
       authMode = 'signup';
       modalTitle.textContent = 'Create account';
-      modalSubtitle.textContent = 'Sign up to lock in a username for comments.';
+      modalSubtitle.textContent = 'Sign up to lock in a username. We will send an OTP code to verify your email.';
       loginUsername.style.display = 'block';
       loginUsername.required = true;
       loginSubmitBtn.textContent = 'Sign up';
@@ -1026,7 +1280,7 @@ function setupAuth() {
     } else {
       authMode = 'signin';
       modalTitle.textContent = 'Welcome back';
-      modalSubtitle.textContent = 'Sign in to manage your perspectives.';
+      modalSubtitle.textContent = 'Sign in with your email and password.';
       loginUsername.style.display = 'none';
       loginUsername.required = false;
       loginSubmitBtn.textContent = 'Sign in';
@@ -1040,7 +1294,7 @@ function setupAuth() {
     loginOverlay.classList.add('open');
     authMode = 'signin';
     modalTitle.textContent = 'Welcome back';
-    modalSubtitle.textContent = 'Sign in to manage your perspectives.';
+    modalSubtitle.textContent = 'Sign in with your email and password.';
     loginUsername.style.display = 'none';
     loginUsername.required = false;
     loginSubmitBtn.textContent = 'Sign in';
@@ -1091,14 +1345,26 @@ function setupAuth() {
           sessionStorage.setItem('perspecteave_auth_session', 'true');
           sessionStorage.setItem('perspecteave_auth_username', 'Admin');
           sessionStorage.setItem('perspecteave_auth_email', email);
+          sessionStorage.setItem('perspecteave_auth_verified', 'true');
           loginOverlay.classList.remove('open');
           updateAuthUI();
         } else if (found) {
-          sessionStorage.setItem('perspecteave_auth_session', 'true');
-          sessionStorage.setItem('perspecteave_auth_username', found.username);
-          sessionStorage.setItem('perspecteave_auth_email', email);
-          loginOverlay.classList.remove('open');
-          updateAuthUI();
+          if (found.verified) {
+            sessionStorage.setItem('perspecteave_auth_session', 'true');
+            sessionStorage.setItem('perspecteave_auth_username', found.username);
+            sessionStorage.setItem('perspecteave_auth_email', email);
+            sessionStorage.setItem('perspecteave_auth_verified', 'true');
+            loginOverlay.classList.remove('open');
+            updateAuthUI();
+          } else {
+            pendingVerificationEmail = email;
+            pendingVerificationUsername = found.username;
+            pendingVerificationPassword = password;
+            loginOverlay.classList.remove('open');
+            const verifyOverlay = document.getElementById('verifyOverlay');
+            if (verifyOverlay) verifyOverlay.classList.add('open');
+            sendVerificationCode();
+          }
         } else {
           loginError.textContent = 'Incorrect email or password';
           loginError.style.display = 'block';
@@ -1114,15 +1380,14 @@ function setupAuth() {
           return;
         }
 
-        mockUsers.push({ username, email, password });
-        localStorage.setItem('perspecteave_mock_users', JSON.stringify(mockUsers));
-
-        sessionStorage.setItem('perspecteave_auth_session', 'true');
-        sessionStorage.setItem('perspecteave_auth_username', username);
-        sessionStorage.setItem('perspecteave_auth_email', email);
+        pendingVerificationEmail = email;
+        pendingVerificationUsername = username;
+        pendingVerificationPassword = password;
         
         loginOverlay.classList.remove('open');
-        updateAuthUI();
+        const verifyOverlay = document.getElementById('verifyOverlay');
+        if (verifyOverlay) verifyOverlay.classList.add('open');
+        sendVerificationCode();
       }
     } else {
       // Real Supabase Auth
@@ -1131,12 +1396,26 @@ function setupAuth() {
         loginSubmitBtn.textContent = authMode === 'signin' ? 'Signing in...' : 'Signing up...';
         
         if (authMode === 'signin') {
-          const { error } = await supabase.auth.signInWithPassword({
+          const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password
           });
           if (error) throw error;
-          loginOverlay.classList.remove('open');
+          
+          currentSession = data.session;
+          const verified = isClientVerified(data.session);
+          
+          if (verified) {
+            loginOverlay.classList.remove('open');
+            updateAuthUI(data.session);
+          } else {
+            // Trigger OTP verification
+            pendingVerificationEmail = email;
+            loginOverlay.classList.remove('open');
+            const verifyOverlay = document.getElementById('verifyOverlay');
+            if (verifyOverlay) verifyOverlay.classList.add('open');
+            sendVerificationCode();
+          }
         } else {
           // Sign Up
           const { data, error } = await supabase.auth.signUp({
@@ -1144,20 +1423,19 @@ function setupAuth() {
             password,
             options: {
               data: {
-                username: username
+                username: username,
+                verified: false
               }
             }
           });
           if (error) throw error;
           
-          // If auto-confirm is enabled, it logs them in automatically
-          if (data.session) {
-            loginOverlay.classList.remove('open');
-          } else {
-            // Wait for verification
-            alert('Account created! Please check your email for the confirmation link.');
-            loginOverlay.classList.remove('open');
-          }
+          // Trigger OTP verification immediately
+          pendingVerificationEmail = email;
+          loginOverlay.classList.remove('open');
+          const verifyOverlay = document.getElementById('verifyOverlay');
+          if (verifyOverlay) verifyOverlay.classList.add('open');
+          sendVerificationCode();
         }
       } catch (err) {
         console.error('Auth error:', err);
@@ -1204,6 +1482,7 @@ function setupAuth() {
       sessionStorage.removeItem('perspecteave_auth_session');
       sessionStorage.removeItem('perspecteave_auth_username');
       sessionStorage.removeItem('perspecteave_auth_email');
+      sessionStorage.removeItem('perspecteave_auth_verified');
       panel.classList.remove('open');
       updateAuthUI();
     } else {
@@ -1418,10 +1697,25 @@ function attachEventListeners() {
     });
   });
 
-  // Event delegation for comment actions (Edit, Cancel, Save, History Toggles)
+  // Event delegation for comment actions (Edit, Cancel, Save, History Toggles) and guest limits
   const entriesList = document.getElementById('entriesList');
-  if (entriesList) {
+  if (entriesList && !entriesList.dataset.listenersAttached) {
+    entriesList.dataset.listenersAttached = 'true';
     entriesList.addEventListener('click', async (e) => {
+      // 0. Guest and verification CTA clicks
+      if (e.target.classList.contains('btn-verify-trigger-inline')) {
+        e.stopPropagation();
+        handleVerificationTrigger();
+        return;
+      }
+      if (e.target.classList.contains('btn-comment-login-trigger')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const loginOverlay = document.getElementById('loginOverlay');
+        if (loginOverlay) loginOverlay.classList.add('open');
+        return;
+      }
+
       // 1. Comment Edit button clicked
       if (e.target.classList.contains('btn-comment-edit')) {
         e.stopPropagation();
@@ -1550,20 +1844,129 @@ function attachEventListeners() {
     });
   }
 }
+function setupVerification() {
+  const verifyOverlay = document.getElementById('verifyOverlay');
+  const verifyCloseBtn = document.getElementById('verifyCloseBtn');
+  const verifySubmitBtn = document.getElementById('verifySubmitBtn');
+  const verifyCodeInput = document.getElementById('verifyCode');
+  const verifyResendLink = document.getElementById('verifyResendLink');
+
+  // Close verification modal
+  if (verifyCloseBtn) {
+    verifyCloseBtn.addEventListener('click', async () => {
+      verifyOverlay.classList.remove('open');
+      pendingVerificationEmail = null;
+      pendingVerificationUsername = null;
+      pendingVerificationPassword = null;
+      if (isConfigured) {
+        await supabase.auth.signOut();
+      } else {
+        sessionStorage.clear();
+      }
+      updateAuthUI(null);
+    });
+  }
+
+  if (verifyOverlay) {
+    verifyOverlay.addEventListener('click', async (e) => {
+      if (e.target === verifyOverlay) {
+        verifyOverlay.classList.remove('open');
+        pendingVerificationEmail = null;
+        pendingVerificationUsername = null;
+        pendingVerificationPassword = null;
+        if (isConfigured) {
+          await supabase.auth.signOut();
+        } else {
+          sessionStorage.clear();
+        }
+        updateAuthUI(null);
+      }
+    });
+  }
+
+  // Resend code
+  if (verifyResendLink) {
+    verifyResendLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      sendVerificationCode();
+    });
+  }
+
+  // Submit code
+  async function submitVerification() {
+    const code = (verifyCodeInput.value || '').trim();
+    if (code.length !== 6) {
+      const verifyError = document.getElementById('verifyError');
+      if (verifyError) {
+        verifyError.textContent = 'Please enter a 6-digit code';
+        verifyError.style.display = 'block';
+      }
+      return;
+    }
+
+    if (verifySubmitBtn) {
+      verifySubmitBtn.disabled = true;
+      verifySubmitBtn.textContent = 'Verifying...';
+    }
+
+    const success = await verifyCode(code);
+    if (success) {
+      verifyCodeInput.value = '';
+      verifyOverlay.classList.remove('open');
+      pendingVerificationEmail = null;
+      pendingVerificationUsername = null;
+      pendingVerificationPassword = null;
+      
+      let session = null;
+      if (isConfigured) {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+      }
+      currentSession = session;
+      
+      await updateAuthUI(session);
+      alert('Email verified successfully! All perspectives unlocked.');
+    } else {
+      if (verifySubmitBtn) {
+        verifySubmitBtn.disabled = false;
+        verifySubmitBtn.textContent = 'Verify Code';
+      }
+    }
+  }
+
+  if (verifySubmitBtn) {
+    verifySubmitBtn.addEventListener('click', submitVerification);
+  }
+
+  if (verifyCodeInput) {
+    verifyCodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitVerification();
+      }
+    });
+  }
+}
 
 // ---- Initialization ----
 async function init() {
   // Load posts
   appPosts = await fetchPosts();
-  renderAllEntries(appPosts);
 
   // Load comments
   appComments = await fetchComments();
-  appPosts.forEach(p => renderComments(p.id, appComments));
 
-  // Attach all handlers and listeners
-  attachEventListeners();
+  // Initialize session if configured
+  if (isConfigured) {
+    const { data } = await supabase.auth.getSession();
+    currentSession = data.session;
+  }
+
   setupAuth();
+  setupVerification();
+
+  // Trigger initial UI render based on current auth state
+  await updateAuthUI(currentSession);
 }
 
 if (document.readyState === 'loading') {

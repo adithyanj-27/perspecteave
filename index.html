@@ -22,6 +22,7 @@
           <div class="profile-details">
             <p class="profile-name" id="profileDetailName">Admin</p>
             <p class="profile-email" id="profileDetailEmail">admin@perspecteave.com</p>
+            <div id="profileVerifyContainer" style="margin-top: 6px;"></div>
           </div>
           <button class="btn-dropdown-logout" id="dropdownLogoutBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
@@ -65,6 +66,23 @@
           <a href="#" class="modal-toggle-link" id="modalToggleLink">Don't have an account? Sign up</a>
         </div>
         <button class="modal-close" id="loginCloseBtn">×</button>
+      </div>
+    </div>
+
+    <!-- ===================== VERIFICATION MODAL ===================== -->
+    <div class="modal-overlay" id="verifyOverlay">
+      <div class="modal-card">
+        <h2 class="modal-title">Verify your email</h2>
+        <p class="modal-subtitle" id="verifyModalSubtitle">We've sent a 6-digit verification code to your email.</p>
+        <form class="login-form" id="verifyForm" onsubmit="return false;">
+          <input type="text" id="verifyCode" placeholder="Enter 6-digit code" maxlength="6" autocomplete="one-time-code">
+          <p class="login-error" id="verifyError">Incorrect verification code</p>
+          <button type="button" class="btn-login-submit" id="verifySubmitBtn">Verify Code</button>
+        </form>
+        <div class="modal-toggle-wrapper">
+          <a href="#" class="modal-toggle-link" id="verifyResendLink">Resend code</a>
+        </div>
+        <button class="modal-close" id="verifyCloseBtn">×</button>
       </div>
     </div>
 
