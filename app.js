@@ -683,7 +683,6 @@ async function toggleVote(entryId, voteType) {
   if (postIndex === -1) return;
 
   if (voteType === 'agree' && hasSubmittedComment(entryId)) {
-    alert('You have already submitted a criticism on this perspective, so you cannot vote to agree.');
     return;
   }
 
