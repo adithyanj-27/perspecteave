@@ -492,16 +492,6 @@ header {
   position: relative;
   width: 80px;
   height: 90px;
-  animation: cupFloat 4s ease-in-out infinite;
-}
-
-@keyframes cupFloat {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
 }
 
 .logo-wrapper svg {
