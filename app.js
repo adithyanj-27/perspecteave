@@ -430,10 +430,6 @@ function triggerAsmrEffect(button, isDisagree = false) {
   const removeTimeout = isDisagree ? 1500 : 2200;
   const particleTimeout = isDisagree ? 1500 : 1800;
   
-  if (isDisagree && navigator.vibrate) {
-    navigator.vibrate([120, 80, 120]);
-  }
-  
   const textPop = document.createElement('div');
   textPop.className = isDisagree ? 'asmr-text-pop disagree' : 'asmr-text-pop';
   textPop.textContent = phrase;
