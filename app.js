@@ -1245,7 +1245,15 @@ function attachEventListeners() {
 
   // Prevent clicks in edit forms, reply forms, comments, action rows from toggling accordion
   document.querySelectorAll('.reply-form, .comments-section, .entry-edit-form, .entry-actions-row').forEach(el => {
-    el.addEventListener('click', (e) => e.stopPropagation());
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('btn-comment-edit') || 
+          e.target.classList.contains('btn-comment-save') || 
+          e.target.classList.contains('btn-comment-cancel') || 
+          e.target.classList.contains('btn-comment-history')) {
+        return; // Allow propagation for comment action buttons
+      }
+      e.stopPropagation();
+    });
   });
 
   // Reply submit buttons (Circular checkmark)
