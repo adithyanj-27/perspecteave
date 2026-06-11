@@ -1730,7 +1730,7 @@ footer {
   z-index: 9999;
   user-select: none;
   will-change: transform, opacity;
-  animation: particleFade 1s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  animation: particleFade 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
 }
 
 .asmr-text-pop {
@@ -1748,7 +1748,7 @@ footer {
   z-index: 9999;
   user-select: none;
   will-change: transform, opacity;
-  animation: textPopFade 1.2s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+  animation: textPopFade 2.2s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
 }
 
 @keyframes particleFade {

@@ -420,57 +420,15 @@ function handleVerificationTrigger() {
   }
 }
 
-function playAsmrSound() {
-  try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-
-    // Sound 1: Plucky wooden block (Low frequency triangle wave)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'triangle';
-    osc1.frequency.setValueAtTime(520, ctx.currentTime);
-    osc1.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.15);
-    
-    gain1.gain.setValueAtTime(0.25, ctx.currentTime);
-    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-    
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-
-    // Sound 2: High spark resonance (High frequency sine wave)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(1600, ctx.currentTime);
-    osc2.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.08);
-    
-    gain2.gain.setValueAtTime(0.08, ctx.currentTime);
-    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-    
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-
-    osc1.start();
-    osc1.stop(ctx.currentTime + 0.16);
-    osc2.start();
-    osc2.stop(ctx.currentTime + 0.09);
-  } catch (e) {
-    console.warn('Audio play blocked or unsupported:', e);
-  }
-}
-
 function triggerAsmrEffect(button) {
-  playAsmrSound();
-
   const rect = button.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
 
-  // 1. Text Pop
-  const phrases = ['Hurray! 🎉', 'Agreed! 💚', 'Cozy! 🍵', 'Yes! ✨', 'Spot on! 🌟', '+1 Agree! 👍'];
-  const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+  // 1. Text Pop ("Yes! [emoji]")
+  const emojis = ['💚', '👍', '✨', '🎉', '🍵', '🌟', '🌱', '🌸'];
+  const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const phrase = `Yes! ${randomEmoji}`;
   
   const textPop = document.createElement('div');
   textPop.className = 'asmr-text-pop';
@@ -479,10 +437,9 @@ function triggerAsmrEffect(button) {
   textPop.style.top = `${centerY - 20}px`;
   document.body.appendChild(textPop);
   
-  setTimeout(() => textPop.remove(), 1200);
+  setTimeout(() => textPop.remove(), 2200);
 
   // 2. Emoji Particles
-  const emojis = ['💚', '👍', '✨', '🎉', '🍵', '🌟', '🌱', '🌸'];
   const numParticles = 10 + Math.floor(Math.random() * 5);
   
   for (let i = 0; i < numParticles; i++) {
@@ -505,7 +462,7 @@ function triggerAsmrEffect(button) {
     
     document.body.appendChild(particle);
     
-    setTimeout(() => particle.remove(), 1000);
+    setTimeout(() => particle.remove(), 1800);
   }
 }
 
