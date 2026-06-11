@@ -969,6 +969,11 @@ async function updateAuthUI(session) {
     
     if (profileDetailName) profileDetailName.textContent = username;
     if (profileDetailEmail) profileDetailEmail.textContent = email;
+
+    const profileAvatarInitial = document.getElementById('profileAvatarInitial');
+    if (profileAvatarInitial && username) {
+      profileAvatarInitial.textContent = username.trim().charAt(0).toUpperCase();
+    }
     
     // Hide New Post button if signed-in user is not the admin
     if (adminLoggedIn) {
