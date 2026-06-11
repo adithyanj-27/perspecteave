@@ -1581,7 +1581,8 @@ function attachEventListeners() {
     summary.addEventListener('click', () => {
       const entry = summary.closest('.entry');
       // Ignore click if editing inside the form
-      const isEditing = entry.querySelector('.entry-edit-form').style.display === 'flex';
+      const editForm = entry.querySelector('.entry-edit-form');
+      const isEditing = editForm && editForm.style.display === 'flex';
       if (isEditing) return;
 
       const wasExpanded = entry.classList.contains('expanded');
