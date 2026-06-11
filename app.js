@@ -682,8 +682,8 @@ async function toggleVote(entryId, voteType) {
   const postIndex = appPosts.findIndex(x => x.id === entryId);
   if (postIndex === -1) return;
 
-  if (voteType === 'agree' && hasSubmittedComment(entryId)) {
-    return;
+  if (hasSubmittedComment(entryId)) {
+    return; // Lock vote state completely if a comment has been submitted
   }
 
   const currentPost = appPosts[postIndex];
