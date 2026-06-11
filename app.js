@@ -375,8 +375,17 @@ function renderCommentCard(item) {
   ` : '';
   
   const hasHistory = item.history && item.history.length > 0;
-  const historyToggle = hasHistory ? `
-    <button type="button" class="btn-comment-history" data-comment-id="${item.id}" data-active-version="latest">Show original</button>
+  const totalVersions = hasHistory ? item.history.length + 1 : 1;
+  const historyNav = hasHistory ? `
+    <div class="comment-history-nav" data-comment-id="${item.id}" data-current-index="${item.history.length}" data-total-versions="${totalVersions}">
+      <button type="button" class="btn-comment-undo" data-comment-id="${item.id}" title="Show previous version">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+      </button>
+      <span class="comment-version-indicator" id="versionIndicator-${item.id}">v${totalVersions}/${totalVersions}</span>
+      <button type="button" class="btn-comment-redo" data-comment-id="${item.id}" title="Show next version" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+      </button>
+    </div>
   ` : '';
 
   return `
@@ -389,7 +398,7 @@ function renderCommentCard(item) {
           </div>
           <div class="comment-meta-right">
             <span class="comment-card-time">${escapeHTML(item.time || 'Just now')}</span>
-            ${historyToggle}
+            ${historyNav}
             ${editButton}
           </div>
         </div>
@@ -1311,8 +1320,8 @@ function attachEventListeners() {
       if (e.target.classList.contains('btn-comment-edit') || 
           e.target.classList.contains('btn-comment-save') || 
           e.target.classList.contains('btn-comment-cancel') || 
-          e.target.classList.contains('btn-comment-history')) {
-        return; // Allow propagation for comment action buttons
+          e.target.closest('.comment-history-nav')) {
+        return; // Allow propagation for comment action buttons and history nav
       }
       e.stopPropagation();
     });
@@ -1451,32 +1460,91 @@ function attachEventListeners() {
         await saveCommentEdit(commentId);
       }
       
-      // 4. View Original / View Latest History Toggle clicked (Visual undo)
-      if (e.target.classList.contains('btn-comment-history')) {
+      // 4. Comment Undo (Show previous version) clicked
+      if (e.target.closest('.btn-comment-undo')) {
         e.stopPropagation();
-        const commentId = Number(e.target.dataset.commentId);
-        const activeVersion = e.target.dataset.activeVersion; // 'latest' or 'original'
-        const commentTextEl = document.querySelector(`#comment-${commentId} .comment-card-text`);
+        const btn = e.target.closest('.btn-comment-undo');
+        const commentId = Number(btn.dataset.commentId);
         
         let comment = null;
         for (const postId in appComments) {
           const c = appComments[postId].find(x => x.id === commentId);
           if (c) { comment = c; break; }
         }
-        if (!comment) return;
+        if (!comment || !comment.history || comment.history.length === 0) return;
+
+        const nav = btn.closest('.comment-history-nav');
+        if (!nav) return;
+
+        let currentIndex = Number(nav.dataset.currentIndex);
+        const totalVersions = Number(nav.dataset.totalVersions);
+
+        if (currentIndex > 0) {
+          currentIndex--;
+          nav.dataset.currentIndex = currentIndex;
+
+          // Update text displayed
+          const commentTextEl = document.querySelector(`#comment-${commentId} .comment-card-text`);
+          const versions = [...comment.history, comment.text];
+          if (commentTextEl) {
+            commentTextEl.textContent = versions[currentIndex];
+          }
+
+          // Update indicator
+          const indicator = document.getElementById(`versionIndicator-${commentId}`);
+          if (indicator) {
+            indicator.textContent = `v${currentIndex + 1}/${totalVersions}`;
+          }
+
+          // Enable/disable buttons
+          const undoBtn = nav.querySelector('.btn-comment-undo');
+          const redoBtn = nav.querySelector('.btn-comment-redo');
+          if (undoBtn) undoBtn.disabled = (currentIndex === 0);
+          if (redoBtn) redoBtn.disabled = (currentIndex === totalVersions - 1);
+        }
+      }
+
+      // 5. Comment Redo (Show next version) clicked
+      if (e.target.closest('.btn-comment-redo')) {
+        e.stopPropagation();
+        const btn = e.target.closest('.btn-comment-redo');
+        const commentId = Number(btn.dataset.commentId);
         
-        if (activeVersion === 'latest') {
-          // Switch display to original (v1)
-          commentTextEl.textContent = comment.history[0];
-          e.target.textContent = 'Show latest';
-          e.target.dataset.activeVersion = 'original';
-          e.target.classList.add('viewing-original');
-        } else {
-          // Switch back to latest
-          commentTextEl.textContent = comment.text;
-          e.target.textContent = 'Show original';
-          e.target.dataset.activeVersion = 'latest';
-          e.target.classList.remove('viewing-original');
+        let comment = null;
+        for (const postId in appComments) {
+          const c = appComments[postId].find(x => x.id === commentId);
+          if (c) { comment = c; break; }
+        }
+        if (!comment || !comment.history || comment.history.length === 0) return;
+
+        const nav = btn.closest('.comment-history-nav');
+        if (!nav) return;
+
+        let currentIndex = Number(nav.dataset.currentIndex);
+        const totalVersions = Number(nav.dataset.totalVersions);
+
+        if (currentIndex < totalVersions - 1) {
+          currentIndex++;
+          nav.dataset.currentIndex = currentIndex;
+
+          // Update text displayed
+          const commentTextEl = document.querySelector(`#comment-${commentId} .comment-card-text`);
+          const versions = [...comment.history, comment.text];
+          if (commentTextEl) {
+            commentTextEl.textContent = versions[currentIndex];
+          }
+
+          // Update indicator
+          const indicator = document.getElementById(`versionIndicator-${commentId}`);
+          if (indicator) {
+            indicator.textContent = `v${currentIndex + 1}/${totalVersions}`;
+          }
+
+          // Enable/disable buttons
+          const undoBtn = nav.querySelector('.btn-comment-undo');
+          const redoBtn = nav.querySelector('.btn-comment-redo');
+          if (undoBtn) undoBtn.disabled = (currentIndex === 0);
+          if (redoBtn) redoBtn.disabled = (currentIndex === totalVersions - 1);
         }
       }
     });

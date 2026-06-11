@@ -1121,8 +1121,7 @@ header {
 
 .btn-comment-save,
 .btn-comment-cancel,
-.btn-comment-edit,
-.btn-comment-history {
+.btn-comment-edit {
   font-family: var(--font-body);
   font-size: 0.72rem;
   font-weight: 500;
@@ -1164,24 +1163,54 @@ header {
   border-color: var(--text-muted);
 }
 
-.btn-comment-history {
-  color: var(--accent-matcha);
+.comment-history-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 1px 4px;
+  user-select: none;
+}
+
+.btn-comment-undo,
+.btn-comment-redo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
-  border: 1px solid rgba(96, 122, 102, 0.25);
-  font-size: 0.7rem;
-  padding: 2px 8px;
+  border: none;
+  color: var(--accent-matcha);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
 }
 
-.btn-comment-history:hover {
+.btn-comment-undo:hover:not(:disabled),
+.btn-comment-redo:hover:not(:disabled) {
   color: var(--accent-tea);
-  border-color: var(--accent-tea);
-  background: rgba(214, 142, 73, 0.03);
+  background: rgba(214, 142, 73, 0.1);
 }
 
-.btn-comment-history.viewing-original {
-  background: rgba(214, 142, 73, 0.08);
-  color: var(--accent-tea);
-  border-color: var(--accent-tea);
+.btn-comment-undo:disabled,
+.btn-comment-redo:disabled {
+  color: var(--text-muted);
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.comment-version-indicator {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 36px;
+  text-align: center;
+  letter-spacing: -0.2px;
 }
 
 
