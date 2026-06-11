@@ -427,8 +427,8 @@ function triggerAsmrEffect(button, isDisagree = false) {
 
   // 1. Text Pop
   const phrase = isDisagree ? 'Nigga whyy?? 😭' : 'Yes! 👍';
-  const removeTimeout = isDisagree ? 1000 : 2200;
-  const particleTimeout = isDisagree ? 1000 : 1800;
+  const removeTimeout = isDisagree ? 1750 : 2200;
+  const particleTimeout = isDisagree ? 1750 : 1800;
   
   const textPop = document.createElement('div');
   textPop.className = isDisagree ? 'asmr-text-pop disagree' : 'asmr-text-pop';
@@ -450,7 +450,7 @@ function triggerAsmrEffect(button, isDisagree = false) {
     particle.textContent = particleEmoji;
     if (isDisagree) {
       particle.style.fontSize = `${1.2 + Math.random() * 0.5}rem`; // Slightly larger particles for disagree
-      particle.style.animationDuration = '1.0s';
+      particle.style.animationDuration = '1.75s';
     }
     
     particle.style.left = `${centerX - 10}px`;

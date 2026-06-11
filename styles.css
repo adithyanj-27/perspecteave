@@ -1761,7 +1761,7 @@ footer {
   box-shadow: 0 15px 45px rgba(224, 92, 92, 0.45);
   padding: 12px 24px;
   letter-spacing: 1.5px;
-  animation: textPopFadeLarge 1.0s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+  animation: textPopFadeLarge 1.75s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
 }
 
 @keyframes textPopFadeLarge {
