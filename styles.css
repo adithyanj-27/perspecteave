@@ -1720,3 +1720,60 @@ footer {
   transform: translateY(-0.5px);
 }
 
+/* ============================================
+   ASMR Particle & Text Pop Effects
+   ============================================ */
+.asmr-particle {
+  position: fixed;
+  pointer-events: none;
+  font-size: 1.25rem;
+  z-index: 9999;
+  user-select: none;
+  will-change: transform, opacity;
+  animation: particleFade 1s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+.asmr-text-pop {
+  position: fixed;
+  pointer-events: none;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent-matcha);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-light);
+  padding: 5px 12px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  z-index: 9999;
+  user-select: none;
+  will-change: transform, opacity;
+  animation: textPopFade 1.2s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+}
+
+@keyframes particleFade {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(0.3) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+
+@keyframes textPopFade {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6) translateY(0);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -50%) scale(1.15) translateY(-10px);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.9) translateY(-70px);
+    opacity: 0;
+  }
+}
+
