@@ -420,36 +420,43 @@ function handleVerificationTrigger() {
   }
 }
 
-function triggerAsmrEffect(button) {
+function triggerAsmrEffect(button, isDisagree = false) {
   const rect = button.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
 
-  // 1. Text Pop ("Yes! 👍")
-  const phrase = 'Yes! 👍';
+  // 1. Text Pop
+  const phrase = isDisagree ? 'Nigga whyy?? 👎' : 'Yes! 👍';
+  const removeTimeout = isDisagree ? 2500 : 2200;
+  const particleTimeout = isDisagree ? 2200 : 1800;
   
   const textPop = document.createElement('div');
-  textPop.className = 'asmr-text-pop';
+  textPop.className = isDisagree ? 'asmr-text-pop disagree' : 'asmr-text-pop';
   textPop.textContent = phrase;
   textPop.style.left = `${centerX}px`;
   textPop.style.top = `${centerY - 20}px`;
   document.body.appendChild(textPop);
   
-  setTimeout(() => textPop.remove(), 2200);
+  setTimeout(() => textPop.remove(), removeTimeout);
 
-  // 2. Emoji Particles (Only 👍)
-  const numParticles = 10 + Math.floor(Math.random() * 5);
+  // 2. Emoji Particles (👍 or 👎)
+  const particleEmoji = isDisagree ? '👎' : '👍';
+  const numParticles = isDisagree ? 16 + Math.floor(Math.random() * 8) : 10 + Math.floor(Math.random() * 5); // Larger splash for disagree
+  const maxDistance = isDisagree ? 120 : 80;
   
   for (let i = 0; i < numParticles; i++) {
     const particle = document.createElement('div');
     particle.className = 'asmr-particle';
-    particle.textContent = '👍';
+    particle.textContent = particleEmoji;
+    if (isDisagree) {
+      particle.style.fontSize = `${1.2 + Math.random() * 0.5}rem`; // Slightly larger particles for disagree
+    }
     
     particle.style.left = `${centerX - 10}px`;
     particle.style.top = `${centerY - 10}px`;
     
     const angle = Math.random() * Math.PI * 2;
-    const distance = 40 + Math.random() * 80;
+    const distance = 40 + Math.random() * maxDistance;
     const dx = Math.cos(angle) * distance;
     const dy = Math.sin(angle) * distance - 30; // offset upwards
     const rot = -180 + Math.random() * 360;
@@ -460,7 +467,7 @@ function triggerAsmrEffect(button) {
     
     document.body.appendChild(particle);
     
-    setTimeout(() => particle.remove(), 1800);
+    setTimeout(() => particle.remove(), particleTimeout);
   }
 }
 
@@ -980,10 +987,16 @@ async function toggleVote(entryId, voteType) {
       newAgrees++;
       const agreeBtn = document.querySelector(`.btn-agree[data-entry-id="${entryId}"]`);
       if (agreeBtn) {
-        triggerAsmrEffect(agreeBtn);
+        triggerAsmrEffect(agreeBtn, false);
       }
     }
-    if (voteType === 'disagree') newDisagrees++;
+    if (voteType === 'disagree') {
+      newDisagrees++;
+      const disagreeBtn = document.querySelector(`.btn-disagree[data-entry-id="${entryId}"]`);
+      if (disagreeBtn) {
+        triggerAsmrEffect(disagreeBtn, true);
+      }
+    }
     newVote = voteType;
   }
 
