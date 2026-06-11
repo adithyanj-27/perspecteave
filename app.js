@@ -244,6 +244,28 @@ function saveCommentOwnership(commentId) {
   }
 }
 
+function hasSubmittedComment(postId) {
+  const postComments = appComments[postId] || [];
+  const myComments = JSON.parse(localStorage.getItem('perspecteave_my_comments') || '[]');
+  
+  // Check local storage ownership
+  const hasLocalOwnership = postComments.some(c => myComments.map(String).includes(String(c.id)));
+  if (hasLocalOwnership) return true;
+  
+  // Check if logged-in user matches any comment author name
+  const loggedIn = isLoggedIn(currentSession);
+  if (loggedIn) {
+    const username = getCurrentUsername(currentSession);
+    if (username) {
+      const hasNamedComment = postComments.some(c => 
+        c.name && c.name.trim().toLowerCase() === username.trim().toLowerCase()
+      );
+      if (hasNamedComment) return true;
+    }
+  }
+  return false;
+}
+
 // ---- Local Votes Toggling Helpers ----
 function getPostVote(postId) {
   const votes = JSON.parse(localStorage.getItem('perspecteave_votes') || '{}');
@@ -422,6 +444,17 @@ function renderComments(entryId, comments) {
       : '<li class="no-comments">None yet.</li>';
   }
   if (tCount) tCount.textContent = list.length;
+
+  // Toggle disabled state of the agree (thumbs up) button if the user has commented
+  const hasCommented = hasSubmittedComment(entryId);
+  const agreeBtn = document.querySelector(`.btn-agree[data-entry-id="${entryId}"]`);
+  if (agreeBtn) {
+    if (hasCommented) {
+      agreeBtn.classList.add('disabled');
+    } else {
+      agreeBtn.classList.remove('disabled');
+    }
+  }
 }
 
 // ---- Get current logged-in username ----
@@ -648,6 +681,11 @@ async function saveCommentEdit(commentId) {
 async function toggleVote(entryId, voteType) {
   const postIndex = appPosts.findIndex(x => x.id === entryId);
   if (postIndex === -1) return;
+
+  if (voteType === 'agree' && hasSubmittedComment(entryId)) {
+    alert('You have already submitted a criticism on this perspective, so you cannot vote to agree.');
+    return;
+  }
 
   const currentPost = appPosts[postIndex];
   const previousVote = getPostVote(entryId);

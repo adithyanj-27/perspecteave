@@ -791,6 +791,17 @@ header {
   font-weight: 600;
 }
 
+.btn-agree.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-agree.disabled:hover {
+  background: var(--bg-card) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-secondary) !important;
+}
+
 .btn-disagree:hover {
   color: var(--accent-tea);
   border-color: rgba(214, 142, 73, 0.4);
