@@ -1752,22 +1752,25 @@ footer {
 }
 
 .asmr-text-pop.disagree {
-  font-size: 1.6rem;
-  color: var(--accent-tea);
-  font-weight: 700;
-  border-color: rgba(214, 142, 73, 0.3);
-  box-shadow: 0 10px 25px rgba(214, 142, 73, 0.25);
-  padding: 8px 18px;
+  font-size: 2.2rem;
+  color: #E05C5C;
+  font-weight: 800;
+  text-transform: uppercase;
+  border: 2px solid #E05C5C;
+  background: #FFF5F5;
+  box-shadow: 0 15px 45px rgba(224, 92, 92, 0.45);
+  padding: 12px 24px;
+  letter-spacing: 1.5px;
   animation: warningVibrate 4.5s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
 }
 
 @keyframes warningVibrate {
-  0% { transform: translate(-50%, -50%) scale(0.5) translateY(0); opacity: 0; }
-  8% { transform: translate(-50%, -50%) scale(1.35) translateY(-15px); opacity: 1; }
-  12%, 18%, 24%, 30%, 36%, 42%, 48%, 54% { transform: translate(-50%, -50%) scale(1.35) translateY(-15px) translate(-1px, 1px) rotate(-1.2deg); }
-  15%, 21%, 27%, 33%, 39%, 45%, 51%, 57% { transform: translate(-50%, -50%) scale(1.35) translateY(-15px) translate(1px, -1px) rotate(1.2deg); }
-  60% { transform: translate(-50%, -50%) scale(1.35) translateY(-15px) rotate(0deg); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(0.95) translateY(-120px); opacity: 0; }
+  0% { transform: translate(-50%, -50%) scale(0.4) translateY(0); opacity: 0; }
+  6% { transform: translate(-50%, -50%) scale(1.6) translateY(-20px); opacity: 1; }
+  10%, 14%, 18%, 22%, 26%, 30%, 34%, 38%, 42%, 46%, 50%, 54% { transform: translate(-50%, -50%) scale(1.6) translateY(-20px) translate(-5px, 5px) rotate(-6deg); }
+  12%, 16%, 20%, 24%, 28%, 32%, 36%, 40%, 44%, 48%, 52%, 56% { transform: translate(-50%, -50%) scale(1.7) translateY(-20px) translate(5px, -5px) rotate(6deg); }
+  62% { transform: translate(-50%, -50%) scale(1.5) translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.9) translateY(-145px); opacity: 0; }
 }
 
 @keyframes particleFade {
