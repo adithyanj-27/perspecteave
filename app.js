@@ -106,28 +106,10 @@ async function fetchPosts() {
       .order('id', { ascending: true });
 
     if (error) throw error;
-
-    // If database is empty, seed it with defaults
-    if (!data || data.length === 0) {
-      const { data: seeded, error: seedError } = await supabase
-        .from('posts')
-        .insert(DEFAULT_POSTS.map(p => ({ 
-          question: p.question, 
-          perspective: p.perspective, 
-          edit_count: 0, 
-          agrees: p.agrees,
-          disagrees: p.disagrees
-        })))
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (seedError) throw seedError;
-      return seeded;
-    }
-    return data;
+    return data || [];
   } catch (err) {
     console.error('Error fetching posts from Supabase:', err);
-    return load(POSTS_KEY) || DEFAULT_POSTS;
+    return load(POSTS_KEY) || [];
   }
 }
 
