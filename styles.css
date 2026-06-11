@@ -1767,9 +1767,9 @@ footer {
 @keyframes warningVibrate {
   0% { transform: translate(-50%, -50%) scale(0.4) translateY(0); opacity: 0; }
   6% { transform: translate(-50%, -50%) scale(1.6) translateY(-20px); opacity: 1; }
-  10%, 14%, 18%, 22%, 26%, 30%, 34%, 38%, 42%, 46%, 50%, 54% { transform: translate(-50%, -50%) scale(1.6) translateY(-20px) translate(-5px, 5px) rotate(-6deg); }
-  12%, 16%, 20%, 24%, 28%, 32%, 36%, 40%, 44%, 48%, 52%, 56% { transform: translate(-50%, -50%) scale(1.7) translateY(-20px) translate(5px, -5px) rotate(6deg); }
-  62% { transform: translate(-50%, -50%) scale(1.5) translateY(-20px) rotate(0deg); opacity: 1; }
+  8%, 11%, 14%, 17%, 20%, 23%, 26%, 29%, 32%, 35%, 38%, 41%, 44%, 47%, 50%, 53%, 56%, 59% { transform: translate(-50%, -50%) scale(1.65) translateY(-20px) translate(-6px, 6px) rotate(-6.5deg); }
+  9.5%, 12.5%, 15.5%, 18.5%, 21.5%, 24.5%, 27.5%, 30.5%, 33.5%, 36.5%, 39.5%, 42.5%, 45.5%, 48.5%, 51.5%, 54.5%, 57.5%, 60.5% { transform: translate(-50%, -50%) scale(1.75) translateY(-20px) translate(6px, -6px) rotate(6.5deg); }
+  64% { transform: translate(-50%, -50%) scale(1.5) translateY(-20px) rotate(0deg); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(0.9) translateY(-145px); opacity: 0; }
 }
 

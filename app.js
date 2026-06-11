@@ -426,7 +426,7 @@ function triggerAsmrEffect(button, isDisagree = false) {
   const centerY = rect.top + rect.height / 2;
 
   // 1. Text Pop
-  const phrase = isDisagree ? 'Nigga whyy?? 👎' : 'Yes! 👍';
+  const phrase = isDisagree ? 'Nigga whyy?? 😭' : 'Yes! 👍';
   const removeTimeout = isDisagree ? 4500 : 2200;
   const particleTimeout = isDisagree ? 2200 : 1800;
   
@@ -443,8 +443,8 @@ function triggerAsmrEffect(button, isDisagree = false) {
   
   setTimeout(() => textPop.remove(), removeTimeout);
 
-  // 2. Emoji Particles (👍 or 👎)
-  const particleEmoji = isDisagree ? '👎' : '👍';
+  // 2. Emoji Particles (👍 or 😭)
+  const particleEmoji = isDisagree ? '😭' : '👍';
   const numParticles = isDisagree ? 16 + Math.floor(Math.random() * 8) : 10 + Math.floor(Math.random() * 5); // Larger splash for disagree
   const maxDistance = isDisagree ? 120 : 80;
   
