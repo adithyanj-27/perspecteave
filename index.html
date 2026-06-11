@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PerspecTEAve — Perspectives, One Cup at a Time</title>
+  <meta name="description" content="A personal space for raw thoughts on politics, geography, and life — presented as numbered perspectives with open critique sections.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- ===================== TOP BAR ===================== -->
+    <nav class="top-bar" id="topBar">
+      <!-- Login button (shown when logged out) -->
+      <button class="btn-login" id="loginBtn" title="Admin login">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>Log in</span>
+      </button>
+      <!-- Admin controls (shown when logged in) -->
+      <div class="admin-controls" id="adminControls">
+        <button class="btn-new-post" id="newPostBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New Post</span>
+        </button>
+        <button class="btn-logout" id="logoutBtn" title="Log out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ===================== LOGIN MODAL ===================== -->
+    <div class="modal-overlay" id="loginOverlay">
+      <div class="modal-card">
+        <h2 class="modal-title" id="modalTitle">Welcome back</h2>
+        <p class="modal-subtitle" id="modalSubtitle">Sign in to manage your perspectives.</p>
+        <form class="login-form" id="loginForm" onsubmit="return false;">
+          <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="nickname" style="display: none;">
+          <input type="email" id="loginEmail" placeholder="Enter email" autocomplete="username">
+          <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password">
+          <p class="login-error" id="loginError">Incorrect email or password</p>
+          <button type="button" class="btn-login-submit" id="loginSubmitBtn">Sign in</button>
+        </form>
+        <div class="modal-toggle-wrapper">
+          <a href="#" class="modal-toggle-link" id="modalToggleLink">Don't have an account? Sign up</a>
+        </div>
+        <button class="modal-close" id="loginCloseBtn">×</button>
+      </div>
+    </div>
+
+    <!-- ===================== HEADER ===================== -->
+    <header>
+      <div class="logo-wrapper" aria-label="PerspecTEAve teacup logo">
+        <svg viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g>
+            <path class="steam" d="M30 32 Q28 24 32 18 Q36 12 30 4" stroke="#D68E49" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+            <path class="steam" d="M40 30 Q38 22 42 16 Q46 10 40 2" stroke="#D68E49" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+            <path class="steam" d="M50 32 Q48 24 52 18 Q56 12 50 4" stroke="#D68E49" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+          </g>
+          <rect x="16" y="36" width="48" height="32" rx="4" fill="#607A66" opacity="0.15" stroke="#607A66" stroke-width="2"/>
+          <rect x="20" y="40" width="40" height="10" rx="2" fill="#D68E49" opacity="0.3"/>
+          <path d="M64 44 Q76 44 76 56 Q76 64 64 64" stroke="#607A66" stroke-width="2" fill="none"/>
+          <ellipse cx="40" cy="74" rx="32" ry="6" fill="#607A66" opacity="0.1" stroke="#607A66" stroke-width="1.5"/>
+        </svg>
+      </div>
+
+      <h1 class="site-title">Perspec<span class="tea-highlight">TEA</span>ve</h1>
+      <p class="site-tagline">Sharing thoughts, one cup at a time.</p>
+    </header>
+
+    <!-- ===================== INTRO ===================== -->
+    <section class="intro">
+      <p>
+        Welcome to PerspecTEAve. Here, I share my thoughts on random topics I find interesting. Read my take, share yours, or better yet—criticize it.
+      </p>
+      <span class="intro-divider"></span>
+    </section>
+
+    <!-- ===================== ADMIN PANEL ===================== -->
+    <section class="admin-panel" id="adminPanel">
+      <h2 class="admin-title">New Perspective</h2>
+      <form class="admin-form" id="adminForm" onsubmit="return false;">
+        <input type="text" id="adminQuestion" placeholder="The question you're thinking about…" required>
+        <textarea id="adminPerspective" placeholder="Write your take on it…" required></textarea>
+        <div class="admin-actions">
+          <button type="button" class="btn-admin-post" id="adminPostBtn">Publish</button>
+          <button type="button" class="btn-admin-cancel" id="adminCancelBtn">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===================== ENTRIES ===================== -->
+    <main>
+      <div class="entries-list" id="entriesList"></div>
+    </main>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer>
+      <div class="footer-contact">
+        <a href="mailto:hello@perspecteave.com">
+          <span>✉</span> hello@perspecteave.com
+        </a>
+      </div>
+      <p class="footer-copy">© 2026 PerspecTEAve. All perspectives welcome.</p>
+    </footer>
+
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
