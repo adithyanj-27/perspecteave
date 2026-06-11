@@ -54,6 +54,7 @@ const COMMENTS_KEY = 'perspecteave_comments_v3';
 // ---- App State Variables ----
 let appPosts = [];
 let appComments = {};
+let currentSession = null;
 
 // ---- Storage Helpers (Local Fallback) ----
 function load(key) {
@@ -218,16 +219,27 @@ function escapeHTML(str) {
 }
 
 // ---- Local Comment Ownership Helpers ----
-function canEditComment(commentId) {
+function canEditComment(commentId, authorName) {
   const myComments = JSON.parse(localStorage.getItem('perspecteave_my_comments') || '[]');
-  return myComments.includes(Number(commentId));
+  const idStr = String(commentId);
+  if (myComments.map(String).includes(idStr)) return true;
+  
+  // Also check if logged in as the author of the comment
+  const loggedIn = isLoggedIn(currentSession);
+  if (loggedIn && authorName) {
+    const username = getCurrentUsername(currentSession);
+    if (username && username.trim().toLowerCase() === authorName.trim().toLowerCase()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function saveCommentOwnership(commentId) {
   const myComments = JSON.parse(localStorage.getItem('perspecteave_my_comments') || '[]');
-  const id = Number(commentId);
-  if (!myComments.includes(id)) {
-    myComments.push(id);
+  const idStr = String(commentId);
+  if (!myComments.map(String).includes(idStr)) {
+    myComments.push(commentId);
     localStorage.setItem('perspecteave_my_comments', JSON.stringify(myComments));
   }
 }
@@ -353,7 +365,7 @@ function renderEntry(post, index) {
 
 // Render a single comment card
 function renderCommentCard(item) {
-  const editable = canEditComment(item.id);
+  const editable = canEditComment(item.id, item.name);
   const editButton = editable ? `
     <button type="button" class="btn-comment-edit" data-comment-id="${item.id}">Edit</button>
   ` : '';
@@ -890,6 +902,7 @@ async function updateAuthUI(session) {
     session = data.session;
   }
 
+  currentSession = session;
   const adminLoggedIn = isAdmin(session);
   updateCommentForms(session);
 
@@ -913,6 +926,11 @@ async function updateAuthUI(session) {
     loginBtn.style.display = 'flex';
     adminControls.style.display = 'none';
     panel.classList.remove('open');
+  }
+
+  // Re-render comments to update Edit buttons dynamically based on new authentication state
+  if (appPosts.length > 0 && Object.keys(appComments).length > 0) {
+    appPosts.forEach(post => renderComments(post.id, appComments));
   }
 }
 
