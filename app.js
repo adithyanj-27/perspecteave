@@ -930,7 +930,9 @@ function updateCommentForms(session) {
 
 async function updateAuthUI(session) {
   const loginBtn = document.getElementById('loginBtn');
-  const adminControls = document.getElementById('adminControls');
+  const profileWidget = document.getElementById('profileWidget');
+  const profileDetailName = document.getElementById('profileDetailName');
+  const profileDetailEmail = document.getElementById('profileDetailEmail');
   const panel = document.getElementById('adminPanel');
   const newPostBtn = document.getElementById('newPostBtn');
 
@@ -940,6 +942,7 @@ async function updateAuthUI(session) {
   }
 
   currentSession = session;
+  const loggedIn = isLoggedIn(session);
   const adminLoggedIn = isAdmin(session);
   updateCommentForms(session);
 
@@ -949,9 +952,23 @@ async function updateAuthUI(session) {
     el.style.display = adminLoggedIn ? 'flex' : 'none';
   });
 
-  if (isLoggedIn(session)) {
+  if (loggedIn) {
     loginBtn.style.display = 'none';
-    adminControls.style.display = 'flex';
+    if (profileWidget) profileWidget.style.display = 'block';
+    
+    // Populate profile details
+    let username = 'Anonymous';
+    let email = '';
+    if (isConfigured) {
+      username = session?.user?.user_metadata?.username || session?.user?.email || 'Anonymous';
+      email = session?.user?.email || '';
+    } else {
+      username = sessionStorage.getItem('perspecteave_auth_username') || 'Anonymous';
+      email = sessionStorage.getItem('perspecteave_auth_email') || '';
+    }
+    
+    if (profileDetailName) profileDetailName.textContent = username;
+    if (profileDetailEmail) profileDetailEmail.textContent = email;
     
     // Hide New Post button if signed-in user is not the admin
     if (adminLoggedIn) {
@@ -961,7 +978,8 @@ async function updateAuthUI(session) {
     }
   } else {
     loginBtn.style.display = 'flex';
-    adminControls.style.display = 'none';
+    if (profileWidget) profileWidget.style.display = 'none';
+    newPostBtn.style.display = 'none';
     panel.classList.remove('open');
   }
 
@@ -981,7 +999,9 @@ function setupAuth() {
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
   const loginError = document.getElementById('loginError');
-  const logoutBtn = document.getElementById('logoutBtn');
+  const profileTrigger = document.getElementById('profileTrigger');
+  const profileDropdown = document.getElementById('profileDropdown');
+  const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
   const newPostBtn = document.getElementById('newPostBtn');
   const panel = document.getElementById('adminPanel');
   const postBtn = document.getElementById('adminPostBtn');
@@ -1164,8 +1184,26 @@ function setupAuth() {
     });
   });
 
+  // Profile dropdown toggling
+  if (profileTrigger && profileDropdown) {
+    profileTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileDropdown.classList.toggle('open');
+      profileTrigger.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!profileTrigger.contains(e.target) && !profileDropdown.contains(e.target)) {
+        profileDropdown.classList.remove('open');
+        profileTrigger.classList.remove('active');
+      }
+    });
+  }
+
   // Logout
-  logoutBtn.addEventListener('click', async () => {
+  dropdownLogoutBtn.addEventListener('click', async () => {
+    if (profileDropdown) profileDropdown.classList.remove('open');
+    if (profileTrigger) profileTrigger.classList.remove('active');
     if (!isConfigured) {
       sessionStorage.removeItem('perspecteave_auth_session');
       sessionStorage.removeItem('perspecteave_auth_username');

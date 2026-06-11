@@ -13,22 +13,41 @@
 
     <!-- ===================== TOP BAR ===================== -->
     <nav class="top-bar" id="topBar">
-      <!-- Login button (shown when logged out) -->
-      <button class="btn-login" id="loginBtn" title="Admin login">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
-        </svg>
-        <span>Log in</span>
-      </button>
-      <!-- Admin controls (shown when logged in) -->
-      <div class="admin-controls" id="adminControls">
-        <button class="btn-new-post" id="newPostBtn">
+      <!-- Profile Widget (shown when logged in, top-left) -->
+      <div class="profile-widget" id="profileWidget" style="display: none;">
+        <button class="btn-profile-trigger" id="profileTrigger" title="View profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </button>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="profile-details">
+            <p class="profile-name" id="profileDetailName">Admin</p>
+            <p class="profile-email" id="profileDetailEmail">admin@perspecteave.com</p>
+          </div>
+          <button class="btn-dropdown-logout" id="dropdownLogoutBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            <span>Log out</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Side Actions -->
+      <div class="top-bar-right">
+        <!-- Login button (shown when logged out) -->
+        <button class="btn-login" id="loginBtn" title="Admin login">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Log in</span>
+        </button>
+
+        <!-- New Post button (shown when logged in as admin) -->
+        <button class="btn-new-post" id="newPostBtn" style="display: none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 5v14M5 12h14"/></svg>
           <span>New Post</span>
-        </button>
-        <button class="btn-logout" id="logoutBtn" title="Log out">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
         </button>
       </div>
     </nav>
