@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* ============================================
    PerspecTEAve — Design System & Styles
    ============================================ */
@@ -738,7 +739,7 @@ header {
 }
 
 .perspective::before {
-  content: '→';
+  content: '\2192';
   color: var(--accent-tea);
   font-weight: 600;
   position: absolute;
