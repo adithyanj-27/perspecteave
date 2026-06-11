@@ -425,10 +425,8 @@ function triggerAsmrEffect(button) {
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
 
-  // 1. Text Pop ("Yes! [emoji]")
-  const emojis = ['💚', '👍', '✨', '🎉', '🍵', '🌟', '🌱', '🌸'];
-  const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-  const phrase = `Yes! ${randomEmoji}`;
+  // 1. Text Pop ("Yes! 👍")
+  const phrase = 'Yes! 👍';
   
   const textPop = document.createElement('div');
   textPop.className = 'asmr-text-pop';
@@ -439,13 +437,13 @@ function triggerAsmrEffect(button) {
   
   setTimeout(() => textPop.remove(), 2200);
 
-  // 2. Emoji Particles
+  // 2. Emoji Particles (Only 👍)
   const numParticles = 10 + Math.floor(Math.random() * 5);
   
   for (let i = 0; i < numParticles; i++) {
     const particle = document.createElement('div');
     particle.className = 'asmr-particle';
-    particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    particle.textContent = '👍';
     
     particle.style.left = `${centerX - 10}px`;
     particle.style.top = `${centerY - 10}px`;
