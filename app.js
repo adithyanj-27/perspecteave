@@ -427,8 +427,12 @@ function triggerAsmrEffect(button, isDisagree = false) {
 
   // 1. Text Pop
   const phrase = isDisagree ? 'Nigga whyy?? 👎' : 'Yes! 👍';
-  const removeTimeout = isDisagree ? 2500 : 2200;
+  const removeTimeout = isDisagree ? 4500 : 2200;
   const particleTimeout = isDisagree ? 2200 : 1800;
+  
+  if (isDisagree && navigator.vibrate) {
+    navigator.vibrate([120, 80, 120]);
+  }
   
   const textPop = document.createElement('div');
   textPop.className = isDisagree ? 'asmr-text-pop disagree' : 'asmr-text-pop';
