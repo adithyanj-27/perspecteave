@@ -615,42 +615,15 @@ header {
   vertical-align: middle;
   margin-left: 6px;
   display: inline-block;
-  transform: rotate(15deg);
+  transform: scaleX(-1) rotate(-25deg);
   color: var(--accent-tea);
   transition: color 0.3s ease, transform 0.3s var(--ease-spring);
+  transform-origin: center;
 }
 
 .waving-hand-svg:hover {
   color: var(--accent-matcha);
-  transform: rotate(25deg) scale(1.08);
-}
-
-.waving-hand-svg .wave-arc {
-  opacity: 0;
-  animation: wave-ripple 1.6s infinite ease-in-out;
-}
-
-.waving-hand-svg .arc-1 {
-  animation-delay: 0s;
-}
-
-.waving-hand-svg .arc-2 {
-  animation-delay: 0.4s;
-}
-
-@keyframes wave-ripple {
-  0% {
-    opacity: 0;
-  }
-  30% {
-    opacity: 1;
-  }
-  60% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+  transform: scaleX(-1) rotate(-30deg) scale(1.08);
 }
 
 .intro p {
