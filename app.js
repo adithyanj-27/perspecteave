@@ -596,7 +596,6 @@ async function submitReply(entryId) {
   }
 
   if (!isLoggedIn(currentSession)) {
-    alert('Please log in or sign up to post a comment.');
     const loginOverlay = document.getElementById('loginOverlay');
     if (loginOverlay) loginOverlay.classList.add('open');
     return;
@@ -819,7 +818,6 @@ async function toggleVote(entryId, voteType) {
   if (postIndex === -1) return;
 
   if (!isLoggedIn(currentSession)) {
-    alert('Please log in or sign up to cast your vote.');
     const loginOverlay = document.getElementById('loginOverlay');
     if (loginOverlay) loginOverlay.classList.add('open');
     return;
