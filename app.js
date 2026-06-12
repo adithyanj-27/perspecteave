@@ -833,7 +833,7 @@ async function toggleVote(entryId, voteType) {
   const postIndex = appPosts.findIndex(x => x.id === entryId);
   if (postIndex === -1) return;
 
-  if (!isLoggedIn(currentSession)) {
+  if (voteType === 'disagree' && !isLoggedIn(currentSession)) {
     if (globalOpenAuthModal) {
       globalOpenAuthModal('signin', 'Sign in to continue');
     } else {
