@@ -48,6 +48,24 @@
           <span>New Post</span>
         </button>
 
+        <!-- Messages button and dropdown wrapper (shown when logged in as admin) -->
+        <div class="admin-messages-wrapper" id="adminMessagesWrapper" style="display: none;">
+          <button class="btn-messages" id="adminMessagesBtn" title="Topic Requests">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+            <span>Messages</span>
+          </button>
+          
+          <div class="request-dropdown" id="adminMessagesDropdown">
+            <h3 class="admin-requests-title">Topic Requests</h3>
+            <ul class="admin-requests-list" id="adminRequestsList">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+        </div>
+
         <!-- Ask the author button and dropdown wrapper (shown when logged out or non-admin) -->
         <div class="ask-author-wrapper" id="askAuthorWrapper" style="display: none;">
           <button class="btn-ask-author" id="askAuthorBtn">
@@ -152,13 +170,6 @@
         </div>
       </form>
       
-      <!-- Requested Topics sub-section for Admin -->
-      <div class="admin-requests-box" id="adminRequestsBox" style="display: none;">
-        <h3 class="admin-requests-title">Topic Requests</h3>
-        <ul class="admin-requests-list" id="adminRequestsList">
-          <!-- Dynamically populated -->
-        </ul>
-      </div>
     </section>
 
     <!-- ===================== REQUEST PANEL ===================== -->

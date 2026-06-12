@@ -399,7 +399,26 @@ function renderEntry(post, index) {
         
         <!-- Static Perspective Content -->
         <div class="entry-static-view" id="entryStatic-${post.id}">
-          <p class="perspective">${escapeHTML(post.perspective)}${editInfo}</p>
+          <p class="perspective">
+            ${(() => {
+              const fullText = post.perspective;
+              const charLimit = 800;
+              if (fullText.length > charLimit) {
+                const truncated = fullText.substring(0, charLimit);
+                return `
+                  <span class="perspective-text-truncated" id="perspectiveTruncated-${post.id}">
+                    ${escapeHTML(truncated)}...
+                    <a href="#" class="btn-read-more" data-entry-id="${post.id}">Read more</a>
+                  </span>
+                  <span class="perspective-text-full" id="perspectiveFull-${post.id}" style="display: none;">
+                    ${escapeHTML(fullText)}
+                  </span>
+                `;
+              }
+              return escapeHTML(fullText);
+            })()}
+            ${editInfo}
+          </p>
           
           <!-- Admin actions (only visible to admin) -->
           <div class="entry-admin-actions" data-entry-id="${post.id}">
@@ -1159,11 +1178,11 @@ async function updateAuthUI(session) {
     
     // Hide New Post button if signed-in user is not the admin
     const askAuthorWrapper = document.getElementById('askAuthorWrapper');
+    const adminMessagesWrapper = document.getElementById('adminMessagesWrapper');
     if (adminLoggedIn) {
       newPostBtn.style.display = 'flex';
       if (askAuthorWrapper) askAuthorWrapper.style.display = 'none';
-      const adminRequestsBox = document.getElementById('adminRequestsBox');
-      if (adminRequestsBox) adminRequestsBox.style.display = 'block';
+      if (adminMessagesWrapper) adminMessagesWrapper.style.display = 'block';
       const requestDropdown = document.getElementById('requestDropdown');
       if (requestDropdown) {
         requestDropdown.classList.remove('open');
@@ -1174,8 +1193,7 @@ async function updateAuthUI(session) {
     } else {
       newPostBtn.style.display = 'none';
       if (askAuthorWrapper) askAuthorWrapper.style.display = 'block';
-      const adminRequestsBox = document.getElementById('adminRequestsBox');
-      if (adminRequestsBox) adminRequestsBox.style.display = 'none';
+      if (adminMessagesWrapper) adminMessagesWrapper.style.display = 'none';
     }
   } else {
     loginBtn.style.display = 'flex';
@@ -1185,8 +1203,8 @@ async function updateAuthUI(session) {
     
     const askAuthorWrapper = document.getElementById('askAuthorWrapper');
     if (askAuthorWrapper) askAuthorWrapper.style.display = 'block';
-    const adminRequestsBox = document.getElementById('adminRequestsBox');
-    if (adminRequestsBox) adminRequestsBox.style.display = 'none';
+    const adminMessagesWrapper = document.getElementById('adminMessagesWrapper');
+    if (adminMessagesWrapper) adminMessagesWrapper.style.display = 'none';
   }
 }
 
@@ -1865,6 +1883,21 @@ function attachEventListeners() {
       }
     });
   }
+
+  // Read more buttons click handlers
+  document.querySelectorAll('.btn-read-more').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const entryId = btn.dataset.entryId;
+      const truncatedSpan = document.getElementById(`perspectiveTruncated-${entryId}`);
+      const fullSpan = document.getElementById(`perspectiveFull-${entryId}`);
+      if (truncatedSpan && fullSpan) {
+        truncatedSpan.style.display = 'none';
+        fullSpan.style.display = 'inline';
+      }
+    });
+  });
 }
 
 
@@ -2032,6 +2065,12 @@ function startTakeFromRequest(question) {
     
     adminQuestionInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+
+  // Close messages dropdown if open
+  const adminMessagesDropdown = document.getElementById('adminMessagesDropdown');
+  if (adminMessagesDropdown) adminMessagesDropdown.classList.remove('open');
+  const adminMessagesBtn = document.getElementById('adminMessagesBtn');
+  if (adminMessagesBtn) adminMessagesBtn.classList.remove('active');
 }
 
 function renderAdminRequests() {
@@ -2115,6 +2154,27 @@ function setupRequestForm() {
   }
 }
 
+function setupAdminMessages() {
+  const adminMessagesBtn = document.getElementById('adminMessagesBtn');
+  const adminMessagesDropdown = document.getElementById('adminMessagesDropdown');
+  
+  if (adminMessagesBtn && adminMessagesDropdown) {
+    adminMessagesBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      adminMessagesDropdown.classList.toggle('open');
+      adminMessagesBtn.classList.toggle('active');
+    });
+
+    // Close messages dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!adminMessagesBtn.contains(e.target) && !adminMessagesDropdown.contains(e.target)) {
+        adminMessagesDropdown.classList.remove('open');
+        adminMessagesBtn.classList.remove('active');
+      }
+    });
+  }
+}
+
 // ---- Initialization ----
 async function init() {
   // Load posts
@@ -2152,6 +2212,7 @@ async function init() {
 
   setupAuth();
   setupRequestForm();
+  setupAdminMessages();
 
   // Trigger initial UI render based on current auth state
   await updateAuthUI(currentSession);

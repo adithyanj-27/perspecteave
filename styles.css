@@ -755,7 +755,7 @@ header {
 }
 
 .entry.expanded .entry-body {
-  max-height: 2000px;
+  max-height: 20000px; /* Increased from 2000px to prevent truncation of long content/comments */
   opacity: 1;
   margin-top: var(--space-lg);
 }
@@ -769,6 +769,7 @@ header {
   margin-bottom: var(--space-xl);
   margin-left: 3.2rem; /* Aligns w/ question text (bypassing badge offset) */
   position: relative;
+  white-space: pre-wrap;
 }
 
 .perspective::before {
@@ -1096,6 +1097,7 @@ header {
   color: var(--text-secondary);
   line-height: 1.6;
   font-weight: 300;
+  white-space: pre-wrap;
 }
 
 /* --- Comment Editing Styles --- */
@@ -1767,9 +1769,76 @@ footer {
 /* ============================================
    REQUEST A PERSPECTIVE PANEL (DROPDOWN)
    ============================================ */
-.ask-author-wrapper {
+.ask-author-wrapper,
+.admin-messages-wrapper {
   position: relative;
   display: inline-block;
+}
+
+.btn-messages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent-matcha);
+  border: none;
+  border-radius: 20px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background 0.3s var(--ease-out), transform 0.15s ease;
+}
+
+.btn-messages:hover {
+  background: var(--accent-matcha-light);
+}
+
+.btn-messages:active {
+  transform: scale(0.97);
+}
+
+.btn-messages.active {
+  background: var(--accent-matcha-light);
+}
+
+#adminMessagesDropdown {
+  width: 420px;
+  padding: var(--space-md);
+}
+
+#adminMessagesDropdown .admin-requests-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Custom Scrollbar for messages list */
+#adminMessagesDropdown .admin-requests-list::-webkit-scrollbar {
+  width: 5px;
+}
+#adminMessagesDropdown .admin-requests-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+#adminMessagesDropdown .admin-requests-list::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: var(--radius-sm);
+}
+
+/* Read more styling */
+.btn-read-more {
+  color: var(--accent-matcha);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: color 0.2s ease;
+}
+
+.btn-read-more:hover {
+  color: var(--accent-matcha-light);
+  text-decoration: underline;
 }
 
 .request-dropdown {
