@@ -317,6 +317,30 @@ a:hover {
   transform: scale(0.97);
 }
 
+.btn-ask-author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent-matcha);
+  border: none;
+  border-radius: 20px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background 0.3s var(--ease-out), transform 0.15s ease;
+}
+
+.btn-ask-author:hover {
+  background: var(--accent-matcha-light);
+}
+
+.btn-ask-author:active {
+  transform: scale(0.97);
+}
+
 .btn-logout {
   display: flex;
   align-items: center;
@@ -1809,17 +1833,28 @@ footer {
    REQUEST A PERSPECTIVE PANEL
    ============================================ */
 .request-section {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s var(--ease-out), opacity 0.3s var(--ease-out), padding 0.3s ease, margin 0.3s ease;
+  padding: 0;
+  margin: 0 auto 0;
   max-width: 680px;
-  margin: 0 auto var(--space-xl);
+}
+
+.request-section.open {
+  max-height: 400px;
+  opacity: 1;
   padding: 0 var(--space-md);
+  margin: 0 auto var(--space-xl);
 }
 
 .request-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-card);
+  border: 1px solid var(--accent-tea);
   border-radius: var(--radius-lg);
   padding: var(--space-lg) var(--space-xl);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-glow);
   transition: box-shadow 0.3s ease;
 }
 

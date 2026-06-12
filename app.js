@@ -1308,15 +1308,21 @@ async function updateAuthUI(session) {
     }
     
     // Hide New Post button if signed-in user is not the admin
+    const askAuthorBtn = document.getElementById('askAuthorBtn');
     if (adminLoggedIn) {
       newPostBtn.style.display = 'flex';
+      if (askAuthorBtn) askAuthorBtn.style.display = 'none';
       const adminRequestsBox = document.getElementById('adminRequestsBox');
       if (adminRequestsBox) adminRequestsBox.style.display = 'block';
       const requestSection = document.getElementById('requestSection');
-      if (requestSection) requestSection.style.display = 'none';
+      if (requestSection) {
+        requestSection.style.display = 'none';
+        requestSection.classList.remove('open');
+      }
       renderAdminRequests();
     } else {
       newPostBtn.style.display = 'none';
+      if (askAuthorBtn) askAuthorBtn.style.display = 'flex';
       const adminRequestsBox = document.getElementById('adminRequestsBox');
       if (adminRequestsBox) adminRequestsBox.style.display = 'none';
       const requestSection = document.getElementById('requestSection');
@@ -1328,6 +1334,8 @@ async function updateAuthUI(session) {
     newPostBtn.style.display = 'none';
     panel.classList.remove('open');
     
+    const askAuthorBtn = document.getElementById('askAuthorBtn');
+    if (askAuthorBtn) askAuthorBtn.style.display = 'flex';
     const adminRequestsBox = document.getElementById('adminRequestsBox');
     if (adminRequestsBox) adminRequestsBox.style.display = 'none';
     const requestSection = document.getElementById('requestSection');
@@ -2197,6 +2205,8 @@ async function submitTopicRequest() {
           btn.style.backgroundColor = '';
           btn.style.color = '';
           btn.disabled = false;
+          const requestSection = document.getElementById('requestSection');
+          if (requestSection) requestSection.classList.remove('open');
         }, 1800);
         
         alert('Thank you! Your request has been submitted to Adithyan.');
@@ -2236,6 +2246,8 @@ async function submitTopicRequest() {
     btn.style.backgroundColor = '';
     btn.style.color = '';
     btn.disabled = false;
+    const requestSection = document.getElementById('requestSection');
+    if (requestSection) requestSection.classList.remove('open');
   }, 1800);
   
   alert('Thank you! Your request has been submitted to Adithyan.');
@@ -2323,6 +2335,21 @@ function renderAdminRequests() {
 }
 
 function setupRequestForm() {
+  const askAuthorBtn = document.getElementById('askAuthorBtn');
+  const requestSection = document.getElementById('requestSection');
+  
+  if (askAuthorBtn && requestSection) {
+    askAuthorBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      requestSection.classList.toggle('open');
+      if (requestSection.classList.contains('open')) {
+        setTimeout(() => {
+          requestSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 300);
+      }
+    });
+  }
+
   const submitBtn = document.getElementById('requestSubmitBtn');
   if (submitBtn) {
     submitBtn.addEventListener('click', (e) => {
