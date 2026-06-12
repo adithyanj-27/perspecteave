@@ -604,8 +604,12 @@ async function submitReply(entryId) {
   }
 
   if (!isLoggedIn(currentSession)) {
-    const loginOverlay = document.getElementById('loginOverlay');
-    if (loginOverlay) loginOverlay.classList.add('open');
+    if (globalOpenAuthModal) {
+      globalOpenAuthModal('signin', 'Sign in to continue');
+    } else {
+      const loginOverlay = document.getElementById('loginOverlay');
+      if (loginOverlay) loginOverlay.classList.add('open');
+    }
     return;
   }
 
@@ -826,8 +830,12 @@ async function toggleVote(entryId, voteType) {
   if (postIndex === -1) return;
 
   if (!isLoggedIn(currentSession)) {
-    const loginOverlay = document.getElementById('loginOverlay');
-    if (loginOverlay) loginOverlay.classList.add('open');
+    if (globalOpenAuthModal) {
+      globalOpenAuthModal('signin', 'Sign in to continue');
+    } else {
+      const loginOverlay = document.getElementById('loginOverlay');
+      if (loginOverlay) loginOverlay.classList.add('open');
+    }
     return;
   }
 
@@ -1220,6 +1228,7 @@ function setupAuth() {
   const modalSubtitle = document.getElementById('modalSubtitle');
 
   let authMode = 'signin'; // 'signin' or 'signup'
+  let activeSignInTitle = 'Welcome back';
 
   function setAuthMode(mode) {
     authMode = mode;
@@ -1240,7 +1249,7 @@ function setupAuth() {
       setTimeout(() => loginUsername.focus(), 100);
     } else {
       // signin
-      modalTitle.textContent = 'Welcome back';
+      modalTitle.textContent = activeSignInTitle;
       modalSubtitle.textContent = 'Sign in with your username and password.';
       loginUsername.style.display = 'block';
       loginUsername.placeholder = 'Enter username';
@@ -1265,14 +1274,19 @@ function setupAuth() {
     }
   });
 
-  // Show login modal
-  loginBtn.addEventListener('click', () => {
+  // Expose function globally so guest timer can trigger it
+  globalOpenAuthModal = function(mode, customTitle = null) {
+    activeSignInTitle = customTitle || 'Welcome back';
     loginOverlay.classList.add('open');
-    setAuthMode('signin');
-    
+    setAuthMode(mode);
     loginUsername.value = '';
     loginPassword.value = '';
     loginError.style.display = 'none';
+  };
+
+  // Show login modal
+  loginBtn.addEventListener('click', () => {
+    globalOpenAuthModal('signin', 'Welcome back');
     setTimeout(() => loginUsername.focus(), 300);
   });
 
@@ -1284,15 +1298,6 @@ function setupAuth() {
   loginOverlay.addEventListener('click', (e) => {
     if (e.target === loginOverlay) loginOverlay.classList.remove('open');
   });
-
-  // Expose function globally so guest timer can trigger it
-  globalOpenAuthModal = function(mode) {
-    loginOverlay.classList.add('open');
-    setAuthMode(mode);
-    loginUsername.value = '';
-    loginPassword.value = '';
-    loginError.style.display = 'none';
-  };
 
   // Attempt Login / Sign Up
   async function attemptAuth() {
@@ -1742,8 +1747,12 @@ function attachEventListeners() {
       if (e.target.classList.contains('btn-comment-login-trigger')) {
         e.preventDefault();
         e.stopPropagation();
-        const loginOverlay = document.getElementById('loginOverlay');
-        if (loginOverlay) loginOverlay.classList.add('open');
+        if (globalOpenAuthModal) {
+          globalOpenAuthModal('signin', 'Sign in to continue');
+        } else {
+          const loginOverlay = document.getElementById('loginOverlay');
+          if (loginOverlay) loginOverlay.classList.add('open');
+        }
         return;
       }
 
