@@ -126,6 +126,33 @@
           <button type="button" class="btn-admin-cancel" id="adminCancelBtn">Cancel</button>
         </div>
       </form>
+      
+      <!-- Requested Topics sub-section for Admin -->
+      <div class="admin-requests-box" id="adminRequestsBox" style="display: none;">
+        <h3 class="admin-requests-title">Topic Requests</h3>
+        <ul class="admin-requests-list" id="adminRequestsList">
+          <!-- Dynamically populated -->
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===================== REQUEST PANEL ===================== -->
+    <section class="request-section" id="requestSection">
+      <div class="request-card">
+        <h2 class="request-title">Request a Take</h2>
+        <p class="request-subtitle">Got a topic or question you'd like to hear my thoughts on? Let me know.</p>
+        <form class="request-form" id="requestForm" onsubmit="return false;">
+          <input type="text" class="request-name" placeholder="Your name" id="requestName">
+          <div class="textarea-wrapper">
+            <textarea class="request-question" id="requestQuestionText" placeholder="What question do you want my take on?" required></textarea>
+            <button type="button" class="btn-submit-circle" id="requestSubmitBtn" title="Submit request">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
     </section>
 
     <!-- ===================== ENTRIES ===================== -->

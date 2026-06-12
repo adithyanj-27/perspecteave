@@ -1219,6 +1219,18 @@ function updateCommentForms(session) {
       }
     }
   });
+
+  const requestNameInput = document.getElementById('requestName');
+  if (requestNameInput) {
+    if (loggedIn) {
+      requestNameInput.value = username;
+      requestNameInput.style.display = 'none';
+    } else {
+      requestNameInput.value = '';
+      requestNameInput.style.display = 'block';
+      requestNameInput.placeholder = 'Your name';
+    }
+  }
 }
 
 async function updateAuthUI(session) {
@@ -1292,14 +1304,28 @@ async function updateAuthUI(session) {
     // Hide New Post button if signed-in user is not the admin
     if (adminLoggedIn) {
       newPostBtn.style.display = 'flex';
+      const adminRequestsBox = document.getElementById('adminRequestsBox');
+      if (adminRequestsBox) adminRequestsBox.style.display = 'block';
+      const requestSection = document.getElementById('requestSection');
+      if (requestSection) requestSection.style.display = 'none';
+      renderAdminRequests();
     } else {
       newPostBtn.style.display = 'none';
+      const adminRequestsBox = document.getElementById('adminRequestsBox');
+      if (adminRequestsBox) adminRequestsBox.style.display = 'none';
+      const requestSection = document.getElementById('requestSection');
+      if (requestSection) requestSection.style.display = 'block';
     }
   } else {
     loginBtn.style.display = 'flex';
     if (profileWidget) profileWidget.style.display = 'none';
     newPostBtn.style.display = 'none';
     panel.classList.remove('open');
+    
+    const adminRequestsBox = document.getElementById('adminRequestsBox');
+    if (adminRequestsBox) adminRequestsBox.style.display = 'none';
+    const requestSection = document.getElementById('requestSection');
+    if (requestSection) requestSection.style.display = 'block';
   }
 }
 
@@ -2013,6 +2039,226 @@ function setupVerification() {
   }
 }
 
+// ---- Topic Requests logic ----
+let appRequests = [];
+const REQUESTS_KEY = 'perspecteave_topic_requests';
+
+async function loadTopicRequests() {
+  if (isConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('topic_requests')
+        .select('*')
+        .order('id', { ascending: false });
+      if (!error && data) {
+        appRequests = data;
+        return;
+      }
+    } catch (err) {
+      console.warn('Could not load from topic_requests table, using local storage fallback:', err);
+    }
+  }
+  appRequests = JSON.parse(localStorage.getItem(REQUESTS_KEY) || '[]');
+}
+
+async function submitTopicRequest() {
+  const nameInput = document.getElementById('requestName');
+  const questionInput = document.getElementById('requestQuestionText');
+  const btn = document.getElementById('requestSubmitBtn');
+  
+  const question = (questionInput.value || '').trim();
+  if (!question) {
+    questionInput.style.borderColor = 'var(--accent-tea)';
+    questionInput.focus();
+    setTimeout(() => { questionInput.style.borderColor = ''; }, 1500);
+    return;
+  }
+  
+  let name = '';
+  const loggedIn = isLoggedIn(currentSession);
+  if (loggedIn) {
+    name = getCurrentUsername(currentSession);
+  } else {
+    name = (nameInput.value || '').trim();
+    if (!name) {
+      nameInput.style.borderColor = 'var(--accent-tea)';
+      nameInput.focus();
+      setTimeout(() => { nameInput.style.borderColor = ''; }, 1500);
+      alert('Please enter your name to submit a request.');
+      return;
+    }
+  }
+  
+  btn.disabled = true;
+  
+  if (isConfigured) {
+    try {
+      const { error } = await supabase
+        .from('topic_requests')
+        .insert({ name, question });
+      if (!error) {
+        questionInput.value = '';
+        if (!loggedIn) nameInput.value = '';
+        
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        `;
+        btn.style.backgroundColor = 'var(--accent-matcha)';
+        btn.style.color = '#FFFFFF';
+        
+        setTimeout(() => {
+          btn.innerHTML = origHTML;
+          btn.style.backgroundColor = '';
+          btn.style.color = '';
+          btn.disabled = false;
+        }, 1800);
+        
+        alert('Thank you! Your request has been submitted to Adithyan.');
+        await loadTopicRequests();
+        renderAdminRequests();
+        return;
+      }
+    } catch (err) {
+      console.warn('Could not insert to Supabase topic_requests, using local storage fallback:', err);
+    }
+  }
+  
+  const newRequest = {
+    id: Date.now(),
+    name,
+    question,
+    created_at: new Date().toISOString()
+  };
+  
+  appRequests.unshift(newRequest);
+  localStorage.setItem(REQUESTS_KEY, JSON.stringify(appRequests));
+  
+  questionInput.value = '';
+  if (!loggedIn) nameInput.value = '';
+  
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+  `;
+  btn.style.backgroundColor = 'var(--accent-matcha)';
+  btn.style.color = '#FFFFFF';
+  
+  setTimeout(() => {
+    btn.innerHTML = origHTML;
+    btn.style.backgroundColor = '';
+    btn.style.color = '';
+    btn.disabled = false;
+  }, 1800);
+  
+  alert('Thank you! Your request has been submitted to Adithyan.');
+  renderAdminRequests();
+}
+
+async function dismissRequest(requestId) {
+  if (isConfigured) {
+    try {
+      const { error } = await supabase
+        .from('topic_requests')
+        .delete()
+        .eq('id', requestId);
+      if (!error) {
+        await loadTopicRequests();
+        renderAdminRequests();
+        return;
+      }
+    } catch (err) {
+      console.warn('Could not delete from Supabase topic_requests:', err);
+    }
+  }
+  
+  appRequests = appRequests.filter(r => r.id !== requestId);
+  localStorage.setItem(REQUESTS_KEY, JSON.stringify(appRequests));
+  renderAdminRequests();
+}
+
+function startTakeFromRequest(question) {
+  const adminQuestionInput = document.getElementById('adminQuestion');
+  if (adminQuestionInput) {
+    adminQuestionInput.value = question;
+    adminQuestionInput.focus();
+    
+    // Open admin panel if closed
+    const panel = document.getElementById('adminPanel');
+    if (panel && !panel.classList.contains('open')) {
+      panel.classList.add('open');
+    }
+    
+    adminQuestionInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function renderAdminRequests() {
+  const listEl = document.getElementById('adminRequestsList');
+  if (!listEl) return;
+  
+  if (appRequests.length === 0) {
+    listEl.innerHTML = '<li style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-muted); list-style:none;">No requests yet.</li>';
+    return;
+  }
+  
+  listEl.innerHTML = appRequests.map(req => {
+    const timeStr = req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Just now';
+    return `
+      <li class="admin-request-item">
+        <div class="admin-request-content">
+          <div class="admin-request-text">${escapeHTML(req.question)}</div>
+          <div class="admin-request-meta">Requested by: <strong>${escapeHTML(req.name || 'Anonymous')}</strong> • ${timeStr}</div>
+        </div>
+        <div class="admin-request-actions">
+          <button type="button" class="btn-request-action btn-request-write" data-question="${escapeHTML(req.question)}">Write Take</button>
+          <button type="button" class="btn-request-action btn-request-dismiss" data-request-id="${req.id}">Dismiss</button>
+        </div>
+      </li>
+    `;
+  }).join('');
+  
+  listEl.querySelectorAll('.btn-request-write').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const q = e.target.dataset.question;
+      startTakeFromRequest(q);
+    });
+  });
+  
+  listEl.querySelectorAll('.btn-request-dismiss').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const reqId = Number(e.target.dataset.requestId);
+      if (confirm('Are you sure you want to dismiss this request?')) {
+        await dismissRequest(reqId);
+      }
+    });
+  });
+}
+
+function setupRequestForm() {
+  const submitBtn = document.getElementById('requestSubmitBtn');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      submitTopicRequest();
+    });
+  }
+
+  const questionTextarea = document.getElementById('requestQuestionText');
+  if (questionTextarea) {
+    questionTextarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitTopicRequest();
+      }
+    });
+  }
+}
+
 // ---- Initialization ----
 async function init() {
   // Load posts
@@ -2020,6 +2266,9 @@ async function init() {
 
   // Load comments
   appComments = await fetchComments();
+
+  // Load topic requests
+  await loadTopicRequests();
 
   // Initialize session if configured
   if (isConfigured) {
@@ -2029,6 +2278,7 @@ async function init() {
 
   setupAuth();
   setupVerification();
+  setupRequestForm();
 
   // Trigger initial UI render based on current auth state
   await updateAuthUI(currentSession);
