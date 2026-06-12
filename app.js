@@ -1529,7 +1529,9 @@ function setupAuth() {
     panel.classList.toggle('open');
     if (panel.classList.contains('open')) {
       qInput.focus();
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setTimeout(() => {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
     }
   });
 
@@ -2048,11 +2050,18 @@ function startTakeFromRequest(question) {
     
     // Open admin panel if closed
     const panel = document.getElementById('adminPanel');
-    if (panel && !panel.classList.contains('open')) {
+    const wasClosed = panel && !panel.classList.contains('open');
+    if (wasClosed) {
       panel.classList.add('open');
     }
     
-    adminQuestionInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (wasClosed) {
+      setTimeout(() => {
+        adminQuestionInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+    } else {
+      adminQuestionInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 
   // Close messages dropdown if open
