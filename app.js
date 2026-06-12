@@ -1057,7 +1057,7 @@ function isLoggedIn(session) {
 function isAdmin(session) {
   if (!isLoggedIn(session)) return false;
   const username = getCurrentUsername(session);
-  return username && username.toLowerCase() === 'teaboy27';
+  return username && (username.toLowerCase() === 'teaboy27' || username.toLowerCase() === 'teaboy');
 }
 
 // Update comment inputs to show username if logged in
@@ -1305,11 +1305,12 @@ function setupAuth() {
       const mockUsers = JSON.parse(localStorage.getItem('perspecteave_mock_users') || '[]');
       if (authMode === 'signin') {
         const found = mockUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+        const isDefaultAdmin = (username.toLowerCase() === 'teaboy27' || username.toLowerCase() === 'teaboy') && password === 'perspecteave';
         
-        if (username.toLowerCase() === 'teaboy27' && password === 'perspecteave') {
+        if (isDefaultAdmin) {
           sessionStorage.setItem('perspecteave_auth_session', 'true');
-          sessionStorage.setItem('perspecteave_auth_username', 'teaboy27');
-          sessionStorage.setItem('perspecteave_auth_email', 'teaboy27@perspecteave.local');
+          sessionStorage.setItem('perspecteave_auth_username', username.toLowerCase() === 'teaboy' ? 'teaboy' : 'teaboy27');
+          sessionStorage.setItem('perspecteave_auth_email', username.toLowerCase() === 'teaboy' ? 'teaboy@perspecteave.local' : 'teaboy27@perspecteave.local');
           sessionStorage.setItem('perspecteave_auth_verified', 'true');
           loginOverlay.classList.remove('open');
           
@@ -1338,7 +1339,8 @@ function setupAuth() {
         }
       } else {
         // Mockup Signup
-        if (mockUsers.some(u => u.username.toLowerCase() === username.toLowerCase()) || username.toLowerCase() === 'teaboy27') {
+        const isReserved = username.toLowerCase() === 'teaboy27' || username.toLowerCase() === 'teaboy';
+        if (mockUsers.some(u => u.username.toLowerCase() === username.toLowerCase()) || isReserved) {
           loginError.textContent = 'This username is already taken. Please try another one.';
           loginError.style.display = 'block';
           return;
@@ -1401,7 +1403,14 @@ function setupAuth() {
           if (error) throw error;
           
           if (!data.session) {
-            throw new Error('This username is already taken. Please try another one.');
+            // Check if username is already taken by checking identities
+            const isTaken = data.user && data.user.identities && data.user.identities.length === 0;
+            if (isTaken) {
+              throw new Error('This username is already taken. Please try another one.');
+            } else {
+              // Sign up succeeded, but email confirmation is required by Supabase settings
+              throw new Error("Signup successful, but email confirmation is enabled in Supabase! Please disable 'Confirm email' under Auth -> Providers -> Email in your Supabase dashboard to allow instant username/password login.");
+            }
           }
 
           currentSession = data.session;
