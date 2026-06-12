@@ -611,20 +611,6 @@ header {
   letter-spacing: -0.1px;
 }
 
-.waving-hand-svg {
-  vertical-align: middle;
-  margin-left: 6px;
-  display: inline-block;
-  transform: scaleX(-1) rotate(25deg);
-  color: var(--accent-tea);
-  transition: color 0.3s ease, transform 0.3s var(--ease-spring);
-  transform-origin: center;
-}
-
-.waving-hand-svg:hover {
-  color: var(--accent-matcha);
-  transform: scaleX(-1) rotate(30deg) scale(1.08);
-}
 
 .intro p {
   font-size: 1.05rem;
