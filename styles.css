@@ -734,6 +734,9 @@ header {
 
 .entry.expanded .question {
   font-size: 1.65rem; /* Larger font size when expanded */
+}
+
+.entry.expanded .entry-summary {
   margin-bottom: var(--space-md);
 }
 
