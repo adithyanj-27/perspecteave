@@ -1752,22 +1752,22 @@ footer {
 }
 
 .asmr-text-pop.disagree {
-  font-size: 2.2rem;
-  color: #E05C5C;
-  font-weight: 800;
-  text-transform: uppercase;
-  border: 2px solid #E05C5C;
-  background: #FFF5F5;
-  box-shadow: 0 15px 45px rgba(224, 92, 92, 0.45);
-  padding: 12px 24px;
-  letter-spacing: 1.5px;
-  animation: textPopFadeLarge 1.75s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+  font-size: 1.35rem;
+  color: var(--accent-tea);
+  font-weight: 600;
+  border: 1px solid var(--accent-amber-light);
+  background: rgba(254, 250, 245, 0.98);
+  box-shadow: var(--shadow-md);
+  padding: 8px 16px;
+  letter-spacing: 0.5px;
+  animation: textPopFadeLarge 1.75s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }
 
 @keyframes textPopFadeLarge {
-  0% { transform: translate(-50%, -50%) scale(0.4) translateY(0); opacity: 0; }
-  15% { transform: translate(-50%, -50%) scale(1.6) translateY(-20px); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(0.9) translateY(-145px); opacity: 0; }
+  0% { transform: translate(-50%, -50%) scale(0.92) translateY(0); opacity: 0; }
+  25% { transform: translate(-50%, -50%) scale(1.0) translateY(-8px); opacity: 1; }
+  75% { transform: translate(-50%, -50%) scale(1.0) translateY(-20px); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.97) translateY(-32px); opacity: 0; }
 }
 
 @keyframes particleFade {
