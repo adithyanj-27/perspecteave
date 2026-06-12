@@ -205,15 +205,17 @@ function escapeHTML(str) {
 
 // ---- Local Comment Ownership Helpers ----
 function canEditComment(commentId, authorName) {
-  const myComments = JSON.parse(localStorage.getItem('perspecteave_my_comments') || '[]');
+  const username = isLoggedIn(currentSession) ? getCurrentUsername(currentSession) : 'guest';
+  const key = `perspecteave_my_comments_${username}`;
+  const myComments = JSON.parse(localStorage.getItem(key) || '[]');
   const idStr = String(commentId);
   if (myComments.map(String).includes(idStr)) return true;
   
   // Also check if logged in as the author of the comment
   const loggedIn = isLoggedIn(currentSession);
   if (loggedIn && authorName) {
-    const username = getCurrentUsername(currentSession);
-    if (username && username.trim().toLowerCase() === authorName.trim().toLowerCase()) {
+    const activeUser = getCurrentUsername(currentSession);
+    if (activeUser && activeUser.trim().toLowerCase() === authorName.trim().toLowerCase()) {
       return true;
     }
   }
@@ -221,17 +223,21 @@ function canEditComment(commentId, authorName) {
 }
 
 function saveCommentOwnership(commentId) {
-  const myComments = JSON.parse(localStorage.getItem('perspecteave_my_comments') || '[]');
+  const username = isLoggedIn(currentSession) ? getCurrentUsername(currentSession) : 'guest';
+  const key = `perspecteave_my_comments_${username}`;
+  const myComments = JSON.parse(localStorage.getItem(key) || '[]');
   const idStr = String(commentId);
   if (!myComments.map(String).includes(idStr)) {
     myComments.push(commentId);
-    localStorage.setItem('perspecteave_my_comments', JSON.stringify(myComments));
+    localStorage.setItem(key, JSON.stringify(myComments));
   }
 }
 
 function hasSubmittedComment(postId) {
   const postComments = appComments[postId] || [];
-  const myComments = JSON.parse(localStorage.getItem('perspecteave_my_comments') || '[]');
+  const username = isLoggedIn(currentSession) ? getCurrentUsername(currentSession) : 'guest';
+  const key = `perspecteave_my_comments_${username}`;
+  const myComments = JSON.parse(localStorage.getItem(key) || '[]');
   
   // Check local storage ownership
   const hasLocalOwnership = postComments.some(c => myComments.map(String).includes(String(c.id)));
@@ -240,10 +246,10 @@ function hasSubmittedComment(postId) {
   // Check if logged-in user matches any comment author name
   const loggedIn = isLoggedIn(currentSession);
   if (loggedIn) {
-    const username = getCurrentUsername(currentSession);
-    if (username) {
+    const activeUser = getCurrentUsername(currentSession);
+    if (activeUser) {
       const hasNamedComment = postComments.some(c => 
-        c.name && c.name.trim().toLowerCase() === username.trim().toLowerCase()
+        c.name && c.name.trim().toLowerCase() === activeUser.trim().toLowerCase()
       );
       if (hasNamedComment) return true;
     }
