@@ -1618,86 +1618,18 @@ footer {
   .perspective::before {
     left: -1.0rem;
   }
+
+  .request-dropdown {
+    width: 280px;
+    right: -10px;
+  }
+  
+  .request-dropdown::before {
+    right: 34px;
+  }
 }
 
-/* ============================================
-   Locked Entries & Verification Paywall Styles
-   ============================================ */
-.entry-body.locked {
-  position: relative;
-  overflow: hidden;
-  min-height: 220px;
-}
-
-.locked-content-blur {
-  filter: blur(8px);
-  opacity: 0.35;
-  user-select: none;
-  pointer-events: none;
-  padding: var(--space-md);
-}
-
-.lock-overlay-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(250, 247, 242, 0.65);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  z-index: 10;
-  padding: var(--space-md);
-}
-
-.lock-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-  padding: var(--space-lg);
-  text-align: center;
-  max-width: 380px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-sm);
-  animation: lockCardPop 0.4s var(--ease-spring);
-}
-
-@keyframes lockCardPop {
-  0% { transform: scale(0.9) translateY(10px); opacity: 0; }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
-}
-
-.lock-icon-container {
-  color: var(--accent-tea);
-  background: rgba(214, 142, 73, 0.08);
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--space-xs);
-}
-
-.lock-card h3 {
-  font-family: var(--font-body);
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.lock-card p {
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
+/* Legacy Locked Entries and Verification Paywall Styles removed. All posts unlocked. */
 
 .btn-verify-trigger-inline {
   background: var(--accent-matcha);
@@ -1832,49 +1764,61 @@ footer {
 /* ============================================
    REQUEST A PERSPECTIVE PANEL
    ============================================ */
-.request-section {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.4s var(--ease-out), opacity 0.3s var(--ease-out), padding 0.3s ease, margin 0.3s ease;
-  padding: 0;
-  margin: 0 auto 0;
-  max-width: 680px;
+/* ============================================
+   REQUEST A PERSPECTIVE PANEL (DROPDOWN)
+   ============================================ */
+.ask-author-wrapper {
+  position: relative;
+  display: inline-block;
 }
 
-.request-section.open {
-  max-height: 400px;
-  opacity: 1;
-  padding: 0 var(--space-md);
-  margin: 0 auto var(--space-xl);
-}
-
-.request-card {
+.request-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 320px;
   background: var(--bg-card);
   border: 1px solid var(--accent-tea);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg) var(--space-xl);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-glow);
-  transition: box-shadow 0.3s ease;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  z-index: 100;
+  transform: translateY(10px) scale(0.95);
+  transform-origin: top right;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease-out), transform 0.25s var(--ease-spring);
 }
 
-.request-card:hover {
-  box-shadow: var(--shadow-md);
+.request-dropdown.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
 }
 
-.request-title {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: var(--space-xs);
+.request-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 24px;
+  width: 12px;
+  height: 12px;
+  background: var(--bg-card);
+  border-left: 1px solid var(--accent-tea);
+  border-top: 1px solid var(--accent-tea);
+  transform: rotate(45deg);
+  z-index: 1;
 }
 
 .request-subtitle {
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
-  margin-bottom: var(--space-md);
+  line-height: 1.4;
+  margin-bottom: var(--space-xs);
   font-weight: 300;
 }
 

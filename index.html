@@ -48,15 +48,30 @@
           <span>New Post</span>
         </button>
 
-        <!-- Ask the author button (shown when logged out or non-admin) -->
-        <button class="btn-ask-author" id="askAuthorBtn" style="display: none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-          <span>Ask the author</span>
-        </button>
+        <!-- Ask the author button and dropdown wrapper (shown when logged out or non-admin) -->
+        <div class="ask-author-wrapper" id="askAuthorWrapper" style="display: none;">
+          <button class="btn-ask-author" id="askAuthorBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>Ask the author</span>
+          </button>
+          
+          <div class="request-dropdown" id="requestDropdown">
+            <p class="request-subtitle">Got a topic or question you'd like to hear my thoughts on? Let me know.</p>
+            <form class="request-form" id="requestForm" onsubmit="return false;">
+              <input type="text" class="request-name" placeholder="Your name" id="requestName">
+              <div class="textarea-wrapper">
+                <textarea class="request-question" id="requestQuestionText" placeholder="What question do you want my take on?" required></textarea>
+                <button type="button" class="btn-submit-circle" id="requestSubmitBtn" title="Submit request">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </nav>
 
@@ -66,34 +81,33 @@
         <h2 class="modal-title" id="modalTitle">Welcome back</h2>
         <p class="modal-subtitle" id="modalSubtitle">Sign in to manage your perspectives.</p>
         <form class="login-form" id="loginForm" onsubmit="return false;">
-          <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="nickname" style="display: none;">
-          <input type="email" id="loginEmail" placeholder="Enter email" autocomplete="username">
-          <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password">
-          <p class="login-error" id="loginError">Incorrect email or password</p>
+          <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username" required>
+          <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password" required>
+          <p class="login-error" id="loginError">Incorrect username or password</p>
           <button type="button" class="btn-login-submit" id="loginSubmitBtn">Sign in</button>
         </form>
         <div class="modal-toggle-wrapper" style="display: flex; flex-direction: column; gap: var(--space-xs); align-items: center;">
           <a href="#" class="modal-toggle-link" id="modalToggleLink">Don't have an account? Sign up</a>
-          <a href="#" class="modal-toggle-link" id="modalGuestToggleLink" style="color: var(--accent-tea); font-size: 0.82rem; margin-top: 4px;">Sign up as Guest</a>
         </div>
         <button class="modal-close" id="loginCloseBtn">×</button>
       </div>
     </div>
 
-    <!-- ===================== VERIFICATION MODAL ===================== -->
-    <div class="modal-overlay" id="verifyOverlay">
-      <div class="modal-card">
-        <h2 class="modal-title">Verify your email</h2>
-        <p class="modal-subtitle" id="verifyModalSubtitle">We've sent a 6-digit verification code to your email.</p>
-        <form class="login-form" id="verifyForm" onsubmit="return false;">
-          <input type="text" id="verifyCode" placeholder="Enter 6-digit code" maxlength="6" autocomplete="one-time-code">
-          <p class="login-error" id="verifyError">Incorrect verification code</p>
-          <button type="button" class="btn-login-submit" id="verifySubmitBtn">Verify Code</button>
-        </form>
-        <div class="modal-toggle-wrapper">
-          <a href="#" class="modal-toggle-link" id="verifyResendLink">Resend code</a>
+    <!-- ===================== TIME LIMIT LOCK OVERLAY ===================== -->
+    <div class="modal-overlay" id="timeLockOverlay">
+      <div class="modal-card" style="text-align: center;">
+        <div class="lock-icon-container" style="margin: 0 auto var(--space-md); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: rgba(214, 142, 73, 0.1); border-radius: 50%; color: var(--accent-tea);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
         </div>
-        <button class="modal-close" id="verifyCloseBtn">×</button>
+        <h2 class="modal-title">Time's up! ☕</h2>
+        <p class="modal-subtitle">You've been reading for 10 minutes. Sign up or log in to continue reading all perspectives and participate in discussions.</p>
+        <div style="display: flex; flex-direction: column; gap: var(--space-sm); width: 100%; margin-top: var(--space-md);">
+          <button type="button" class="btn-login-submit" id="timeLockSignupBtn">Create Account</button>
+          <button type="button" class="btn-login-submit" id="timeLockLoginBtn" style="background: transparent; border: 1px solid var(--accent-matcha); color: var(--accent-matcha);">Already have an account? Sign in</button>
+        </div>
       </div>
     </div>
 
@@ -148,23 +162,7 @@
     </section>
 
     <!-- ===================== REQUEST PANEL ===================== -->
-    <section class="request-section" id="requestSection">
-      <div class="request-card">
-        <h2 class="request-title">Request a Take</h2>
-        <p class="request-subtitle">Got a topic or question you'd like to hear my thoughts on? Let me know.</p>
-        <form class="request-form" id="requestForm" onsubmit="return false;">
-          <input type="text" class="request-name" placeholder="Your name" id="requestName">
-          <div class="textarea-wrapper">
-            <textarea class="request-question" id="requestQuestionText" placeholder="What question do you want my take on?" required></textarea>
-            <button type="button" class="btn-submit-circle" id="requestSubmitBtn" title="Submit request">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </button>
-          </div>
-        </form>
-      </div>
-    </section>
+    <!-- Legacy request section removed in favor of top-bar dropdown -->
 
     <!-- ===================== ENTRIES ===================== -->
     <main>
@@ -174,8 +172,8 @@
     <!-- ===================== FOOTER ===================== -->
     <footer>
       <div class="footer-contact">
-        <a href="mailto:hello@perspecteave.com">
-          <span>✉</span> hello@perspecteave.com
+        <a href="mailto:adithyanjayaraj2007@gmail.com">
+          <span>✉</span> Contact the author
         </a>
       </div>
       <p class="footer-copy">© 2026 PerspecTEAve. All perspectives welcome.</p>
