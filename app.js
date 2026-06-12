@@ -726,6 +726,9 @@ function renderComments(entryId, comments) {
 
 // ---- Get current logged-in username ----
 function getCurrentUsername(session) {
+  if (sessionStorage.getItem('perspecteave_auth_is_guest') === 'true') {
+    return sessionStorage.getItem('perspecteave_auth_username') || 'Guest';
+  }
   if (isConfigured) {
     return session?.user?.user_metadata?.username || session?.user?.email || 'Anonymous';
   }
@@ -1185,6 +1188,9 @@ async function deletePost(entryId) {
 
 // ---- Auth Helpers ----
 function isLoggedIn(session) {
+  if (sessionStorage.getItem('perspecteave_auth_is_guest') === 'true') {
+    return true;
+  }
   if (isConfigured) {
     return !!session;
   }
@@ -1349,46 +1355,99 @@ function setupAuth() {
   const qInput = document.getElementById('adminQuestion');
   const pInput = document.getElementById('adminPerspective');
   const modalToggleLink = document.getElementById('modalToggleLink');
+  const modalGuestToggleLink = document.getElementById('modalGuestToggleLink');
   const modalTitle = document.getElementById('modalTitle');
   const modalSubtitle = document.getElementById('modalSubtitle');
 
-  let authMode = 'signin'; // 'signin' or 'signup'
+  let authMode = 'signin'; // 'signin', 'signup', or 'guest_signup'
 
-  // Toggle between Sign In and Sign Up modes
-  modalToggleLink.addEventListener('click', (e) => {
-    e.preventDefault();
+  function setAuthMode(mode) {
+    authMode = mode;
     loginError.style.display = 'none';
-    if (authMode === 'signin') {
-      authMode = 'signup';
+
+    if (authMode === 'guest_signup') {
+      modalTitle.textContent = 'Sign up as Guest';
+      modalSubtitle.textContent = 'Enter a guest name to comment and vote.';
+      loginUsername.style.display = 'block';
+      loginUsername.placeholder = 'Enter guest name';
+      loginUsername.required = true;
+      
+      loginEmail.style.display = 'none';
+      loginEmail.required = false;
+      loginPassword.style.display = 'none';
+      loginPassword.required = false;
+      
+      loginSubmitBtn.textContent = 'Sign up as Guest';
+      modalToggleLink.textContent = 'Already have an account? Sign in';
+      if (modalGuestToggleLink) {
+        modalGuestToggleLink.textContent = 'Sign up for a full verified account';
+      }
+      setTimeout(() => loginUsername.focus(), 100);
+    } else if (authMode === 'signup') {
       modalTitle.textContent = 'Create account';
       modalSubtitle.textContent = 'Sign up to lock in a username. We will send an OTP code to verify your email.';
       loginUsername.style.display = 'block';
+      loginUsername.placeholder = 'Enter username';
       loginUsername.required = true;
+      
+      loginEmail.style.display = 'block';
+      loginEmail.required = true;
+      loginPassword.style.display = 'block';
+      loginPassword.required = true;
+      
       loginSubmitBtn.textContent = 'Sign up';
       modalToggleLink.textContent = 'Already have an account? Sign in';
+      if (modalGuestToggleLink) {
+        modalGuestToggleLink.textContent = 'Sign up as Guest';
+      }
       setTimeout(() => loginUsername.focus(), 100);
     } else {
-      authMode = 'signin';
+      // signin
       modalTitle.textContent = 'Welcome back';
       modalSubtitle.textContent = 'Sign in with your email and password.';
       loginUsername.style.display = 'none';
       loginUsername.required = false;
+      
+      loginEmail.style.display = 'block';
+      loginEmail.required = true;
+      loginPassword.style.display = 'block';
+      loginPassword.required = true;
+      
       loginSubmitBtn.textContent = 'Sign in';
       modalToggleLink.textContent = "Don't have an account? Sign up";
+      if (modalGuestToggleLink) {
+        modalGuestToggleLink.textContent = 'Sign up as Guest';
+      }
       setTimeout(() => loginEmail.focus(), 100);
     }
+  }
+
+  // Toggle standard Sign In / Sign Up
+  modalToggleLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (authMode === 'signin') {
+      setAuthMode('signup');
+    } else {
+      setAuthMode('signin');
+    }
   });
+
+  // Toggle Guest Sign Up
+  if (modalGuestToggleLink) {
+    modalGuestToggleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (authMode === 'guest_signup') {
+        setAuthMode('signup');
+      } else {
+        setAuthMode('guest_signup');
+      }
+    });
+  }
 
   // Show login modal
   loginBtn.addEventListener('click', () => {
     loginOverlay.classList.add('open');
-    authMode = 'signin';
-    modalTitle.textContent = 'Welcome back';
-    modalSubtitle.textContent = 'Sign in with your email and password.';
-    loginUsername.style.display = 'none';
-    loginUsername.required = false;
-    loginSubmitBtn.textContent = 'Sign in';
-    modalToggleLink.textContent = "Don't have an account? Sign up";
+    setAuthMode('signin');
     
     loginUsername.value = '';
     loginEmail.value = '';
@@ -1411,6 +1470,25 @@ function setupAuth() {
     const email = loginEmail.value.trim();
     const password = loginPassword.value;
     const username = loginUsername.value.trim();
+
+    if (authMode === 'guest_signup') {
+      if (!username) {
+        loginError.textContent = 'Please enter a guest name';
+        loginError.style.display = 'block';
+        loginUsername.focus();
+        return;
+      }
+      
+      sessionStorage.setItem('perspecteave_auth_session', 'true');
+      sessionStorage.setItem('perspecteave_auth_username', username);
+      sessionStorage.setItem('perspecteave_auth_email', 'guest@perspecteave.com');
+      sessionStorage.setItem('perspecteave_auth_verified', 'false');
+      sessionStorage.setItem('perspecteave_auth_is_guest', 'true');
+      
+      loginOverlay.classList.remove('open');
+      updateAuthUI();
+      return;
+    }
 
     if (authMode === 'signup' && !username) {
       loginError.textContent = 'Please enter a username';
@@ -1568,16 +1646,21 @@ function setupAuth() {
   dropdownLogoutBtn.addEventListener('click', async () => {
     if (profileDropdown) profileDropdown.classList.remove('open');
     if (profileTrigger) profileTrigger.classList.remove('active');
-    if (!isConfigured) {
-      sessionStorage.removeItem('perspecteave_auth_session');
-      sessionStorage.removeItem('perspecteave_auth_username');
-      sessionStorage.removeItem('perspecteave_auth_email');
-      sessionStorage.removeItem('perspecteave_auth_verified');
-      panel.classList.remove('open');
-      updateAuthUI();
-    } else {
+    
+    const wasGuest = sessionStorage.getItem('perspecteave_auth_is_guest') === 'true';
+    
+    sessionStorage.removeItem('perspecteave_auth_session');
+    sessionStorage.removeItem('perspecteave_auth_username');
+    sessionStorage.removeItem('perspecteave_auth_email');
+    sessionStorage.removeItem('perspecteave_auth_verified');
+    sessionStorage.removeItem('perspecteave_auth_is_guest');
+    
+    panel.classList.remove('open');
+    
+    if (isConfigured && !wasGuest) {
       await supabase.auth.signOut();
-      panel.classList.remove('open');
+    } else {
+      updateAuthUI();
     }
   });
 
