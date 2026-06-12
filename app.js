@@ -1057,7 +1057,7 @@ function isLoggedIn(session) {
 function isAdmin(session) {
   if (!isLoggedIn(session)) return false;
   const username = getCurrentUsername(session);
-  return username && (username.toLowerCase() === 'teaboy27' || username.toLowerCase() === 'teaboy');
+  return username && username.toLowerCase() === 'teaboy27';
 }
 
 // Update comment inputs to show username if logged in
@@ -1305,12 +1305,11 @@ function setupAuth() {
       const mockUsers = JSON.parse(localStorage.getItem('perspecteave_mock_users') || '[]');
       if (authMode === 'signin') {
         const found = mockUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
-        const isDefaultAdmin = (username.toLowerCase() === 'teaboy27' || username.toLowerCase() === 'teaboy') && password === 'perspecteave';
         
-        if (isDefaultAdmin) {
+        if (username.toLowerCase() === 'teaboy27' && password === 'perspecteave') {
           sessionStorage.setItem('perspecteave_auth_session', 'true');
-          sessionStorage.setItem('perspecteave_auth_username', username.toLowerCase() === 'teaboy' ? 'teaboy' : 'teaboy27');
-          sessionStorage.setItem('perspecteave_auth_email', username.toLowerCase() === 'teaboy' ? 'teaboy@perspecteave.local' : 'teaboy27@perspecteave.local');
+          sessionStorage.setItem('perspecteave_auth_username', 'teaboy27');
+          sessionStorage.setItem('perspecteave_auth_email', 'teaboy27@perspecteave.local');
           sessionStorage.setItem('perspecteave_auth_verified', 'true');
           loginOverlay.classList.remove('open');
           
@@ -1339,8 +1338,7 @@ function setupAuth() {
         }
       } else {
         // Mockup Signup
-        const isReserved = username.toLowerCase() === 'teaboy27' || username.toLowerCase() === 'teaboy';
-        if (mockUsers.some(u => u.username.toLowerCase() === username.toLowerCase()) || isReserved) {
+        if (mockUsers.some(u => u.username.toLowerCase() === username.toLowerCase()) || username.toLowerCase() === 'teaboy27') {
           loginError.textContent = 'This username is already taken. Please try another one.';
           loginError.style.display = 'block';
           return;
