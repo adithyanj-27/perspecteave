@@ -604,7 +604,7 @@ function renderEntry(post, index) {
         <div class="reply-section ${replyOpenClass}" id="replySection-${post.id}">
           <h3 class="reply-section-title">Why do you disagree?</h3>
           <form class="reply-form" data-entry-id="${post.id}" onsubmit="return false;">
-            <input type="text" class="reply-name" placeholder="Your name (optional)">
+            <input type="text" class="reply-name" placeholder="Your name">
             <div class="textarea-wrapper">
               <textarea class="reply-text" placeholder="Write your counterpoint..."></textarea>
               <button type="button" class="btn-submit-circle btn-reply" data-entry-id="${post.id}" title="Submit criticism">
@@ -734,13 +734,6 @@ function getCurrentUsername(session) {
 
 // ---- Submit a reply ----
 async function submitReply(entryId) {
-  if (!isLoggedIn(currentSession)) {
-    alert('Please log in or sign up to comment and join the discussion.');
-    const loginOverlay = document.getElementById('loginOverlay');
-    if (loginOverlay) loginOverlay.classList.add('open');
-    return;
-  }
-
   const entry = document.querySelector(`.entry[data-entry-id="${entryId}"]`);
   const form = entry.querySelector(`.reply-form`);
   const nameInput = form.querySelector('.reply-name');
@@ -760,10 +753,25 @@ async function submitReply(entryId) {
   if (isConfigured) {
     const { data } = await supabase.auth.getSession();
     session = data.session;
+  } else {
+    session = currentSession;
   }
   
   const loggedIn = isLoggedIn(session);
-  const name = loggedIn ? getCurrentUsername(session) : ((nameInput.value || '').trim() || 'Anonymous');
+  let name = '';
+
+  if (loggedIn) {
+    name = getCurrentUsername(session);
+  } else {
+    name = (nameInput.value || '').trim();
+    if (!name) {
+      nameInput.style.borderColor = 'var(--accent-tea)';
+      nameInput.focus();
+      setTimeout(() => { nameInput.style.borderColor = ''; }, 1500);
+      alert('Please enter your name to post a comment.');
+      return;
+    }
+  }
 
   if (!isConfigured) {
     // Local fallback logic
@@ -953,13 +961,6 @@ async function saveCommentEdit(commentId) {
 
 // ---- Thumbs Up/Down Voting Logic ----
 async function toggleVote(entryId, voteType) {
-  if (!isLoggedIn(currentSession)) {
-    alert('Please log in or sign up to cast your vote and join the discussion.');
-    const loginOverlay = document.getElementById('loginOverlay');
-    if (loginOverlay) loginOverlay.classList.add('open');
-    return;
-  }
-
   const postIndex = appPosts.findIndex(x => x.id === entryId);
   if (postIndex === -1) return;
 
@@ -1210,12 +1211,11 @@ function updateCommentForms(session) {
     if (nameInput) {
       if (loggedIn) {
         nameInput.value = username;
-        nameInput.disabled = true;
-        nameInput.placeholder = 'Logged in';
+        nameInput.style.display = 'none';
       } else {
         nameInput.value = '';
-        nameInput.disabled = false;
-        nameInput.placeholder = 'Your name (optional)';
+        nameInput.style.display = 'block';
+        nameInput.placeholder = 'Your name';
       }
     }
   });
