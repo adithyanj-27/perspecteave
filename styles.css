@@ -611,25 +611,46 @@ header {
   letter-spacing: -0.1px;
 }
 
-.waving-hand {
+.waving-hand-svg {
+  vertical-align: middle;
+  margin-left: 6px;
   display: inline-block;
-  transform-origin: 70% 70%;
-  animation: wave-animation 2.5s infinite;
+  transform: rotate(15deg);
+  color: var(--accent-tea);
+  transition: color 0.3s ease, transform 0.3s var(--ease-spring);
 }
 
-.waving-hand:hover {
-  animation: wave-animation 1s infinite;
+.waving-hand-svg:hover {
+  color: var(--accent-matcha);
+  transform: rotate(25deg) scale(1.08);
 }
 
-@keyframes wave-animation {
-  0% { transform: rotate( 0.0deg) }
-  10% { transform: rotate(14.0deg) }
-  20% { transform: rotate(-8.0deg) }
-  30% { transform: rotate(14.0deg) }
-  40% { transform: rotate(-4.0deg) }
-  50% { transform: rotate(10.0deg) }
-  60% { transform: rotate( 0.0deg) }
-  100% { transform: rotate( 0.0deg) }
+.waving-hand-svg .wave-arc {
+  opacity: 0;
+  animation: wave-ripple 1.6s infinite ease-in-out;
+}
+
+.waving-hand-svg .arc-1 {
+  animation-delay: 0s;
+}
+
+.waving-hand-svg .arc-2 {
+  animation-delay: 0.4s;
+}
+
+@keyframes wave-ripple {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .intro p {
