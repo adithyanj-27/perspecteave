@@ -399,26 +399,15 @@ function renderEntry(post, index) {
         
         <!-- Static Perspective Content -->
         <div class="entry-static-view" id="entryStatic-${post.id}">
-          <p class="perspective">
-            ${(() => {
-              const fullText = post.perspective;
-              const charLimit = 800;
-              if (fullText.length > charLimit) {
-                const truncated = fullText.substring(0, charLimit);
-                return `
-                  <span class="perspective-text-truncated" id="perspectiveTruncated-${post.id}">
-                    ${escapeHTML(truncated)}...
-                    <a href="#" class="btn-read-more" data-entry-id="${post.id}">Read more</a>
-                  </span>
-                  <span class="perspective-text-full" id="perspectiveFull-${post.id}" style="display: none;">
-                    ${escapeHTML(fullText)}
-                  </span>
-                `;
-              }
-              return escapeHTML(fullText);
-            })()}
-            ${editInfo}
-          </p>
+          <p class="perspective">${(() => {
+            const fullText = post.perspective;
+            const charLimit = 800;
+            if (fullText.length > charLimit) {
+              const truncated = fullText.substring(0, charLimit);
+              return `<span class="perspective-text-truncated" id="perspectiveTruncated-${post.id}">${escapeHTML(truncated)}...<a href="#" class="btn-read-more" data-entry-id="${post.id}">Read more</a></span><span class="perspective-text-full" id="perspectiveFull-${post.id}" style="display: none;">${escapeHTML(fullText)}</span>`;
+            }
+            return escapeHTML(fullText);
+          })()}${editInfo}</p>
           
           <!-- Admin actions (only visible to admin) -->
           <div class="entry-admin-actions" data-entry-id="${post.id}">
