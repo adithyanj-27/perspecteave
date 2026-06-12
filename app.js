@@ -253,19 +253,23 @@ function hasSubmittedComment(postId) {
 
 // ---- Local Votes Toggling Helpers ----
 function getPostVote(postId) {
-  const votes = JSON.parse(localStorage.getItem('perspecteave_votes') || '{}');
+  const username = isLoggedIn(currentSession) ? getCurrentUsername(currentSession) : 'guest';
+  const key = `perspecteave_votes_${username}`;
+  const votes = JSON.parse(localStorage.getItem(key) || '{}');
   return votes[Number(postId)] || null; // 'agree', 'disagree' or null
 }
 
 function setPostVote(postId, voteType) {
-  const votes = JSON.parse(localStorage.getItem('perspecteave_votes') || '{}');
+  const username = isLoggedIn(currentSession) ? getCurrentUsername(currentSession) : 'guest';
+  const key = `perspecteave_votes_${username}`;
+  const votes = JSON.parse(localStorage.getItem(key) || '{}');
   const id = Number(postId);
   if (voteType) {
     votes[id] = voteType;
   } else {
     delete votes[id];
   }
-  localStorage.setItem('perspecteave_votes', JSON.stringify(votes));
+  localStorage.setItem(key, JSON.stringify(votes));
 }
 
 // ---- Email Verification & Guest Restrictions Helpers ----
