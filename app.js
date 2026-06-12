@@ -1298,7 +1298,7 @@ function setupAuth() {
       return;
     }
 
-    const email = username.toLowerCase() + '@perspecteave.local';
+    const email = username.toLowerCase() + '@perspecteave.com';
 
     if (!isConfigured) {
       // Local mockup auth fallback
@@ -1309,7 +1309,7 @@ function setupAuth() {
         if (username.toLowerCase() === 'teaboy27' && password === 'perspecteave') {
           sessionStorage.setItem('perspecteave_auth_session', 'true');
           sessionStorage.setItem('perspecteave_auth_username', 'teaboy27');
-          sessionStorage.setItem('perspecteave_auth_email', 'teaboy27@perspecteave.local');
+          sessionStorage.setItem('perspecteave_auth_email', 'teaboy27@perspecteave.com');
           sessionStorage.setItem('perspecteave_auth_verified', 'true');
           loginOverlay.classList.remove('open');
           
