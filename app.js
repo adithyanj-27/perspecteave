@@ -441,26 +441,26 @@ function triggerAsmrEffect(button, isDisagree = false) {
 
   // 2. Emoji Particles (👍 or 🤔)
   const particleEmoji = isDisagree ? '🤔' : '👍';
-  const numParticles = isDisagree ? 8 + Math.floor(Math.random() * 4) : 10 + Math.floor(Math.random() * 5); // Smaller splash for disagree
-  const maxDistance = isDisagree ? 60 : 80;
+  const numParticles = isDisagree ? 4 + Math.floor(Math.random() * 3) : 10 + Math.floor(Math.random() * 5); // Very few particles for disagree
+  const maxDistance = isDisagree ? 30 : 80;
   
   for (let i = 0; i < numParticles; i++) {
     const particle = document.createElement('div');
     particle.className = 'asmr-particle';
     particle.textContent = particleEmoji;
     if (isDisagree) {
-      particle.style.fontSize = `${1.1 + Math.random() * 0.4}rem`; // Slightly smaller particles for disagree
+      particle.style.fontSize = `${1.0 + Math.random() * 0.3}rem`; // Slightly smaller particles for disagree
       particle.style.animationDuration = '1.75s';
     }
     
     particle.style.left = `${centerX - 10}px`;
     particle.style.top = `${centerY - 10}px`;
     
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 40 + Math.random() * maxDistance;
+    const angle = isDisagree ? (-Math.PI / 2 + (Math.random() * 0.4 - 0.2)) : (Math.random() * Math.PI * 2);
+    const distance = isDisagree ? (20 + Math.random() * 25) : (40 + Math.random() * maxDistance);
     const dx = Math.cos(angle) * distance;
-    const dy = Math.sin(angle) * distance - 30; // offset upwards
-    const rot = -180 + Math.random() * 360;
+    const dy = isDisagree ? (Math.sin(angle) * distance) : (Math.sin(angle) * distance - 30);
+    const rot = isDisagree ? (-15 + Math.random() * 30) : (-180 + Math.random() * 360);
     
     particle.style.setProperty('--dx', `${dx}px`);
     particle.style.setProperty('--dy', `${dy}px`);

@@ -1760,14 +1760,14 @@ footer {
   box-shadow: var(--shadow-md);
   padding: 8px 16px;
   letter-spacing: 0.5px;
-  animation: textPopFadeLarge 1.75s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  animation: textPopFadeLarge 1.75s ease-in-out forwards;
 }
 
 @keyframes textPopFadeLarge {
-  0% { transform: translate(-50%, -50%) scale(0.92) translateY(0); opacity: 0; }
-  25% { transform: translate(-50%, -50%) scale(1.0) translateY(-8px); opacity: 1; }
-  75% { transform: translate(-50%, -50%) scale(1.0) translateY(-20px); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(0.97) translateY(-32px); opacity: 0; }
+  0% { transform: translate(-50%, -50%) translateY(0); opacity: 0; }
+  25% { transform: translate(-50%, -50%) translateY(-4px); opacity: 1; }
+  75% { transform: translate(-50%, -50%) translateY(-10px); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateY(-15px); opacity: 0; }
 }
 
 @keyframes particleFade {
