@@ -2764,12 +2764,24 @@ function updateUserMessagesBadge() {
   const badge = document.getElementById('userMessagesBadge');
   if (!badge) return;
   
+  const loggedIn = isLoggedIn(currentSession);
+  const username = loggedIn ? getCurrentUsername(currentSession) : '';
+  const myIds = myRequestIds.map(Number);
+
   // Count unread replies from 'teaboy27' that belong to user's threads
   const unreadCount = appRequests.filter(req => {
     if (req.name !== 'teaboy27') return false;
     if (readRequestIds.includes(req.id)) return false;
     const parsed = parseReply(req);
-    return parsed.isReply && myRequestIds.includes(parsed.parentId);
+    if (!parsed.isReply) return false;
+    
+    // Find the parent request
+    const parent = appRequests.find(r => r.id === parsed.parentId);
+    if (!parent) return false;
+    
+    if (myIds.includes(Number(parent.id))) return true;
+    if (loggedIn && username && parent.name === username) return true;
+    return false;
   }).length;
   
   if (unreadCount > 0) {
@@ -2993,13 +3005,25 @@ function renderUserRequests() {
   const dropdown = document.getElementById('requestDropdown');
   if (!dropdown) return;
 
-  const userThreads = appRequests.filter(req => myRequestIds.includes(req.id) && !parseReply(req).isReply);
+  const loggedIn = isLoggedIn(currentSession);
+  const username = loggedIn ? getCurrentUsername(currentSession) : '';
+  const myIds = myRequestIds.map(Number);
+
+  const userThreads = appRequests.filter(req => {
+    if (parseReply(req).isReply) return false;
+    if (myIds.includes(Number(req.id))) return true;
+    if (loggedIn && username && req.name === username) return true;
+    return false;
+  });
+
+  // If the user has exactly 1 thread, auto-open it directly instead of showing a list
+  if (userThreads.length === 1 && activeRequestDetailId === null && !userShowingForm) {
+    activeRequestDetailId = userThreads[0].id;
+  }
 
   // Determine whether to show the form or threads list
   if (userThreads.length === 0 || userShowingForm) {
     // ---- Render Submission Form ----
-    const loggedIn = isLoggedIn(currentSession);
-    
     dropdown.innerHTML = `
       <h3 class="admin-requests-title">Ask the Author</h3>
       <form class="login-form" id="requestForm" onsubmit="return false;" style="display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-sm); margin: 0;">
@@ -3061,14 +3085,16 @@ function renderUserRequests() {
         return parsed.isReply && parsed.parentId === req.id && r.name === 'teaboy27' && !readRequestIds.includes(r.id);
       });
       
-      const snippet = lastMsg.text.length > 30 ? lastMsg.text.substring(0, 30) + '...' : lastMsg.text;
+      const isLastMsgFromAdmin = lastMsg.name === 'teaboy27';
+      const prefix = isLastMsgFromAdmin ? '' : 'You: ';
+      const snippet = prefix + (lastMsg.text.length > 25 ? lastMsg.text.substring(0, 25) + '...' : lastMsg.text);
       
       return `
         <li class="admin-message-thread user-message-thread" data-request-id="${req.id}">
           <div class="message-thread-avatar" style="background: rgba(74, 117, 89, 0.1); color: var(--accent-matcha); font-weight: bold;">A</div>
           <div class="message-thread-info">
             <div class="message-thread-header">
-              <span class="message-thread-sender">${escapeHTML(req.name || 'Anonymous')}</span>
+              <span class="message-thread-sender">Adithyan (Author)</span>
               <span class="message-thread-time">${escapeHTML(timeStr)}</span>
             </div>
             <div class="message-thread-snippet">${escapeHTML(snippet)}</div>
@@ -3162,15 +3188,22 @@ function renderUserRequests() {
       `;
     }).join('');
 
+    const showBackBtn = userThreads.length > 1;
+
     dropdown.innerHTML = `
-      <div class="message-detail-header" style="margin-bottom: var(--space-xs); padding-bottom: var(--space-xs);">
-        <button type="button" class="btn-message-back" id="btnUserMessageBack" title="Back to messages">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-        </button>
-        <span style="font-size: 0.95rem;">Adithyan (Author)</span>
+      <div class="message-detail-header" style="margin-bottom: var(--space-xs); padding-bottom: var(--space-xs); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center;">
+          ${showBackBtn ? `
+            <button type="button" class="btn-message-back" id="btnUserMessageBack" title="Back to messages">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+            </button>
+          ` : ''}
+          <span style="font-size: 0.95rem; font-weight: 600; ${showBackBtn ? 'margin-left: var(--space-xs);' : ''}">Adithyan (Author)</span>
+        </div>
+        <button type="button" id="btnUserAskNew" style="background: none; border: none; color: var(--accent-tea); font-family: var(--font-body); font-size: 0.78rem; font-weight: 600; cursor: pointer; padding: 0;">+ Ask New</button>
       </div>
       <div class="chat-messages-container" id="chatBubbleContainer" style="max-height: 220px; overflow-y: auto; padding: var(--space-sm); display: flex; flex-direction: column; gap: var(--space-xs);">
         ${bubblesHTML}
@@ -3187,10 +3220,23 @@ function renderUserRequests() {
     `;
 
     // Wire up back button
-    const backBtn = dropdown.querySelector('#btnUserMessageBack');
-    if (backBtn) {
-      backBtn.addEventListener('click', (e) => {
+    if (showBackBtn) {
+      const backBtn = dropdown.querySelector('#btnUserMessageBack');
+      if (backBtn) {
+        backBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          activeRequestDetailId = null;
+          renderUserRequests();
+        });
+      }
+    }
+
+    // Wire up Ask New button
+    const userAskNewBtn = dropdown.querySelector('#btnUserAskNew');
+    if (userAskNewBtn) {
+      userAskNewBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        userShowingForm = true;
         activeRequestDetailId = null;
         renderUserRequests();
       });
