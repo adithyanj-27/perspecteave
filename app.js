@@ -2467,7 +2467,7 @@ function getLastMessageInThread(parentId) {
 function formatBubbleTime(dateStr) {
   if (!dateStr) return 'Just now';
   const date = new Date(dateStr);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
 async function loadTopicRequests() {
@@ -2896,6 +2896,19 @@ function renderAdminRequests() {
     
     const messages = [req, ...replies].sort((a, b) => a.id - b.id);
     
+    // Mark parent and replies in this thread as read immediately for the admin
+    let changed = false;
+    messages.forEach(msg => {
+      if (msg.name !== 'teaboy27' && !readRequestIds.includes(msg.id)) {
+        readRequestIds.push(msg.id);
+        changed = true;
+      }
+    });
+    if (changed) {
+      localStorage.setItem(READ_REQUESTS_KEY, JSON.stringify(readRequestIds));
+      updateMessagesBadge();
+    }
+    
     const bubblesHTML = messages.map(msg => {
       const isAuthor = msg.name === 'teaboy27';
       const parsed = parseReply(msg);
@@ -3173,6 +3186,19 @@ function renderUserRequests() {
     });
     
     const messages = [req, ...replies].sort((a, b) => a.id - b.id);
+    
+    // Mark parent and replies in this thread as read immediately for the user
+    let changed = false;
+    messages.forEach(msg => {
+      if (msg.name === 'teaboy27' && !readRequestIds.includes(msg.id)) {
+        readRequestIds.push(msg.id);
+        changed = true;
+      }
+    });
+    if (changed) {
+      localStorage.setItem(READ_REQUESTS_KEY, JSON.stringify(readRequestIds));
+      updateUserMessagesBadge();
+    }
     
     const bubblesHTML = messages.map(msg => {
       const isAuthor = msg.name === 'teaboy27';
