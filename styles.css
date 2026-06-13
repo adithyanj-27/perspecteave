@@ -1737,7 +1737,8 @@ footer {
   }
 
   .perspective::before {
-    left: -1.2rem;
+    left: -1.4rem;
+    font-size: 1.2rem;
   }
 }
 
@@ -1763,7 +1764,8 @@ footer {
   }
 
   .perspective::before {
-    left: -1.0rem;
+    left: -1.2rem;
+    font-size: 1.1rem;
   }
 
   .request-dropdown {
