@@ -3319,6 +3319,9 @@ function setupRequestForm() {
       if (!askAuthorBtn.contains(e.target) && !requestDropdown.contains(e.target)) {
         requestDropdown.classList.remove('open');
         askAuthorBtn.classList.remove('active');
+        activeRequestDetailId = null;
+        userShowingForm = false;
+        renderUserRequests();
       }
     });
   }
@@ -3343,6 +3346,8 @@ function setupAdminMessages() {
       if (!adminMessagesBtn.contains(e.target) && !adminMessagesDropdown.contains(e.target)) {
         adminMessagesDropdown.classList.remove('open');
         adminMessagesBtn.classList.remove('active');
+        activeRequestDetailId = null;
+        renderAdminRequests();
       }
     });
   }
