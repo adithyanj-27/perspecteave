@@ -442,7 +442,7 @@ function renderEntry(post, index) {
           </div>
         </form>
 
-        <!-- Social Action Buttons (Do you agree? + Comments count) -->
+        <!-- Social Action Buttons (Do you agree?) -->
         <div class="entry-actions-row">
           <div class="agree-question-wrapper">
             <span class="agree-label">Do you agree?</span>
@@ -457,13 +457,6 @@ function renderEntry(post, index) {
               </button>
             </div>
           </div>
-          
-          <button type="button" class="btn-view-comments" data-entry-id="${post.id}">
-            <span class="comment-icon">💬</span>
-            <span>Comments</span>
-            <span class="total-comment-count" id="totalCount-${post.id}">0</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="comments-arrow"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
         </div>
 
         <!-- Conditional Critique Form (Only shown if thumbs down is clicked) -->
@@ -482,6 +475,13 @@ function renderEntry(post, index) {
           </form>
         </div>
 
+        <button type="button" class="btn-view-comments" data-entry-id="${post.id}">
+          <span class="comment-icon">💬</span>
+          <span>Critiques</span>
+          <span class="total-comment-count" id="totalCount-${post.id}">0</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="comments-arrow"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+
         <!-- Collapsible Comments Feed -->
         <div class="comments-section">
           <div class="comments-body" id="commentsBody-${post.id}">
@@ -493,8 +493,69 @@ function renderEntry(post, index) {
   `;
 }
 
+// Render a single nested reply card
+function renderReplyCard(reply, entryId, parentId) {
+  const editable = canEditComment(reply.id, reply.name);
+  const editButton = editable ? `
+    <button type="button" class="btn-comment-edit" data-comment-id="${reply.id}">Edit</button>
+  ` : '';
+  
+  const hasHistory = reply.history && reply.history.length > 0;
+  const totalVersions = hasHistory ? reply.history.length + 1 : 1;
+  const historyNav = hasHistory ? `
+    <div class="comment-history-nav" data-comment-id="${reply.id}" data-current-index="${reply.history.length}" data-total-versions="${totalVersions}">
+      <button type="button" class="btn-comment-undo" data-comment-id="${reply.id}" title="Show previous version">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+      </button>
+      <span class="comment-version-indicator" id="versionIndicator-${reply.id}">v${totalVersions}/${totalVersions}</span>
+      <button type="button" class="btn-comment-redo" data-comment-id="${reply.id}" title="Show next version" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+      </button>
+    </div>
+  ` : '';
+
+  const isUserAdmin = isAdmin(currentSession);
+  const deleteButton = isUserAdmin ? `
+    <button type="button" class="btn-comment-delete" data-comment-id="${reply.id}" data-entry-id="${entryId}">Delete</button>
+  ` : '';
+
+  const replyButton = `
+    <button type="button" class="btn-comment-reply-trigger" data-comment-id="${parentId}" data-reply-id="${reply.id}" data-entry-id="${entryId}" data-reply-to-author="${escapeHTML(reply.name || 'Anonymous')}">Reply</button>
+  `;
+
+  return `
+    <li class="reply-card comment-card" id="comment-${reply.id}">
+      <div class="comment-card-static" id="commentStatic-${reply.id}">
+        <div class="comment-card-meta">
+          <div>
+            <span class="comment-card-author">${escapeHTML(reply.name || 'Anonymous')}</span>
+            ${reply.edited ? `<span class="comment-edited-tag">(edited)</span>` : ''}
+          </div>
+          <div class="comment-meta-right">
+            <span class="comment-card-time">${escapeHTML(reply.time || 'Just now')}</span>
+            ${historyNav}
+            ${replyButton}
+            ${editButton}
+            ${deleteButton}
+          </div>
+        </div>
+        <p class="comment-card-text">${escapeHTML(reply.text)}</p>
+      </div>
+      
+      <!-- Inline Comment Edit Form (Hidden by default) -->
+      <form class="comment-edit-form" id="commentEdit-${reply.id}" onsubmit="return false;" style="display: none;">
+        <textarea class="comment-edit-textarea" id="commentEditTextarea-${reply.id}" required>${escapeHTML(reply.text)}</textarea>
+        <div class="comment-edit-actions">
+          <button type="button" class="btn-comment-save" data-comment-id="${reply.id}">Save</button>
+          <button type="button" class="btn-comment-cancel" data-comment-id="${reply.id}">Cancel</button>
+        </div>
+      </form>
+    </li>
+  `;
+}
+
 // Render a single comment card
-function renderCommentCard(item) {
+function renderCommentCard(item, entryId, replies = []) {
   const editable = canEditComment(item.id, item.name);
   const editButton = editable ? `
     <button type="button" class="btn-comment-edit" data-comment-id="${item.id}">Edit</button>
@@ -514,6 +575,44 @@ function renderCommentCard(item) {
     </div>
   ` : '';
 
+  const isUserAdmin = isAdmin(currentSession);
+  const deleteButton = isUserAdmin ? `
+    <button type="button" class="btn-comment-delete" data-comment-id="${item.id}" data-entry-id="${entryId}">Delete</button>
+  ` : '';
+
+  const replyButton = `
+    <button type="button" class="btn-comment-reply-trigger" data-comment-id="${item.id}" data-reply-id="${item.id}" data-entry-id="${entryId}">Reply</button>
+  `;
+
+  // Render nested replies
+  let repliesHTML = '';
+  if (replies.length > 0) {
+    repliesHTML = `
+      <ul class="replies-list">
+        ${replies.map(reply => renderReplyCard(reply, entryId, item.id)).join('')}
+      </ul>
+    `;
+  }
+
+  // Toggled inline reply form (initially hidden)
+  const isGuestOrLoggedIn = isLoggedIn(currentSession);
+  const replyFormHTML = `
+    <form class="reply-to-comment-form" id="replyToCommentForm-${item.id}" data-entry-id="${entryId}" data-parent-id="${item.id}" onsubmit="return false;" style="display: none;">
+      ${!isGuestOrLoggedIn ? `<input type="text" class="reply-to-comment-name" placeholder="Your name">` : ''}
+      <div class="textarea-wrapper mini-textarea-wrapper">
+        <textarea class="reply-to-comment-text" placeholder="Reply to this critique..."></textarea>
+        <button type="button" class="btn-submit-circle-mini btn-reply-to-comment" data-entry-id="${entryId}" data-parent-id="${item.id}" title="Submit reply">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </button>
+      </div>
+      <div class="reply-to-comment-actions" style="display: flex; gap: var(--space-xs); justify-content: flex-end; margin-top: var(--space-xs);">
+        <button type="button" class="btn-comment-reply-cancel btn-comment-cancel" data-comment-id="${item.id}">Cancel</button>
+      </div>
+    </form>
+  `;
+
   return `
     <li class="comment-card" id="comment-${item.id}">
       <div class="comment-card-static" id="commentStatic-${item.id}">
@@ -525,7 +624,9 @@ function renderCommentCard(item) {
           <div class="comment-meta-right">
             <span class="comment-card-time">${escapeHTML(item.time || 'Just now')}</span>
             ${historyNav}
+            ${replyButton}
             ${editButton}
+            ${deleteButton}
           </div>
         </div>
         <p class="comment-card-text">${escapeHTML(item.text)}</p>
@@ -539,6 +640,12 @@ function renderCommentCard(item) {
           <button type="button" class="btn-comment-cancel" data-comment-id="${item.id}">Cancel</button>
         </div>
       </form>
+
+      <!-- Nested Replies & Inline Reply Form -->
+      <div class="replies-container">
+        ${repliesHTML}
+        ${replyFormHTML}
+      </div>
     </li>
   `;
 }
@@ -547,7 +654,35 @@ function renderCommentCard(item) {
 function renderAllEntries(posts) {
   const container = document.getElementById('entriesList');
   if (container) {
+    // 1. Remember expanded entry ID
+    const expandedEntry = container.querySelector('.entry.expanded');
+    const expandedId = expandedEntry ? expandedEntry.getAttribute('data-entry-id') : null;
+
+    // 2. Remember open comments bodies
+    const openCommentsIds = [];
+    container.querySelectorAll('.comments-body.open').forEach(body => {
+      const id = body.id.replace('commentsBody-', '');
+      if (id) openCommentsIds.push(id);
+    });
+
+    // 3. Render all entries
     container.innerHTML = posts.map((p, i) => renderEntry(p, i)).join('');
+
+    // 4. Restore expanded entry ID if any
+    if (expandedId) {
+      const entryToExpand = container.querySelector(`.entry[data-entry-id="${expandedId}"]`);
+      if (entryToExpand) {
+        entryToExpand.classList.add('expanded');
+      }
+    }
+
+    // 5. Restore open comments bodies and their button states
+    openCommentsIds.forEach(id => {
+      const body = container.querySelector(`#commentsBody-${id}`);
+      if (body) body.classList.add('open');
+      const btn = container.querySelector(`.btn-view-comments[data-entry-id="${id}"]`);
+      if (btn) btn.classList.add('open');
+    });
   }
 }
 
@@ -557,22 +692,40 @@ function renderComments(entryId, comments) {
   const listEl = document.getElementById(`commentsList-${entryId}`);
   const tCount = document.getElementById(`totalCount-${entryId}`);
 
+  const parentComments = [];
+  const repliesByParentId = {};
+
+  list.forEach(c => {
+    // Check if this comment is a reply (starts with [reply_to:parentId])
+    const match = typeof c.text === 'string' && c.text.match(/^\[reply_to:(\d+)\]\s*([\s\S]*)$/);
+    if (match) {
+      const parentId = Number(match[1]);
+      if (!repliesByParentId[parentId]) repliesByParentId[parentId] = [];
+      repliesByParentId[parentId].push({
+        ...c,
+        text: match[2] // Strip prefix for display
+      });
+    } else {
+      parentComments.push(c);
+    }
+  });
+
   if (listEl) {
-    let html = list.length
-      ? list.map(renderCommentCard).join('')
-      : '<li class="no-comments">None yet.</li>';
+    let html = parentComments.length
+      ? parentComments.map(c => renderCommentCard(c, entryId, repliesByParentId[c.id] || [])).join('')
+      : '<li class="no-comments">No critiques yet.</li>';
 
     if (!isLoggedIn(currentSession)) {
       html += `
         <li class="comment-login-prompt" style="list-style: none; margin-top: var(--space-md); text-align: center; padding: var(--space-sm); border: 1px dashed var(--border-light); border-radius: var(--radius-sm); background: rgba(214, 142, 73, 0.03);">
           <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: var(--space-xs); font-family: var(--font-body);">Want to share your perspective?</p>
-          <a href="#" class="btn-comment-login-trigger" style="font-size: 0.82rem; font-weight: 600; color: var(--accent-matcha); text-decoration: none; font-family: var(--font-body);">Log in or Sign up to comment</a>
+          <a href="#" class="btn-comment-login-trigger" style="font-size: 0.82rem; font-weight: 600; color: var(--accent-matcha); text-decoration: none; font-family: var(--font-body);">Log in or Sign up to critique</a>
         </li>
       `;
     }
     listEl.innerHTML = html;
   }
-  if (tCount) tCount.textContent = list.length;
+  if (tCount) tCount.textContent = parentComments.length;
 
   // Toggle disabled state of the agree (thumbs up) button if the user has commented
   const hasCommented = hasSubmittedComment(entryId);
@@ -643,7 +796,7 @@ async function submitReply(entryId) {
       nameInput.style.borderColor = 'var(--accent-tea)';
       nameInput.focus();
       setTimeout(() => { nameInput.style.borderColor = ''; }, 1500);
-      alert('Please enter your name to post a comment.');
+      alert('Please enter your name to post a critique.');
       return;
     }
   }
@@ -693,7 +846,7 @@ async function submitReply(entryId) {
       renderComments(entryId, appComments);
     } catch (err) {
       console.error('Error submitting comment to Supabase:', err);
-      alert('Could not submit comment to the database. Check console for details.');
+      alert('Could not submit critique to the database. Check console for details.');
       return;
     } finally {
       btn.disabled = false;
@@ -762,7 +915,7 @@ async function saveCommentEdit(commentId) {
   const newText = (textarea.value || '').trim();
   
   if (!newText) {
-    alert('Comment cannot be empty.');
+    alert('Critique cannot be empty.');
     return;
   }
   
@@ -773,16 +926,20 @@ async function saveCommentEdit(commentId) {
   }
   
   const currentComment = appComments[entryId][commentIndex];
+  const match = typeof currentComment.text === 'string' && currentComment.text.match(/^\[reply_to:\d+\]\s*/);
+  const prefix = match ? match[0] : '';
+  const finalDbText = prefix + newText;
+
   const updatedHistory = [...(currentComment.history || [])];
   
   // Push old text to history if it has changed and is not already the last history entry
-  if (currentComment.text !== newText) {
+  if (currentComment.text !== finalDbText) {
     updatedHistory.push(currentComment.text);
   }
   
   if (!isConfigured) {
     // Local fallback
-    appComments[entryId][commentIndex].text = newText;
+    appComments[entryId][commentIndex].text = finalDbText;
     appComments[entryId][commentIndex].edited = true;
     appComments[entryId][commentIndex].history = updatedHistory;
     save(COMMENTS_KEY, appComments);
@@ -793,7 +950,7 @@ async function saveCommentEdit(commentId) {
       const { error } = await supabase
         .from('comments')
         .update({
-          text: newText,
+          text: finalDbText,
           edited: true,
           history: updatedHistory
         })
@@ -804,18 +961,18 @@ async function saveCommentEdit(commentId) {
         console.warn('Supabase comment update failed, trying fallback to text only...', error);
         const { error: textOnlyError } = await supabase
           .from('comments')
-          .update({ text: newText })
+          .update({ text: finalDbText })
           .eq('id', commentId);
         if (textOnlyError) throw textOnlyError;
       }
       
-      appComments[entryId][commentIndex].text = newText;
+      appComments[entryId][commentIndex].text = finalDbText;
       appComments[entryId][commentIndex].edited = true;
       appComments[entryId][commentIndex].history = updatedHistory;
       renderComments(entryId, appComments);
     } catch (err) {
       console.error('Error saving comment edit:', err);
-      alert('Could not save comment. Check console.');
+      alert('Could not save critique. Check console.');
       return;
     } finally {
       if (saveBtn) {
@@ -832,6 +989,220 @@ async function saveCommentEdit(commentId) {
       commentEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, 100);
+}
+
+// ---- Submit a reply to a critique ----
+async function submitCommentReply(entryId, parentId) {
+  const form = document.getElementById(`replyToCommentForm-${parentId}`);
+  if (!form) return;
+
+  const nameInput = form.querySelector('.reply-to-comment-name');
+  const textArea = form.querySelector('.reply-to-comment-text');
+  const btn = form.querySelector('.btn-reply-to-comment');
+
+  const text = (textArea.value || '').trim();
+  if (!text) {
+    textArea.style.borderColor = 'var(--accent-tea)';
+    textArea.focus();
+    setTimeout(() => { textArea.style.borderColor = ''; }, 1500);
+    return;
+  }
+
+  if (!isLoggedIn(currentSession)) {
+    if (globalOpenAuthModal) {
+      globalOpenAuthModal('signin', 'Sign in to continue');
+    } else {
+      const loginOverlay = document.getElementById('loginOverlay');
+      if (loginOverlay) loginOverlay.classList.add('open');
+    }
+    return;
+  }
+
+  // Get active session
+  let session = null;
+  if (isConfigured) {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  } else {
+    session = currentSession;
+  }
+  
+  const loggedIn = isLoggedIn(session);
+  let name = '';
+
+  if (loggedIn) {
+    name = getCurrentUsername(session);
+  } else {
+    name = (nameInput.value || '').trim();
+    if (!name) {
+      nameInput.style.borderColor = 'var(--accent-tea)';
+      nameInput.focus();
+      setTimeout(() => { nameInput.style.borderColor = ''; }, 1500);
+      alert('Please enter your name to post a reply.');
+      return;
+    }
+  }
+
+  // Prefix the reply text with the parent id
+  const dbText = `[reply_to:${parentId}] ${text}`;
+
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = '✓';
+  btn.classList.add('submitted');
+  btn.disabled = true;
+
+  if (!isConfigured) {
+    // Local fallback logic
+    if (!appComments[entryId]) appComments[entryId] = [];
+    const newCommentId = Date.now() + Math.floor(Math.random() * 1000);
+    appComments[entryId].push({
+      id: newCommentId,
+      name,
+      text: dbText,
+      edited: false,
+      history: [],
+      time: 'Just now'
+    });
+    save(COMMENTS_KEY, appComments);
+    saveCommentOwnership(newCommentId);
+    renderComments(entryId, appComments);
+    
+    // Clear and restore submit button
+    setTimeout(() => {
+      textArea.value = '';
+      if (nameInput) nameInput.value = '';
+      btn.innerHTML = origHTML;
+      btn.classList.remove('submitted');
+      btn.disabled = false;
+      form.style.display = 'none';
+      form.removeAttribute('data-active-reply-id');
+    }, 1000);
+  } else {
+    // Live database logic
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          post_id: entryId,
+          type: 'critique',
+          name,
+          text: dbText
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      if (!appComments[entryId]) appComments[entryId] = [];
+      appComments[entryId].push({
+        id: data.id,
+        name: data.name,
+        text: data.text,
+        edited: data.edited || false,
+        history: data.history || [],
+        time: 'Just now'
+      });
+      saveCommentOwnership(data.id);
+      renderComments(entryId, appComments);
+    } catch (err) {
+      console.error('Error submitting reply to Supabase:', err);
+      alert('Could not submit reply to the database. Check console for details.');
+    } finally {
+      setTimeout(() => {
+        textArea.value = '';
+        if (nameInput) nameInput.value = '';
+        btn.innerHTML = origHTML;
+        btn.classList.remove('submitted');
+        btn.disabled = false;
+        form.style.display = 'none';
+        form.removeAttribute('data-active-reply-id');
+      }, 1000);
+    }
+  }
+}
+
+// ---- Delete Critique / Reply ----
+async function deleteComment(entryId, commentId) {
+  const commentsList = appComments[entryId] || [];
+  const commentToDelete = commentsList.find(c => c.id === commentId);
+  
+  let isReply = false;
+  if (commentToDelete) {
+    isReply = typeof commentToDelete.text === 'string' && commentToDelete.text.startsWith('[reply_to:');
+  }
+
+  // Decrement disagrees count of the post by 1 if deleting a parent critique
+  const postIndex = appPosts.findIndex(x => x.id === entryId);
+  if (postIndex !== -1 && commentToDelete && !isReply) {
+    const currentPost = appPosts[postIndex];
+    const newDisagrees = Math.max(0, (currentPost.disagrees || 0) - 1);
+    
+    if (!isConfigured) {
+      appPosts[postIndex].disagrees = newDisagrees;
+      save(POSTS_KEY, appPosts);
+      updateVoteUI(entryId, currentPost.agrees, newDisagrees, getPostVote(entryId));
+    } else {
+      try {
+        const { error } = await supabase
+          .from('posts')
+          .update({ disagrees: newDisagrees })
+          .eq('id', entryId);
+        if (error) throw error;
+        
+        appPosts[postIndex].disagrees = newDisagrees;
+        updateVoteUI(entryId, currentPost.agrees, newDisagrees, getPostVote(entryId));
+      } catch (err) {
+        console.error('Error updating post disagrees count in Supabase:', err);
+      }
+    }
+  }
+
+  if (!isConfigured) {
+    // Local fallback
+    if (appComments[entryId]) {
+      // Find all replies to this comment to delete them as well
+      const replies = appComments[entryId].filter(x => typeof x.text === 'string' && x.text.startsWith(`[reply_to:${commentId}]`));
+      const replyIds = replies.map(r => r.id);
+      
+      // Filter out this comment and all its replies
+      appComments[entryId] = appComments[entryId].filter(x => x.id !== commentId && !replyIds.includes(x.id));
+      save(COMMENTS_KEY, appComments);
+    }
+  } else {
+    // Supabase
+    try {
+      // Delete parent comment
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      // Delete replies
+      const { error: replyError } = await supabase
+        .from('comments')
+        .delete()
+        .like('text', `[reply_to:${commentId}] %`);
+
+      if (replyError) {
+        console.warn('Could not delete replies from Supabase:', replyError);
+      }
+
+      if (appComments[entryId]) {
+        const replies = appComments[entryId].filter(x => typeof x.text === 'string' && x.text.startsWith(`[reply_to:${commentId}]`));
+        const replyIds = replies.map(r => r.id);
+        appComments[entryId] = appComments[entryId].filter(x => x.id !== commentId && !replyIds.includes(x.id));
+      }
+    } catch (err) {
+      console.error('Error deleting comment from Supabase:', err);
+      alert('Could not delete critique. Check console.');
+      return;
+    }
+  }
+
+  // Re-render comments for this post
+  renderComments(entryId, appComments);
 }
 
 // ---- Thumbs Up/Down Voting Logic ----
@@ -1628,6 +1999,8 @@ function setupAuth() {
 function attachEventListeners() {
   // Entry expand/collapse (Accordion)
   document.querySelectorAll('.entry-summary').forEach(summary => {
+    if (summary.dataset.accordionListenerAttached) return;
+    summary.dataset.accordionListenerAttached = 'true';
     summary.addEventListener('click', () => {
       const entry = summary.closest('.entry');
       // Ignore click if editing inside the form
@@ -1646,10 +2019,15 @@ function attachEventListeners() {
 
   // Prevent clicks in edit forms, reply forms, comments, action rows from toggling accordion
   document.querySelectorAll('.reply-form, .comments-section, .entry-edit-form, .entry-actions-row').forEach(el => {
+    if (el.dataset.propagationListenerAttached) return;
+    el.dataset.propagationListenerAttached = 'true';
     el.addEventListener('click', (e) => {
       if (e.target.classList.contains('btn-comment-edit') || 
           e.target.classList.contains('btn-comment-save') || 
           e.target.classList.contains('btn-comment-cancel') || 
+          e.target.classList.contains('btn-comment-reply-trigger') || 
+          e.target.classList.contains('btn-comment-delete') || 
+          e.target.closest('.btn-reply-to-comment') || 
           e.target.closest('.comment-history-nav')) {
         return; // Allow propagation for comment action buttons and history nav
       }
@@ -1659,6 +2037,8 @@ function attachEventListeners() {
 
   // Reply submit buttons (Circular checkmark)
   document.querySelectorAll('.btn-reply').forEach(btn => {
+    if (btn.dataset.submitListenerAttached) return;
+    btn.dataset.submitListenerAttached = 'true';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       submitReply(Number(btn.dataset.entryId));
@@ -1667,6 +2047,8 @@ function attachEventListeners() {
 
   // Enter to submit in textareas
   document.querySelectorAll('.reply-text').forEach(ta => {
+    if (ta.dataset.keydownListenerAttached) return;
+    ta.dataset.keydownListenerAttached = 'true';
     ta.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -1677,6 +2059,8 @@ function attachEventListeners() {
 
   // View comments toggle button
   document.querySelectorAll('.btn-view-comments').forEach(btn => {
+    if (btn.dataset.toggleListenerAttached) return;
+    btn.dataset.toggleListenerAttached = 'true';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const entryId = btn.dataset.entryId;
@@ -1696,6 +2080,8 @@ function attachEventListeners() {
 
   // Vote buttons click handlers
   document.querySelectorAll('.btn-agree').forEach(btn => {
+    if (btn.dataset.voteListenerAttached) return;
+    btn.dataset.voteListenerAttached = 'true';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const entryId = Number(btn.dataset.entryId);
@@ -1704,6 +2090,8 @@ function attachEventListeners() {
   });
 
   document.querySelectorAll('.btn-disagree').forEach(btn => {
+    if (btn.dataset.voteListenerAttached) return;
+    btn.dataset.voteListenerAttached = 'true';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const entryId = Number(btn.dataset.entryId);
@@ -1713,6 +2101,8 @@ function attachEventListeners() {
 
   // --- Admin Post Actions Event Handlers ---
   document.querySelectorAll('.btn-entry-edit').forEach(btn => {
+    if (btn.dataset.editListenerAttached) return;
+    btn.dataset.editListenerAttached = 'true';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const entryId = btn.dataset.entryId;
@@ -1722,6 +2112,8 @@ function attachEventListeners() {
   });
 
   document.querySelectorAll('.btn-edit-cancel').forEach(btn => {
+    if (btn.dataset.cancelListenerAttached) return;
+    btn.dataset.cancelListenerAttached = 'true';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const entryId = btn.dataset.entryId;
@@ -1731,6 +2123,8 @@ function attachEventListeners() {
   });
 
   document.querySelectorAll('.btn-edit-save').forEach(btn => {
+    if (btn.dataset.saveListenerAttached) return;
+    btn.dataset.saveListenerAttached = 'true';
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const entryId = Number(btn.dataset.entryId);
@@ -1739,10 +2133,12 @@ function attachEventListeners() {
   });
 
   document.querySelectorAll('.btn-entry-delete').forEach(btn => {
+    if (btn.dataset.deleteListenerAttached) return;
+    btn.dataset.deleteListenerAttached = 'true';
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const entryId = Number(btn.dataset.entryId);
-      if (confirm('Are you sure you want to delete this perspective? This will also delete all comments.')) {
+      if (confirm('Are you sure you want to delete this perspective? This will also delete all critiques.')) {
         await deletePost(entryId);
       }
     });
@@ -1831,7 +2227,12 @@ function attachEventListeners() {
           const commentTextEl = document.querySelector(`#comment-${commentId} .comment-card-text`);
           const versions = [...comment.history, comment.text];
           if (commentTextEl) {
-            commentTextEl.textContent = versions[currentIndex];
+            let verText = versions[currentIndex];
+            const vMatch = typeof verText === 'string' && verText.match(/^\[reply_to:\d+\]\s*([\s\S]*)$/);
+            if (vMatch) {
+              verText = vMatch[1];
+            }
+            commentTextEl.textContent = verText;
           }
 
           // Update indicator
@@ -1875,7 +2276,12 @@ function attachEventListeners() {
           const commentTextEl = document.querySelector(`#comment-${commentId} .comment-card-text`);
           const versions = [...comment.history, comment.text];
           if (commentTextEl) {
-            commentTextEl.textContent = versions[currentIndex];
+            let verText = versions[currentIndex];
+            const vMatch = typeof verText === 'string' && verText.match(/^\[reply_to:\d+\]\s*([\s\S]*)$/);
+            if (vMatch) {
+              verText = vMatch[1];
+            }
+            commentTextEl.textContent = verText;
           }
 
           // Update indicator
@@ -1891,11 +2297,104 @@ function attachEventListeners() {
           if (redoBtn) redoBtn.disabled = (currentIndex === totalVersions - 1);
         }
       }
+
+      // 6. Critique Reply trigger button clicked
+      if (e.target.classList.contains('btn-comment-reply-trigger')) {
+        e.stopPropagation();
+        // Check guest auth
+        if (!isLoggedIn(currentSession)) {
+          if (globalOpenAuthModal) {
+            globalOpenAuthModal('signin', 'Sign in to continue');
+          } else {
+            const loginOverlay = document.getElementById('loginOverlay');
+            if (loginOverlay) loginOverlay.classList.add('open');
+          }
+          return;
+        }
+
+        const commentId = Number(e.target.dataset.commentId);
+        const replyId = e.target.dataset.replyId;
+        const replyToAuthor = e.target.dataset.replyToAuthor;
+        const replyForm = document.getElementById(`replyToCommentForm-${commentId}`);
+        if (replyForm) {
+          const textarea = replyForm.querySelector('.reply-to-comment-text');
+          const isHidden = replyForm.style.display === 'none';
+          const activeReplyId = replyForm.dataset.activeReplyId;
+          
+          if (!isHidden && activeReplyId === replyId) {
+            // Clicked the exact same reply button again: close it
+            replyForm.style.display = 'none';
+            replyForm.removeAttribute('data-active-reply-id');
+          } else {
+            // Open it or switch target
+            replyForm.style.display = 'block';
+            replyForm.dataset.activeReplyId = replyId;
+            if (textarea) {
+              if (replyToAuthor) {
+                textarea.value = `@${replyToAuthor} `;
+              } else {
+                textarea.value = '';
+              }
+              textarea.focus();
+            }
+          }
+        }
+      }
+
+      // 7. Nested reply Submit button clicked
+      if (e.target.closest('.btn-reply-to-comment')) {
+        e.stopPropagation();
+        const btn = e.target.closest('.btn-reply-to-comment');
+        const entryId = Number(btn.dataset.entryId);
+        const parentId = Number(btn.dataset.parentId);
+        await submitCommentReply(entryId, parentId);
+      }
+
+      // 7.5. Critique Reply Cancel button clicked
+      if (e.target.classList.contains('btn-comment-reply-cancel')) {
+        e.stopPropagation();
+        const commentId = Number(e.target.dataset.commentId);
+        const replyForm = document.getElementById(`replyToCommentForm-${commentId}`);
+        if (replyForm) {
+          replyForm.style.display = 'none';
+          replyForm.removeAttribute('data-active-reply-id');
+          const textarea = replyForm.querySelector('.reply-to-comment-text');
+          if (textarea) textarea.value = '';
+          const nameInput = replyForm.querySelector('.reply-to-comment-name');
+          if (nameInput) nameInput.value = '';
+        }
+      }
+
+      // 8. Admin Delete Comment button clicked
+      if (e.target.classList.contains('btn-comment-delete')) {
+        e.stopPropagation();
+        const commentId = Number(e.target.dataset.commentId);
+        const entryId = Number(e.target.dataset.entryId);
+        if (confirm('Are you sure you want to delete this comment?')) {
+          await deleteComment(entryId, commentId);
+        }
+      }
+    });
+  }
+
+  // Keydown listener on entriesList for reply forms (press Enter to submit)
+  if (entriesList && !entriesList.dataset.keydownListenersAttached) {
+    entriesList.dataset.keydownListenersAttached = 'true';
+    entriesList.addEventListener('keydown', async (e) => {
+      if (e.target.classList.contains('reply-to-comment-text') && e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const form = e.target.closest('.reply-to-comment-form');
+        const entryId = Number(form.dataset.entryId);
+        const parentId = Number(form.dataset.parentId);
+        await submitCommentReply(entryId, parentId);
+      }
     });
   }
 
   // Read more buttons click handlers
   document.querySelectorAll('.btn-read-more').forEach(btn => {
+    if (btn.dataset.readMoreListenerAttached) return;
+    btn.dataset.readMoreListenerAttached = 'true';
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
