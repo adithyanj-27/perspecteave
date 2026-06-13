@@ -2671,7 +2671,7 @@ async function submitChatReply(parentRequestId, isFromAdmin) {
   // Mark this reply as read immediately for the sender
   const lastReply = appRequests.find(r => {
     const p = parseReply(r);
-    return p.isReply && Number(p.parentId) === Number(parentRequestId) && r.name === name && !readRequestIds.map(String).includes(String());
+    return p.isReply && Number(p.parentId) === Number(parentRequestId) && r.name === name && !readRequestIds.map(String).includes(String(r.id));
   });
   if (lastReply) {
     readRequestIds.push(lastReply.id);
@@ -2755,7 +2755,7 @@ function updateMessagesBadge() {
   if (!badge) return;
   
   // Calculate unread requests (exclude admin's own replies)
-  const unreadCount = appRequests.filter(req => req.name !== 'teaboy27' && !readRequestIds.map(String).includes(String())).length;
+  const unreadCount = appRequests.filter(req => req.name !== 'teaboy27' && !readRequestIds.map(String).includes(String(req.id))).length;
   if (unreadCount > 0) {
     badge.textContent = unreadCount;
     badge.style.display = 'flex';
@@ -2775,7 +2775,7 @@ function updateUserMessagesBadge() {
   // Count unread replies from 'teaboy27' that belong to user's threads
   const unreadCount = appRequests.filter(req => {
     if (req.name !== 'teaboy27') return false;
-    if (readRequestIds.map(String).includes(String())) return false;
+    if (readRequestIds.map(String).includes(String(req.id))) return false;
     const parsed = parseReply(req);
     if (!parsed.isReply) return false;
     
@@ -2819,10 +2819,10 @@ function renderAdminRequests() {
       
       const hasUnread = appRequests.some(r => {
         if (r.id === req.id) {
-          return r.name !== 'teaboy27' && !readRequestIds.map(String).includes(String());
+          return r.name !== 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
         }
         const parsed = parseReply(r);
-        return parsed.isReply && parsed.parentId === req.id && r.name !== 'teaboy27' && !readRequestIds.map(String).includes(String());
+        return parsed.isReply && parsed.parentId === req.id && r.name !== 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
       });
       
       const snippet = lastMsg.text.length > 30 ? lastMsg.text.substring(0, 30) + '...' : lastMsg.text;
@@ -2869,7 +2869,7 @@ function renderAdminRequests() {
         
         let changed = false;
         threadMsgs.forEach(msg => {
-          if (msg.name !== 'teaboy27' && !readRequestIds.map(String).includes(String())) {
+          if (msg.name !== 'teaboy27' && !readRequestIds.map(String).includes(String(msg.id))) {
             readRequestIds.push(msg.id);
             changed = true;
           }
@@ -2904,7 +2904,7 @@ function renderAdminRequests() {
     // Mark parent and replies in this thread as read immediately for the admin
     let changed = false;
     messages.forEach(msg => {
-      if (msg.name !== 'teaboy27' && !readRequestIds.map(String).includes(String())) {
+      if (msg.name !== 'teaboy27' && !readRequestIds.map(String).includes(String(msg.id))) {
         readRequestIds.push(msg.id);
         changed = true;
       }
@@ -3097,10 +3097,10 @@ function renderUserRequests() {
       
       const hasUnread = appRequests.some(r => {
         if (r.id === req.id) {
-          return r.name === 'teaboy27' && !readRequestIds.map(String).includes(String());
+          return r.name === 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
         }
         const parsed = parseReply(r);
-        return parsed.isReply && parsed.parentId === req.id && r.name === 'teaboy27' && !readRequestIds.map(String).includes(String());
+        return parsed.isReply && parsed.parentId === req.id && r.name === 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
       });
       
       const isLastMsgFromAdmin = lastMsg.name === 'teaboy27';
@@ -3161,7 +3161,7 @@ function renderUserRequests() {
         
         let changed = false;
         threadMsgs.forEach(msg => {
-          if (msg.name === 'teaboy27' && !readRequestIds.map(String).includes(String())) {
+          if (msg.name === 'teaboy27' && !readRequestIds.map(String).includes(String(msg.id))) {
             readRequestIds.push(msg.id);
             changed = true;
           }
@@ -3196,7 +3196,7 @@ function renderUserRequests() {
     // Mark parent and replies in this thread as read immediately for the user
     let changed = false;
     messages.forEach(msg => {
-      if (msg.name === 'teaboy27' && !readRequestIds.map(String).includes(String())) {
+      if (msg.name === 'teaboy27' && !readRequestIds.map(String).includes(String(msg.id))) {
         readRequestIds.push(msg.id);
         changed = true;
       }
