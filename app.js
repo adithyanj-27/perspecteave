@@ -2421,12 +2421,13 @@ async function loadTopicRequests() {
         .from('topic_requests')
         .select('*')
         .order('id', { ascending: false });
-      if (!error && data) {
+      if (error) throw error;
+      if (data) {
         appRequests = data;
         return;
       }
     } catch (err) {
-      console.warn('Could not load from topic_requests table, using local storage fallback:', err);
+      console.error('Could not load from topic_requests table:', err);
     }
   }
   appRequests = JSON.parse(localStorage.getItem(REQUESTS_KEY) || '[]');
@@ -2467,37 +2468,40 @@ async function submitTopicRequest() {
       const { error } = await supabase
         .from('topic_requests')
         .insert({ name, question });
-      if (!error) {
-        questionInput.value = '';
-        if (!loggedIn) nameInput.value = '';
-        
-        const origHTML = btn.innerHTML;
-        btn.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        `;
-        btn.style.backgroundColor = 'var(--accent-matcha)';
-        btn.style.color = '#FFFFFF';
-        
-        setTimeout(() => {
-          btn.innerHTML = origHTML;
-          btn.style.backgroundColor = '';
-          btn.style.color = '';
-          btn.disabled = false;
-          const requestDropdown = document.getElementById('requestDropdown');
-          if (requestDropdown) requestDropdown.classList.remove('open');
-          const askAuthorBtn = document.getElementById('askAuthorBtn');
-          if (askAuthorBtn) askAuthorBtn.classList.remove('active');
-        }, 1800);
-        
-        alert('Thank you! Your request has been submitted to Adithyan.');
-        await loadTopicRequests();
-        renderAdminRequests();
-        return;
-      }
+      if (error) throw error;
+      
+      questionInput.value = '';
+      if (!loggedIn) nameInput.value = '';
+      
+      const origHTML = btn.innerHTML;
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `;
+      btn.style.backgroundColor = 'var(--accent-matcha)';
+      btn.style.color = '#FFFFFF';
+      
+      setTimeout(() => {
+        btn.innerHTML = origHTML;
+        btn.style.backgroundColor = '';
+        btn.style.color = '';
+        btn.disabled = false;
+        const requestDropdown = document.getElementById('requestDropdown');
+        if (requestDropdown) requestDropdown.classList.remove('open');
+        const askAuthorBtn = document.getElementById('askAuthorBtn');
+        if (askAuthorBtn) askAuthorBtn.classList.remove('active');
+      }, 1800);
+      
+      alert('Thank you! Your request has been submitted to Adithyan.');
+      await loadTopicRequests();
+      renderAdminRequests();
+      return;
     } catch (err) {
-      console.warn('Could not insert to Supabase topic_requests, using local storage fallback:', err);
+      console.error('Could not insert to Supabase topic_requests:', err);
+      alert('Error submitting request to database: ' + (err.message || err));
+      btn.disabled = false;
+      return;
     }
   }
   
