@@ -1568,6 +1568,7 @@ async function updateAuthUI(session) {
       const askAuthorBtn = document.getElementById('askAuthorBtn');
       if (askAuthorBtn) askAuthorBtn.classList.remove('active');
       renderAdminRequests();
+      updateMessagesBadge();
     } else {
       newPostBtn.style.display = 'none';
       if (askAuthorWrapper) askAuthorWrapper.style.display = 'block';
@@ -2413,6 +2414,9 @@ function attachEventListeners() {
 // ---- Topic Requests logic ----
 let appRequests = [];
 const REQUESTS_KEY = 'perspecteave_topic_requests';
+const READ_REQUESTS_KEY = 'perspecteave_read_requests';
+let readRequestIds = JSON.parse(localStorage.getItem(READ_REQUESTS_KEY) || '[]');
+let activeRequestDetailId = null;
 
 async function loadTopicRequests() {
   if (isConfigured) {
@@ -2424,6 +2428,7 @@ async function loadTopicRequests() {
       if (error) throw error;
       if (data) {
         appRequests = data;
+        updateMessagesBadge();
         return;
       }
     } catch (err) {
@@ -2431,6 +2436,7 @@ async function loadTopicRequests() {
     }
   }
   appRequests = JSON.parse(localStorage.getItem(REQUESTS_KEY) || '[]');
+  updateMessagesBadge();
 }
 
 async function submitTopicRequest() {
@@ -2543,6 +2549,10 @@ async function submitTopicRequest() {
 }
 
 async function dismissRequest(requestId) {
+  // Clean up read status
+  readRequestIds = readRequestIds.filter(id => id !== requestId);
+  localStorage.setItem(READ_REQUESTS_KEY, JSON.stringify(readRequestIds));
+
   if (isConfigured) {
     try {
       const { error } = await supabase
@@ -2593,46 +2603,153 @@ function startTakeFromRequest(question) {
   if (adminMessagesBtn) adminMessagesBtn.classList.remove('active');
 }
 
+function updateMessagesBadge() {
+  const badge = document.getElementById('adminMessagesBadge');
+  if (!badge) return;
+  
+  // Calculate unread requests
+  const unreadCount = appRequests.filter(req => !readRequestIds.includes(req.id)).length;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 function renderAdminRequests() {
-  const listEl = document.getElementById('adminRequestsList');
-  if (!listEl) return;
+  const dropdown = document.getElementById('adminMessagesDropdown');
+  if (!dropdown) return;
   
   if (appRequests.length === 0) {
-    listEl.innerHTML = '<li style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-muted); list-style:none;">No requests yet.</li>';
+    dropdown.innerHTML = `
+      <h3 class="admin-requests-title">Messages</h3>
+      <div style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-muted); padding: var(--space-md); text-align: center;">No messages yet.</div>
+    `;
+    updateMessagesBadge();
     return;
   }
   
-  listEl.innerHTML = appRequests.map(req => {
+  if (activeRequestDetailId === null) {
+    // ---- Render List (Inbox) View ----
+    let threadsHTML = appRequests.map(req => {
+      const timeStr = req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Just now';
+      const isUnread = !readRequestIds.includes(req.id);
+      const snippet = req.question.length > 30 ? req.question.substring(0, 30) + '...' : req.question;
+      const initial = req.name ? req.name.trim().charAt(0).toUpperCase() : 'A';
+      return `
+        <li class="admin-message-thread" data-request-id="${req.id}">
+          <div class="message-thread-avatar">${escapeHTML(initial)}</div>
+          <div class="message-thread-info">
+            <div class="message-thread-header">
+              <span class="message-thread-sender">${escapeHTML(req.name || 'Anonymous')}</span>
+              <span class="message-thread-time">${escapeHTML(timeStr)}</span>
+            </div>
+            <div class="message-thread-snippet">${escapeHTML(snippet)}</div>
+          </div>
+          ${isUnread ? '<span class="message-unread-dot"></span>' : ''}
+        </li>
+      `;
+    }).join('');
+    
+    dropdown.innerHTML = `
+      <h3 class="admin-requests-title">Messages</h3>
+      <ul class="admin-requests-list" style="margin: 0; padding: 0;">
+        ${threadsHTML}
+      </ul>
+    `;
+    
+    // Wire up thread click listeners
+    dropdown.querySelectorAll('.admin-message-thread').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const reqId = Number(item.dataset.requestId);
+        
+        // Mark as read
+        if (!readRequestIds.includes(reqId)) {
+          readRequestIds.push(reqId);
+          localStorage.setItem(READ_REQUESTS_KEY, JSON.stringify(readRequestIds));
+        }
+        
+        activeRequestDetailId = reqId;
+        renderAdminRequests();
+        updateMessagesBadge();
+      });
+    });
+    
+  } else {
+    // ---- Render Detail View ----
+    const req = appRequests.find(r => r.id === activeRequestDetailId);
+    if (!req) {
+      activeRequestDetailId = null;
+      renderAdminRequests();
+      return;
+    }
+    
     const timeStr = req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Just now';
-    return `
-      <li class="admin-request-item">
-        <div class="admin-request-content">
-          <div class="admin-request-text">${escapeHTML(req.question)}</div>
-          <div class="admin-request-meta">Requested by: <strong>${escapeHTML(req.name || 'Anonymous')}</strong> • ${timeStr}</div>
+    const initial = req.name ? req.name.trim().charAt(0).toUpperCase() : 'A';
+    
+    dropdown.innerHTML = `
+      <div class="message-detail-header">
+        <button type="button" class="btn-message-back" id="btnMessageBack" title="Back to inbox">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <span>Messages</span>
+      </div>
+      <div class="message-detail-view">
+        <div class="message-detail-meta">
+          <div class="message-thread-avatar">${escapeHTML(initial)}</div>
+          <div class="message-detail-meta-text">
+            <div class="message-detail-sender">${escapeHTML(req.name || 'Anonymous')}</div>
+            <div class="message-detail-time">${escapeHTML(timeStr)}</div>
+          </div>
         </div>
-        <div class="admin-request-actions">
+        <div class="message-detail-bubble">
+          <p class="message-detail-text">${escapeHTML(req.question)}</p>
+        </div>
+        <div class="message-detail-actions">
           <button type="button" class="btn-request-action btn-request-write" data-question="${escapeHTML(req.question)}">Write Take</button>
           <button type="button" class="btn-request-action btn-request-dismiss" data-request-id="${req.id}">Dismiss</button>
         </div>
-      </li>
+      </div>
     `;
-  }).join('');
+    
+    // Wire up back button
+    const backBtn = dropdown.querySelector('#btnMessageBack');
+    if (backBtn) {
+      backBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activeRequestDetailId = null;
+        renderAdminRequests();
+      });
+    }
+    
+    // Wire up Write Take
+    const writeBtn = dropdown.querySelector('.btn-request-write');
+    if (writeBtn) {
+      writeBtn.addEventListener('click', (e) => {
+        const q = e.target.dataset.question;
+        startTakeFromRequest(q);
+      });
+    }
+    
+    // Wire up Dismiss
+    const dismissBtn = dropdown.querySelector('.btn-request-dismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', async (e) => {
+        const reqId = Number(e.target.dataset.requestId);
+        if (confirm('Are you sure you want to dismiss this request?')) {
+          await dismissRequest(reqId);
+          activeRequestDetailId = null; // Go back to inbox after dismissing
+          renderAdminRequests();
+        }
+      });
+    }
+  }
   
-  listEl.querySelectorAll('.btn-request-write').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const q = e.target.dataset.question;
-      startTakeFromRequest(q);
-    });
-  });
-  
-  listEl.querySelectorAll('.btn-request-dismiss').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const reqId = Number(e.target.dataset.requestId);
-      if (confirm('Are you sure you want to dismiss this request?')) {
-        await dismissRequest(reqId);
-      }
-    });
-  });
+  updateMessagesBadge();
 }
 
 function setupRequestForm() {
@@ -2681,6 +2798,8 @@ function setupAdminMessages() {
   if (adminMessagesBtn && adminMessagesDropdown) {
     adminMessagesBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      activeRequestDetailId = null; // Always open to list view
+      renderAdminRequests();
       adminMessagesDropdown.classList.toggle('open');
       adminMessagesBtn.classList.toggle('active');
     });

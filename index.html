@@ -50,19 +50,17 @@
 
         <!-- Messages button and dropdown wrapper (shown when logged in as admin) -->
         <div class="admin-messages-wrapper" id="adminMessagesWrapper" style="display: none;">
-          <button class="btn-messages" id="adminMessagesBtn" title="Topic Requests">
+          <button class="btn-messages" id="adminMessagesBtn" title="Messages" style="position: relative;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
               <polyline points="22,6 12,13 2,6"></polyline>
             </svg>
             <span>Messages</span>
+            <span class="messages-badge" id="adminMessagesBadge" style="display: none;">0</span>
           </button>
           
           <div class="request-dropdown" id="adminMessagesDropdown">
-            <h3 class="admin-requests-title">Topic Requests</h3>
-            <ul class="admin-requests-list" id="adminRequestsList">
-              <!-- Dynamically populated -->
-            </ul>
+            <!-- Dynamically populated by renderAdminRequests() in app.js -->
           </div>
         </div>
 
