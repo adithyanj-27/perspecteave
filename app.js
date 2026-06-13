@@ -2671,7 +2671,7 @@ async function submitChatReply(parentRequestId, isFromAdmin) {
   // Mark this reply as read immediately for the sender
   const lastReply = appRequests.find(r => {
     const p = parseReply(r);
-    return p.isReply && Number(p.parentId) === Number(parentRequestId) && r.name === name && !readRequestIds.includes(r.id);
+    return p.isReply && Number(p.parentId) === Number(parentRequestId) && r.name === name && !readRequestIds.map(String).includes(String());
   });
   if (lastReply) {
     readRequestIds.push(lastReply.id);
@@ -2755,7 +2755,7 @@ function updateMessagesBadge() {
   if (!badge) return;
   
   // Calculate unread requests (exclude admin's own replies)
-  const unreadCount = appRequests.filter(req => req.name !== 'teaboy27' && !readRequestIds.includes(req.id)).length;
+  const unreadCount = appRequests.filter(req => req.name !== 'teaboy27' && !readRequestIds.map(String).includes(String())).length;
   if (unreadCount > 0) {
     badge.textContent = unreadCount;
     badge.style.display = 'flex';
@@ -2775,7 +2775,7 @@ function updateUserMessagesBadge() {
   // Count unread replies from 'teaboy27' that belong to user's threads
   const unreadCount = appRequests.filter(req => {
     if (req.name !== 'teaboy27') return false;
-    if (readRequestIds.includes(req.id)) return false;
+    if (readRequestIds.map(String).includes(String())) return false;
     const parsed = parseReply(req);
     if (!parsed.isReply) return false;
     
@@ -2815,14 +2815,14 @@ function renderAdminRequests() {
     // ---- Render List (Inbox) View ----
     let threadsHTML = threads.map(req => {
       const lastMsg = getLastMessageInThread(req.id) || { name: req.name, text: req.question, created_at: req.created_at };
-      const timeStr = lastMsg.created_at ? new Date(lastMsg.created_at).toLocaleDateString() : 'Just now';
+      const timeStr = lastMsg.created_at ? formatBubbleTime(lastMsg.created_at) : 'Just now';
       
       const hasUnread = appRequests.some(r => {
         if (r.id === req.id) {
-          return r.name !== 'teaboy27' && !readRequestIds.includes(r.id);
+          return r.name !== 'teaboy27' && !readRequestIds.map(String).includes(String());
         }
         const parsed = parseReply(r);
-        return parsed.isReply && parsed.parentId === req.id && r.name !== 'teaboy27' && !readRequestIds.includes(r.id);
+        return parsed.isReply && parsed.parentId === req.id && r.name !== 'teaboy27' && !readRequestIds.map(String).includes(String());
       });
       
       const snippet = lastMsg.text.length > 30 ? lastMsg.text.substring(0, 30) + '...' : lastMsg.text;
@@ -2852,6 +2852,7 @@ function renderAdminRequests() {
     // Wire up thread click listeners
     dropdown.querySelectorAll('.admin-message-thread').forEach(item => {
       item.addEventListener('click', (e) => {
+        e.stopPropagation();
         const reqId = Number(item.dataset.requestId);
         
         // Find all replies in this thread
@@ -2868,7 +2869,7 @@ function renderAdminRequests() {
         
         let changed = false;
         threadMsgs.forEach(msg => {
-          if (msg.name !== 'teaboy27' && !readRequestIds.includes(msg.id)) {
+          if (msg.name !== 'teaboy27' && !readRequestIds.map(String).includes(String())) {
             readRequestIds.push(msg.id);
             changed = true;
           }
@@ -2903,7 +2904,7 @@ function renderAdminRequests() {
     // Mark parent and replies in this thread as read immediately for the admin
     let changed = false;
     messages.forEach(msg => {
-      if (msg.name !== 'teaboy27' && !readRequestIds.includes(msg.id)) {
+      if (msg.name !== 'teaboy27' && !readRequestIds.map(String).includes(String())) {
         readRequestIds.push(msg.id);
         changed = true;
       }
@@ -3092,14 +3093,14 @@ function renderUserRequests() {
     // ---- Render Threads List View ----
     let threadsHTML = userThreads.map(req => {
       const lastMsg = getLastMessageInThread(req.id) || { name: req.name, text: req.question, created_at: req.created_at };
-      const timeStr = lastMsg.created_at ? new Date(lastMsg.created_at).toLocaleDateString() : 'Just now';
+      const timeStr = lastMsg.created_at ? formatBubbleTime(lastMsg.created_at) : 'Just now';
       
       const hasUnread = appRequests.some(r => {
         if (r.id === req.id) {
-          return r.name === 'teaboy27' && !readRequestIds.includes(r.id);
+          return r.name === 'teaboy27' && !readRequestIds.map(String).includes(String());
         }
         const parsed = parseReply(r);
-        return parsed.isReply && parsed.parentId === req.id && r.name === 'teaboy27' && !readRequestIds.includes(r.id);
+        return parsed.isReply && parsed.parentId === req.id && r.name === 'teaboy27' && !readRequestIds.map(String).includes(String());
       });
       
       const isLastMsgFromAdmin = lastMsg.name === 'teaboy27';
@@ -3144,6 +3145,7 @@ function renderUserRequests() {
     // Wire up thread click listeners
     dropdown.querySelectorAll('.user-message-thread').forEach(item => {
       item.addEventListener('click', (e) => {
+        e.stopPropagation();
         const reqId = Number(item.dataset.requestId);
         
         // Mark all replies from author as read
@@ -3159,7 +3161,7 @@ function renderUserRequests() {
         
         let changed = false;
         threadMsgs.forEach(msg => {
-          if (msg.name === 'teaboy27' && !readRequestIds.includes(msg.id)) {
+          if (msg.name === 'teaboy27' && !readRequestIds.map(String).includes(String())) {
             readRequestIds.push(msg.id);
             changed = true;
           }
@@ -3194,7 +3196,7 @@ function renderUserRequests() {
     // Mark parent and replies in this thread as read immediately for the user
     let changed = false;
     messages.forEach(msg => {
-      if (msg.name === 'teaboy27' && !readRequestIds.includes(msg.id)) {
+      if (msg.name === 'teaboy27' && !readRequestIds.map(String).includes(String())) {
         readRequestIds.push(msg.id);
         changed = true;
       }
@@ -3320,7 +3322,7 @@ function setupRequestForm() {
     // Close request dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (!document.body.contains(e.target)) return;
-      if (!askAuthorBtn.contains(e.target) && !requestDropdown.contains(e.target)) {
+      if (requestDropdown.classList.contains('open') && !askAuthorBtn.contains(e.target) && !requestDropdown.contains(e.target)) {
         requestDropdown.classList.remove('open');
         askAuthorBtn.classList.remove('active');
         activeRequestDetailId = null;
@@ -3347,7 +3349,7 @@ function setupAdminMessages() {
     // Close messages dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (!document.body.contains(e.target)) return;
-      if (!adminMessagesBtn.contains(e.target) && !adminMessagesDropdown.contains(e.target)) {
+      if (adminMessagesDropdown.classList.contains('open') && !adminMessagesBtn.contains(e.target) && !adminMessagesDropdown.contains(e.target)) {
         adminMessagesDropdown.classList.remove('open');
         adminMessagesBtn.classList.remove('active');
         activeRequestDetailId = null;
