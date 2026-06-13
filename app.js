@@ -2613,13 +2613,17 @@ async function submitTopicRequest() {
 }
 
 async function submitChatReply(parentRequestId, isFromAdmin) {
-  const replyInput = document.getElementById('chatReplyText');
+  const dropdownId = isFromAdmin ? 'adminMessagesDropdown' : 'requestDropdown';
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+
+  const replyInput = dropdown.querySelector('.chat-input-textarea');
   if (!replyInput) return;
   const text = replyInput.value.trim();
   if (!text) return;
   
   replyInput.disabled = true;
-  const sendBtn = document.getElementById('btnChatSend');
+  const sendBtn = dropdown.querySelector('.btn-chat-send');
   if (sendBtn) sendBtn.disabled = true;
 
   const parent = appRequests.find(r => Number(r.id) === Number(parentRequestId));
