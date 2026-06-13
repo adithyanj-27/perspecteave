@@ -2363,3 +2363,50 @@ footer {
   gap: var(--space-sm);
   justify-content: flex-end;
 }
+
+/* Chat bubble container */
+.chat-messages-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* Base message bubble style */
+.chat-message-bubble {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  word-break: break-word;
+}
+
+/* Sent messages (User) */
+.chat-message-bubble.bubble-sent {
+  background: rgba(214, 142, 73, 0.08);
+  color: var(--text-primary);
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+
+/* Received messages (Admin/Adithyan) */
+.chat-message-bubble.bubble-received {
+  background: rgba(74, 117, 89, 0.08);
+  color: var(--text-primary);
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
+  border-left: 2px solid var(--accent-matcha);
+}
+
+/* Message timestamps inside bubbles */
+.chat-message-bubble .bubble-time {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  align-self: flex-end;
+}
+

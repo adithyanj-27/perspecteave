@@ -1585,6 +1585,11 @@ async function updateAuthUI(session) {
     const adminMessagesWrapper = document.getElementById('adminMessagesWrapper');
     if (adminMessagesWrapper) adminMessagesWrapper.style.display = 'none';
   }
+  
+  if (!adminLoggedIn) {
+    renderUserRequests();
+    updateUserMessagesBadge();
+  }
 }
 
 // ---- Setup Auth Events ----
@@ -1860,6 +1865,7 @@ function setupAuth() {
     });
 
     document.addEventListener('click', (e) => {
+      if (!document.body.contains(e.target)) return;
       if (!profileTrigger.contains(e.target) && !profileDropdown.contains(e.target)) {
         profileDropdown.classList.remove('open');
         profileTrigger.classList.remove('active');
@@ -2417,6 +2423,52 @@ const REQUESTS_KEY = 'perspecteave_topic_requests';
 const READ_REQUESTS_KEY = 'perspecteave_read_requests';
 let readRequestIds = JSON.parse(localStorage.getItem(READ_REQUESTS_KEY) || '[]');
 let activeRequestDetailId = null;
+let userShowingForm = false;
+let myRequestIds = JSON.parse(localStorage.getItem('perspecteave_my_requests') || '[]');
+
+function parseReply(req) {
+  if (!req || !req.question) return { isReply: false };
+  const match = req.question.match(/^\[reply_to:(\d+)\]\s*([\s\S]*)$/);
+  if (match) {
+    return { isReply: true, parentId: Number(match[1]), text: match[2] };
+  }
+  return { isReply: false };
+}
+
+function getLastMessageInThread(parentId) {
+  const parent = appRequests.find(r => r.id === parentId);
+  if (!parent) return null;
+  
+  const replies = appRequests.filter(r => {
+    const p = parseReply(r);
+    return p.isReply && p.parentId === parentId;
+  });
+  
+  if (replies.length === 0) {
+    return {
+      id: parent.id,
+      name: parent.name,
+      text: parent.question,
+      created_at: parent.created_at
+    };
+  }
+  
+  replies.sort((a, b) => a.id - b.id);
+  const lastReply = replies[replies.length - 1];
+  const parsed = parseReply(lastReply);
+  return {
+    id: lastReply.id,
+    name: lastReply.name,
+    text: parsed.text,
+    created_at: lastReply.created_at
+  };
+}
+
+function formatBubbleTime(dateStr) {
+  if (!dateStr) return 'Just now';
+  const date = new Date(dateStr);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
 async function loadTopicRequests() {
   if (isConfigured) {
@@ -2429,6 +2481,7 @@ async function loadTopicRequests() {
       if (data) {
         appRequests = data;
         updateMessagesBadge();
+        updateUserMessagesBadge();
         return;
       }
     } catch (err) {
@@ -2437,6 +2490,7 @@ async function loadTopicRequests() {
   }
   appRequests = JSON.parse(localStorage.getItem(REQUESTS_KEY) || '[]');
   updateMessagesBadge();
+  updateUserMessagesBadge();
 }
 
 async function submitTopicRequest() {
@@ -2471,10 +2525,17 @@ async function submitTopicRequest() {
   
   if (isConfigured) {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('topic_requests')
-        .insert({ name, question });
+        .insert({ name, question })
+        .select('*')
+        .single();
       if (error) throw error;
+      
+      if (data) {
+        myRequestIds.push(data.id);
+        localStorage.setItem('perspecteave_my_requests', JSON.stringify(myRequestIds));
+      }
       
       questionInput.value = '';
       if (!loggedIn) nameInput.value = '';
@@ -2501,7 +2562,7 @@ async function submitTopicRequest() {
       
       alert('Thank you! Your request has been submitted to Adithyan.');
       await loadTopicRequests();
-      renderAdminRequests();
+      renderUserRequests(); // Render user's updated requests list/detail
       return;
     } catch (err) {
       console.error('Could not insert to Supabase topic_requests:', err);
@@ -2517,6 +2578,9 @@ async function submitTopicRequest() {
     question,
     created_at: new Date().toISOString()
   };
+  
+  myRequestIds.push(newRequest.id);
+  localStorage.setItem('perspecteave_my_requests', JSON.stringify(myRequestIds));
   
   appRequests.unshift(newRequest);
   localStorage.setItem(REQUESTS_KEY, JSON.stringify(appRequests));
@@ -2545,7 +2609,82 @@ async function submitTopicRequest() {
   }, 1800);
   
   alert('Thank you! Your request has been submitted to Adithyan.');
-  renderAdminRequests();
+  renderUserRequests(); // Render user's updated requests list/detail
+}
+
+async function submitChatReply(parentRequestId, isFromAdmin) {
+  const replyInput = document.getElementById('chatReplyText');
+  if (!replyInput) return;
+  const text = replyInput.value.trim();
+  if (!text) return;
+  
+  replyInput.disabled = true;
+  const sendBtn = document.getElementById('btnChatSend');
+  if (sendBtn) sendBtn.disabled = true;
+
+  const parent = appRequests.find(r => r.id === parentRequestId);
+  if (!parent) {
+    replyInput.disabled = false;
+    if (sendBtn) sendBtn.disabled = false;
+    return;
+  }
+
+  const name = isFromAdmin ? 'teaboy27' : (parent.name || 'Anonymous');
+  const question = `[reply_to:${parentRequestId}] ${text}`;
+
+  if (isConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('topic_requests')
+        .insert({ name, question })
+        .select('*')
+        .single();
+      if (error) throw error;
+      
+      await loadTopicRequests();
+    } catch (err) {
+      console.error('Could not submit reply to Supabase:', err);
+      alert('Error sending message: ' + (err.message || err));
+      replyInput.disabled = false;
+      if (sendBtn) sendBtn.disabled = false;
+      return;
+    }
+  } else {
+    const newReply = {
+      id: Date.now(),
+      name,
+      question,
+      created_at: new Date().toISOString()
+    };
+    appRequests.push(newReply);
+    localStorage.setItem(REQUESTS_KEY, JSON.stringify(appRequests));
+  }
+
+  replyInput.value = '';
+  replyInput.disabled = false;
+  if (sendBtn) sendBtn.disabled = false;
+
+  // Mark this reply as read immediately for the sender
+  const lastReply = appRequests.find(r => {
+    const p = parseReply(r);
+    return p.isReply && p.parentId === parentRequestId && r.name === name && !readRequestIds.includes(r.id);
+  });
+  if (lastReply) {
+    readRequestIds.push(lastReply.id);
+    localStorage.setItem(READ_REQUESTS_KEY, JSON.stringify(readRequestIds));
+  }
+
+  if (isFromAdmin) {
+    renderAdminRequests();
+  } else {
+    renderUserRequests();
+  }
+
+  // Scroll to bottom
+  const container = document.getElementById('chatBubbleContainer');
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
 async function dismissRequest(requestId) {
@@ -2555,23 +2694,27 @@ async function dismissRequest(requestId) {
 
   if (isConfigured) {
     try {
-      const { error } = await supabase
-        .from('topic_requests')
-        .delete()
-        .eq('id', requestId);
-      if (!error) {
-        await loadTopicRequests();
-        renderAdminRequests();
-        return;
-      }
+      await Promise.all([
+        supabase.from('topic_requests').delete().eq('id', requestId),
+        supabase.from('topic_requests').delete().like('question', `[reply_to:${requestId}]%`)
+      ]);
+      await loadTopicRequests();
+      renderAdminRequests();
+      renderUserRequests();
+      return;
     } catch (err) {
       console.warn('Could not delete from Supabase topic_requests:', err);
     }
   }
   
-  appRequests = appRequests.filter(r => r.id !== requestId);
+  appRequests = appRequests.filter(r => {
+    if (r.id === requestId) return false;
+    const parsed = parseReply(r);
+    return !(parsed.isReply && parsed.parentId === requestId);
+  });
   localStorage.setItem(REQUESTS_KEY, JSON.stringify(appRequests));
   renderAdminRequests();
+  renderUserRequests();
 }
 
 function startTakeFromRequest(question) {
@@ -2607,8 +2750,28 @@ function updateMessagesBadge() {
   const badge = document.getElementById('adminMessagesBadge');
   if (!badge) return;
   
-  // Calculate unread requests
-  const unreadCount = appRequests.filter(req => !readRequestIds.includes(req.id)).length;
+  // Calculate unread requests (exclude admin's own replies)
+  const unreadCount = appRequests.filter(req => req.name !== 'teaboy27' && !readRequestIds.includes(req.id)).length;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function updateUserMessagesBadge() {
+  const badge = document.getElementById('userMessagesBadge');
+  if (!badge) return;
+  
+  // Count unread replies from 'teaboy27' that belong to user's threads
+  const unreadCount = appRequests.filter(req => {
+    if (req.name !== 'teaboy27') return false;
+    if (readRequestIds.includes(req.id)) return false;
+    const parsed = parseReply(req);
+    return parsed.isReply && myRequestIds.includes(parsed.parentId);
+  }).length;
+  
   if (unreadCount > 0) {
     badge.textContent = unreadCount;
     badge.style.display = 'flex';
@@ -2621,7 +2784,9 @@ function renderAdminRequests() {
   const dropdown = document.getElementById('adminMessagesDropdown');
   if (!dropdown) return;
   
-  if (appRequests.length === 0) {
+  const threads = appRequests.filter(req => !parseReply(req).isReply);
+  
+  if (threads.length === 0) {
     dropdown.innerHTML = `
       <h3 class="admin-requests-title">Messages</h3>
       <div style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-muted); padding: var(--space-md); text-align: center;">No messages yet.</div>
@@ -2632,10 +2797,19 @@ function renderAdminRequests() {
   
   if (activeRequestDetailId === null) {
     // ---- Render List (Inbox) View ----
-    let threadsHTML = appRequests.map(req => {
-      const timeStr = req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Just now';
-      const isUnread = !readRequestIds.includes(req.id);
-      const snippet = req.question.length > 30 ? req.question.substring(0, 30) + '...' : req.question;
+    let threadsHTML = threads.map(req => {
+      const lastMsg = getLastMessageInThread(req.id) || { name: req.name, text: req.question, created_at: req.created_at };
+      const timeStr = lastMsg.created_at ? new Date(lastMsg.created_at).toLocaleDateString() : 'Just now';
+      
+      const hasUnread = appRequests.some(r => {
+        if (r.id === req.id) {
+          return r.name !== 'teaboy27' && !readRequestIds.includes(r.id);
+        }
+        const parsed = parseReply(r);
+        return parsed.isReply && parsed.parentId === req.id && r.name !== 'teaboy27' && !readRequestIds.includes(r.id);
+      });
+      
+      const snippet = lastMsg.text.length > 30 ? lastMsg.text.substring(0, 30) + '...' : lastMsg.text;
       const initial = req.name ? req.name.trim().charAt(0).toUpperCase() : 'A';
       return `
         <li class="admin-message-thread" data-request-id="${req.id}">
@@ -2647,7 +2821,7 @@ function renderAdminRequests() {
             </div>
             <div class="message-thread-snippet">${escapeHTML(snippet)}</div>
           </div>
-          ${isUnread ? '<span class="message-unread-dot"></span>' : ''}
+          ${hasUnread ? '<span class="message-unread-dot"></span>' : ''}
         </li>
       `;
     }).join('');
@@ -2664,15 +2838,33 @@ function renderAdminRequests() {
       item.addEventListener('click', (e) => {
         const reqId = Number(item.dataset.requestId);
         
-        // Mark as read
-        if (!readRequestIds.includes(reqId)) {
-          readRequestIds.push(reqId);
+        // Find all replies in this thread
+        const replies = appRequests.filter(r => {
+          const parsed = parseReply(r);
+          return parsed.isReply && parsed.parentId === reqId;
+        });
+        
+        // Mark parent and all replies from users as read
+        const threadMsgs = [
+          appRequests.find(r => r.id === reqId),
+          ...replies
+        ].filter(Boolean);
+        
+        let changed = false;
+        threadMsgs.forEach(msg => {
+          if (msg.name !== 'teaboy27' && !readRequestIds.includes(msg.id)) {
+            readRequestIds.push(msg.id);
+            changed = true;
+          }
+        });
+        
+        if (changed) {
           localStorage.setItem(READ_REQUESTS_KEY, JSON.stringify(readRequestIds));
+          updateMessagesBadge();
         }
         
         activeRequestDetailId = reqId;
         renderAdminRequests();
-        updateMessagesBadge();
       });
     });
     
@@ -2685,34 +2877,52 @@ function renderAdminRequests() {
       return;
     }
     
-    const timeStr = req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Just now';
-    const initial = req.name ? req.name.trim().charAt(0).toUpperCase() : 'A';
+    const replies = appRequests.filter(r => {
+      const p = parseReply(r);
+      return p.isReply && p.parentId === activeRequestDetailId;
+    });
+    
+    const messages = [req, ...replies].sort((a, b) => a.id - b.id);
+    
+    const bubblesHTML = messages.map(msg => {
+      const isAuthor = msg.name === 'teaboy27';
+      const parsed = parseReply(msg);
+      const text = parsed.isReply ? parsed.text : msg.question;
+      const bubbleClass = isAuthor ? 'bubble-sent' : 'bubble-received';
+      const msgTime = formatBubbleTime(msg.created_at);
+      return `
+        <div class="chat-message-bubble ${bubbleClass}">
+          <div>${escapeHTML(text)}</div>
+          <span class="bubble-time">${escapeHTML(msgTime)}</span>
+        </div>
+      `;
+    }).join('');
     
     dropdown.innerHTML = `
-      <div class="message-detail-header">
+      <div class="message-detail-header" style="margin-bottom: var(--space-xs); padding-bottom: var(--space-xs);">
         <button type="button" class="btn-message-back" id="btnMessageBack" title="Back to inbox">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
-        <span>Messages</span>
+        <span style="flex: 1; font-size: 0.95rem;">${escapeHTML(req.name || 'Anonymous')}</span>
+        <div style="display: flex; gap: 4px;">
+          <button type="button" class="btn-request-action btn-request-write" data-question="${escapeHTML(req.question)}" title="Write Take" style="padding: 4px 8px; font-size: 0.75rem;">Write</button>
+          <button type="button" class="btn-request-action btn-request-dismiss" data-request-id="${req.id}" title="Dismiss" style="padding: 4px 8px; font-size: 0.75rem;">Dismiss</button>
+        </div>
       </div>
-      <div class="message-detail-view">
-        <div class="message-detail-meta">
-          <div class="message-thread-avatar">${escapeHTML(initial)}</div>
-          <div class="message-detail-meta-text">
-            <div class="message-detail-sender">${escapeHTML(req.name || 'Anonymous')}</div>
-            <div class="message-detail-time">${escapeHTML(timeStr)}</div>
-          </div>
-        </div>
-        <div class="message-detail-bubble">
-          <p class="message-detail-text">${escapeHTML(req.question)}</p>
-        </div>
-        <div class="message-detail-actions">
-          <button type="button" class="btn-request-action btn-request-write" data-question="${escapeHTML(req.question)}">Write Take</button>
-          <button type="button" class="btn-request-action btn-request-dismiss" data-request-id="${req.id}">Dismiss</button>
-        </div>
+      <div class="chat-messages-container" id="chatBubbleContainer" style="max-height: 220px; overflow-y: auto; padding: var(--space-sm); display: flex; flex-direction: column; gap: var(--space-xs);">
+        ${bubblesHTML}
+      </div>
+      <div class="chat-input-area" style="display: flex; gap: var(--space-xs); padding: var(--space-sm); border-top: 1px solid var(--border-light); margin-top: 4px;">
+        <textarea class="chat-input-textarea" id="chatReplyText" placeholder="Type a message..." rows="1" style="flex: 1; resize: none; border-radius: 16px; border: 1px solid var(--border-light); padding: 6px 12px; font-family: var(--font-body); font-size: 0.82rem; outline: none;"></textarea>
+        <button class="btn-chat-send" id="btnChatSend" style="background: var(--accent-matcha); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
       </div>
     `;
     
@@ -2747,9 +2957,274 @@ function renderAdminRequests() {
         }
       });
     }
+
+    // Wire up Send Button
+    const sendBtn = dropdown.querySelector('#btnChatSend');
+    if (sendBtn) {
+      sendBtn.addEventListener('click', (e) => {
+        submitChatReply(activeRequestDetailId, true);
+      });
+    }
+
+    // Wire up Textarea Enter
+    const replyInput = dropdown.querySelector('#chatReplyText');
+    if (replyInput) {
+      replyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          submitChatReply(activeRequestDetailId, true);
+        }
+      });
+    }
+
+    // Scroll to bottom
+    const container = dropdown.querySelector('#chatBubbleContainer');
+    if (container) {
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 50);
+    }
   }
   
   updateMessagesBadge();
+}
+
+function renderUserRequests() {
+  const dropdown = document.getElementById('requestDropdown');
+  if (!dropdown) return;
+
+  const userThreads = appRequests.filter(req => myRequestIds.includes(req.id) && !parseReply(req).isReply);
+
+  // Determine whether to show the form or threads list
+  if (userThreads.length === 0 || userShowingForm) {
+    // ---- Render Submission Form ----
+    const loggedIn = isLoggedIn(currentSession);
+    
+    dropdown.innerHTML = `
+      <h3 class="admin-requests-title">Ask the Author</h3>
+      <form class="login-form" id="requestForm" onsubmit="return false;" style="display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-sm); margin: 0;">
+        ${!loggedIn ? `
+          <input type="text" id="requestName" placeholder="Your name" required style="border-radius: 8px; border: 1px solid var(--border-light); padding: 8px 12px; font-family: var(--font-body); font-size: 0.88rem; outline: none; background: var(--bg-card); color: var(--text-primary);">
+        ` : ''}
+        <textarea id="requestQuestionText" placeholder="Ask a question or request a topic..." rows="3" required style="border-radius: 8px; border: 1px solid var(--border-light); padding: 8px 12px; font-family: var(--font-body); font-size: 0.88rem; outline: none; resize: vertical; background: var(--bg-card); color: var(--text-primary);"></textarea>
+        <button type="button" class="btn-login-submit" id="requestSubmitBtn" style="border-radius: 8px; padding: 8px var(--space-md); font-weight: 600; width: 100%;">Submit Request</button>
+      </form>
+      ${userThreads.length > 0 ? `
+        <div style="text-align: center; margin-top: -4px; padding-bottom: var(--space-sm);">
+          <a href="#" id="btnBackToMessages" style="font-family: var(--font-body); font-size: 0.78rem; color: var(--accent-tea); text-decoration: none; font-weight: 600;">View my messages</a>
+        </div>
+      ` : ''}
+    `;
+
+    // Wire up submit button
+    const submitBtn = dropdown.querySelector('#requestSubmitBtn');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        submitTopicRequest();
+      });
+    }
+
+    // Wire up textarea keydown (Enter to submit)
+    const textarea = dropdown.querySelector('#requestQuestionText');
+    if (textarea) {
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          submitTopicRequest();
+        }
+      });
+    }
+
+    // Wire up back to messages link
+    const backToMsgsBtn = dropdown.querySelector('#btnBackToMessages');
+    if (backToMsgsBtn) {
+      backToMsgsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        userShowingForm = false;
+        renderUserRequests();
+      });
+    }
+
+  } else if (activeRequestDetailId === null) {
+    // ---- Render Threads List View ----
+    let threadsHTML = userThreads.map(req => {
+      const lastMsg = getLastMessageInThread(req.id) || { name: req.name, text: req.question, created_at: req.created_at };
+      const timeStr = lastMsg.created_at ? new Date(lastMsg.created_at).toLocaleDateString() : 'Just now';
+      
+      const hasUnread = appRequests.some(r => {
+        if (r.id === req.id) {
+          return r.name === 'teaboy27' && !readRequestIds.includes(r.id);
+        }
+        const parsed = parseReply(r);
+        return parsed.isReply && parsed.parentId === req.id && r.name === 'teaboy27' && !readRequestIds.includes(r.id);
+      });
+      
+      const snippet = lastMsg.text.length > 30 ? lastMsg.text.substring(0, 30) + '...' : lastMsg.text;
+      
+      return `
+        <li class="admin-message-thread user-message-thread" data-request-id="${req.id}">
+          <div class="message-thread-avatar" style="background: rgba(74, 117, 89, 0.1); color: var(--accent-matcha); font-weight: bold;">A</div>
+          <div class="message-thread-info">
+            <div class="message-thread-header">
+              <span class="message-thread-sender">${escapeHTML(req.name || 'Anonymous')}</span>
+              <span class="message-thread-time">${escapeHTML(timeStr)}</span>
+            </div>
+            <div class="message-thread-snippet">${escapeHTML(snippet)}</div>
+          </div>
+          ${hasUnread ? '<span class="message-unread-dot"></span>' : ''}
+        </li>
+      `;
+    }).join('');
+
+    dropdown.innerHTML = `
+      <h3 class="admin-requests-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm);">
+        <span>My Messages</span>
+        <button type="button" id="btnAskNewQuestion" style="background: none; border: none; color: var(--accent-tea); font-family: var(--font-body); font-size: 0.78rem; font-weight: 600; cursor: pointer; padding: 0;">+ Ask New</button>
+      </h3>
+      <ul class="admin-requests-list" style="margin: 0; padding: 0; max-height: 250px; overflow-y: auto;">
+        ${threadsHTML}
+      </ul>
+    `;
+
+    // Wire up Ask New button
+    const askNewBtn = dropdown.querySelector('#btnAskNewQuestion');
+    if (askNewBtn) {
+      askNewBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userShowingForm = true;
+        renderUserRequests();
+      });
+    }
+
+    // Wire up thread click listeners
+    dropdown.querySelectorAll('.user-message-thread').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const reqId = Number(item.dataset.requestId);
+        
+        // Mark all replies from author as read
+        const replies = appRequests.filter(r => {
+          const parsed = parseReply(r);
+          return parsed.isReply && parsed.parentId === reqId;
+        });
+        
+        const threadMsgs = [
+          appRequests.find(r => r.id === reqId),
+          ...replies
+        ].filter(Boolean);
+        
+        let changed = false;
+        threadMsgs.forEach(msg => {
+          if (msg.name === 'teaboy27' && !readRequestIds.includes(msg.id)) {
+            readRequestIds.push(msg.id);
+            changed = true;
+          }
+        });
+        
+        if (changed) {
+          localStorage.setItem(READ_REQUESTS_KEY, JSON.stringify(readRequestIds));
+          updateUserMessagesBadge();
+        }
+        
+        activeRequestDetailId = reqId;
+        renderUserRequests();
+      });
+    });
+
+  } else {
+    // ---- Render User Detail View (Chat Bubbles) ----
+    const req = appRequests.find(r => r.id === activeRequestDetailId);
+    if (!req) {
+      activeRequestDetailId = null;
+      renderUserRequests();
+      return;
+    }
+    
+    const replies = appRequests.filter(r => {
+      const p = parseReply(r);
+      return p.isReply && p.parentId === activeRequestDetailId;
+    });
+    
+    const messages = [req, ...replies].sort((a, b) => a.id - b.id);
+    
+    const bubblesHTML = messages.map(msg => {
+      const isAuthor = msg.name === 'teaboy27';
+      const parsed = parseReply(msg);
+      const text = parsed.isReply ? parsed.text : msg.question;
+      const bubbleClass = isAuthor ? 'bubble-received' : 'bubble-sent';
+      const msgTime = formatBubbleTime(msg.created_at);
+      return `
+        <div class="chat-message-bubble ${bubbleClass}">
+          <div>${escapeHTML(text)}</div>
+          <span class="bubble-time">${escapeHTML(msgTime)}</span>
+        </div>
+      `;
+    }).join('');
+
+    dropdown.innerHTML = `
+      <div class="message-detail-header" style="margin-bottom: var(--space-xs); padding-bottom: var(--space-xs);">
+        <button type="button" class="btn-message-back" id="btnUserMessageBack" title="Back to messages">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <span style="font-size: 0.95rem;">Adithyan (Author)</span>
+      </div>
+      <div class="chat-messages-container" id="chatBubbleContainer" style="max-height: 220px; overflow-y: auto; padding: var(--space-sm); display: flex; flex-direction: column; gap: var(--space-xs);">
+        ${bubblesHTML}
+      </div>
+      <div class="chat-input-area" style="display: flex; gap: var(--space-xs); padding: var(--space-sm); border-top: 1px solid var(--border-light); margin-top: 4px;">
+        <textarea class="chat-input-textarea" id="chatReplyText" placeholder="Type a message..." rows="1" style="flex: 1; resize: none; border-radius: 16px; border: 1px solid var(--border-light); padding: 6px 12px; font-family: var(--font-body); font-size: 0.82rem; outline: none; background: var(--bg-card); color: var(--text-primary);"></textarea>
+        <button class="btn-chat-send" id="btnChatSend" style="background: var(--accent-matcha); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    `;
+
+    // Wire up back button
+    const backBtn = dropdown.querySelector('#btnUserMessageBack');
+    if (backBtn) {
+      backBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activeRequestDetailId = null;
+        renderUserRequests();
+      });
+    }
+
+    // Wire up Send Button
+    const sendBtn = dropdown.querySelector('#btnChatSend');
+    if (sendBtn) {
+      sendBtn.addEventListener('click', (e) => {
+        submitChatReply(activeRequestDetailId, false);
+      });
+    }
+
+    // Wire up Textarea Enter
+    const replyInput = dropdown.querySelector('#chatReplyText');
+    if (replyInput) {
+      replyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          submitChatReply(activeRequestDetailId, false);
+        }
+      });
+    }
+
+    // Scroll to bottom
+    const container = dropdown.querySelector('#chatBubbleContainer');
+    if (container) {
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 50);
+    }
+  }
+
+  updateUserMessagesBadge();
 }
 
 function setupRequestForm() {
@@ -2759,33 +3234,19 @@ function setupRequestForm() {
   if (askAuthorBtn && requestDropdown) {
     askAuthorBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      userShowingForm = false;
+      activeRequestDetailId = null;
+      renderUserRequests();
       requestDropdown.classList.toggle('open');
       askAuthorBtn.classList.toggle('active');
     });
 
     // Close request dropdown when clicking outside
     document.addEventListener('click', (e) => {
+      if (!document.body.contains(e.target)) return;
       if (!askAuthorBtn.contains(e.target) && !requestDropdown.contains(e.target)) {
         requestDropdown.classList.remove('open');
         askAuthorBtn.classList.remove('active');
-      }
-    });
-  }
-
-  const submitBtn = document.getElementById('requestSubmitBtn');
-  if (submitBtn) {
-    submitBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      submitTopicRequest();
-    });
-  }
-
-  const questionTextarea = document.getElementById('requestQuestionText');
-  if (questionTextarea) {
-    questionTextarea.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        submitTopicRequest();
       }
     });
   }
@@ -2806,6 +3267,7 @@ function setupAdminMessages() {
 
     // Close messages dropdown when clicking outside
     document.addEventListener('click', (e) => {
+      if (!document.body.contains(e.target)) return;
       if (!adminMessagesBtn.contains(e.target) && !adminMessagesDropdown.contains(e.target)) {
         adminMessagesDropdown.classList.remove('open');
         adminMessagesBtn.classList.remove('active');
