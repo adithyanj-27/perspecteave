@@ -2622,7 +2622,7 @@ async function submitChatReply(parentRequestId, isFromAdmin) {
   const sendBtn = document.getElementById('btnChatSend');
   if (sendBtn) sendBtn.disabled = true;
 
-  const parent = appRequests.find(r => r.id === parentRequestId);
+  const parent = appRequests.find(r => Number(r.id) === Number(parentRequestId));
   if (!parent) {
     replyInput.disabled = false;
     if (sendBtn) sendBtn.disabled = false;
@@ -2667,7 +2667,7 @@ async function submitChatReply(parentRequestId, isFromAdmin) {
   // Mark this reply as read immediately for the sender
   const lastReply = appRequests.find(r => {
     const p = parseReply(r);
-    return p.isReply && p.parentId === parentRequestId && r.name === name && !readRequestIds.includes(r.id);
+    return p.isReply && Number(p.parentId) === Number(parentRequestId) && r.name === name && !readRequestIds.includes(r.id);
   });
   if (lastReply) {
     readRequestIds.push(lastReply.id);
@@ -2882,7 +2882,7 @@ function renderAdminRequests() {
     
   } else {
     // ---- Render Detail View ----
-    const req = appRequests.find(r => r.id === activeRequestDetailId);
+    const req = appRequests.find(r => Number(r.id) === Number(activeRequestDetailId));
     if (!req) {
       activeRequestDetailId = null;
       renderAdminRequests();
@@ -2891,7 +2891,7 @@ function renderAdminRequests() {
     
     const replies = appRequests.filter(r => {
       const p = parseReply(r);
-      return p.isReply && p.parentId === activeRequestDetailId;
+      return p.isReply && Number(p.parentId) === Number(activeRequestDetailId);
     });
     
     const messages = [req, ...replies].sort((a, b) => a.id - b.id);
@@ -3173,7 +3173,7 @@ function renderUserRequests() {
 
   } else {
     // ---- Render User Detail View (Chat Bubbles) ----
-    const req = appRequests.find(r => r.id === activeRequestDetailId);
+    const req = appRequests.find(r => Number(r.id) === Number(activeRequestDetailId));
     if (!req) {
       activeRequestDetailId = null;
       renderUserRequests();
@@ -3182,7 +3182,7 @@ function renderUserRequests() {
     
     const replies = appRequests.filter(r => {
       const p = parseReply(r);
-      return p.isReply && p.parentId === activeRequestDetailId;
+      return p.isReply && Number(p.parentId) === Number(activeRequestDetailId);
     });
     
     const messages = [req, ...replies].sort((a, b) => a.id - b.id);
