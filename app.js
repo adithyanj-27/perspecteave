@@ -293,11 +293,38 @@ async function logVisit() {
   if (!isConfigured) return;
   const visitorId = getOrCreateVisitorId();
   try {
+    const { data: visitsData, error: fetchError } = await supabase
+      .from('visits')
+      .select('visitor_id, created_at')
+      .order('created_at', { ascending: true });
+      
+    let guestNum = 1;
+    if (!fetchError && visitsData) {
+      const uniqueIds = [];
+      visitsData.forEach(item => {
+        if (!uniqueIds.includes(item.visitor_id)) {
+          uniqueIds.push(item.visitor_id);
+        }
+      });
+      let idx = uniqueIds.indexOf(visitorId);
+      if (idx !== -1) {
+        guestNum = idx + 1;
+      } else {
+        guestNum = uniqueIds.length + 1;
+      }
+    }
+    
+    currentGuestNumber = guestNum;
+    const guestName = `Guest ${guestNum}`;
+
     const { error } = await supabase
       .from('visits')
-      .insert({ visitor_id: visitorId });
+      .insert({ 
+        visitor_id: visitorId,
+        guest_name: guestName
+      });
     if (error) {
-      console.warn('Could not log visit to Supabase (table may not exist yet):', error.message);
+      console.warn('Could not log visit to Supabase (table may not exist yet or missing column):', error.message);
     }
   } catch (e) {
     console.warn('Failed to log visit:', e);
