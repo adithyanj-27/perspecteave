@@ -57,6 +57,7 @@ let appComments = {};
 let currentSession = null;
 let guestTimerTimeout = null;
 let globalOpenAuthModal = null;
+let currentGuestNumber = null;
 
 
 // ---- Storage Helpers (Local Fallback) ----
@@ -316,6 +317,46 @@ async function fetchUniqueVisitorsCount() {
   } catch (e) {
     console.warn('Could not fetch unique visitors count:', e);
     return null;
+  }
+}
+
+async function determineGuestNumber() {
+  if (currentGuestNumber !== null) return currentGuestNumber;
+  if (!isConfigured) {
+    currentGuestNumber = 1;
+    return currentGuestNumber;
+  }
+  const visitorId = getOrCreateVisitorId();
+  try {
+    const { data, error } = await supabase
+      .from('visits')
+      .select('visitor_id, created_at')
+      .order('created_at', { ascending: true });
+    
+    if (error) throw error;
+    if (!data) {
+      currentGuestNumber = 1;
+      return currentGuestNumber;
+    }
+    
+    const uniqueIds = [];
+    data.forEach(item => {
+      if (!uniqueIds.includes(item.visitor_id)) {
+        uniqueIds.push(item.visitor_id);
+      }
+    });
+    
+    let idx = uniqueIds.indexOf(visitorId);
+    if (idx === -1) {
+      uniqueIds.push(visitorId);
+      idx = uniqueIds.length - 1;
+    }
+    currentGuestNumber = idx + 1;
+    return currentGuestNumber;
+  } catch (e) {
+    console.warn('Could not determine guest number:', e);
+    currentGuestNumber = 1;
+    return currentGuestNumber;
   }
 }
 
@@ -793,6 +834,11 @@ async function submitReply(entryId) {
       alert('Please enter your name to post a critique.');
       return;
     }
+    const guestNum = currentGuestNumber || 1;
+    const suffix = `(Guest ${guestNum})`;
+    if (!name.includes(suffix)) {
+      name = `${name} ${suffix}`;
+    }
     localStorage.setItem('perspecteave_last_guest_name', name);
     updateCommentForms(session);
   }
@@ -1028,6 +1074,11 @@ async function submitCommentReply(entryId, parentId) {
       setTimeout(() => { nameInput.style.borderColor = ''; }, 1500);
       alert('Please enter your name to post a reply.');
       return;
+    }
+    const guestNum = currentGuestNumber || 1;
+    const suffix = `(Guest ${guestNum})`;
+    if (!name.includes(suffix)) {
+      name = `${name} ${suffix}`;
     }
     localStorage.setItem('perspecteave_last_guest_name', name);
     updateCommentForms(session);
@@ -2522,6 +2573,11 @@ async function submitTopicRequest() {
       alert('Please enter your name to submit a request.');
       return;
     }
+    const guestNum = currentGuestNumber || 1;
+    const suffix = `(Guest ${guestNum})`;
+    if (!name.includes(suffix)) {
+      name = `${name} ${suffix}`;
+    }
     localStorage.setItem('perspecteave_last_guest_name', name);
     updateCommentForms(currentSession);
   }
@@ -3419,8 +3475,10 @@ async function init() {
   // Trigger initial UI render based on current auth state
   await updateAuthUI(currentSession);
   
-  // Log page load visit
-  logVisit();
+  // Log page load visit and determine guest number
+  logVisit().then(() => {
+    determineGuestNumber();
+  });
 }
 
 if (document.readyState === 'loading') {
