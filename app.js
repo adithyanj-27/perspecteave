@@ -411,7 +411,7 @@ function triggerAsmrEffect(button, isDisagree = false) {
   const centerY = rect.top + rect.height / 2;
 
   // 1. Text Pop
-  const phrase = isDisagree ? 'Hmm why? 🤔' : 'Yes! 👍';
+  const phrase = isDisagree ? 'Nigga why? 🤔' : 'Yes! 👍';
   const removeTimeout = isDisagree ? 1750 : 2200;
   const particleTimeout = isDisagree ? 1750 : 1800;
   
