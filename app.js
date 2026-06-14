@@ -278,6 +278,47 @@ function setPostVote(postId, voteType) {
   localStorage.setItem(key, JSON.stringify(votes));
 }
 
+// ---- Visitor Tracking Helpers ----
+function getOrCreateVisitorId() {
+  let visitorId = localStorage.getItem('perspecteave_visitor_id');
+  if (!visitorId) {
+    visitorId = 'vis_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('perspecteave_visitor_id', visitorId);
+  }
+  return visitorId;
+}
+
+async function logVisit() {
+  if (!isConfigured) return;
+  const visitorId = getOrCreateVisitorId();
+  try {
+    const { error } = await supabase
+      .from('visits')
+      .insert({ visitor_id: visitorId });
+    if (error) {
+      console.warn('Could not log visit to Supabase (table may not exist yet):', error.message);
+    }
+  } catch (e) {
+    console.warn('Failed to log visit:', e);
+  }
+}
+
+async function fetchUniqueVisitorsCount() {
+  if (!isConfigured) return null;
+  try {
+    const { data, error } = await supabase
+      .from('visits')
+      .select('visitor_id');
+    if (error) throw error;
+    if (!data) return 0;
+    const uniqueIds = new Set(data.map(item => item.visitor_id));
+    return uniqueIds.size;
+  } catch (e) {
+    console.warn('Could not fetch unique visitors count:', e);
+    return null;
+  }
+}
+
 // ---- Email Verification & Guest Restrictions Helpers ----
 function isClientVerified(session) {
   return isLoggedIn(session);
@@ -286,46 +327,13 @@ function isClientVerified(session) {
 // 10-Minute Guest Timer Logic
 function setupGuestTimer() {
   const timeLockOverlay = document.getElementById('timeLockOverlay');
-  if (!timeLockOverlay) return;
-
-  // Clear any existing timeout
+  if (timeLockOverlay) {
+    timeLockOverlay.classList.remove('open');
+  }
+  document.body.style.overflow = '';
   if (guestTimerTimeout) {
     clearTimeout(guestTimerTimeout);
     guestTimerTimeout = null;
-  }
-
-  const loggedIn = isLoggedIn(currentSession);
-  if (loggedIn) {
-    // Logged in user: hide time lock overlay and clear first visit timestamp
-    timeLockOverlay.classList.remove('open');
-    document.body.style.overflow = '';
-    localStorage.removeItem('perspecteave_first_visit');
-    return;
-  }
-
-  // Guest user
-  let firstVisit = localStorage.getItem('perspecteave_first_visit');
-  if (!firstVisit) {
-    firstVisit = Date.now().toString();
-    localStorage.setItem('perspecteave_first_visit', firstVisit);
-  }
-
-  const elapsed = Date.now() - Number(firstVisit);
-  const limit = 600000; // 10 minutes in milliseconds
-
-  if (elapsed >= limit) {
-    // Time limit reached
-    timeLockOverlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  } else {
-    // Time limit not reached yet: set timer for remaining time
-    timeLockOverlay.classList.remove('open');
-    document.body.style.overflow = '';
-    const remaining = limit - elapsed;
-    guestTimerTimeout = setTimeout(() => {
-      timeLockOverlay.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }, remaining);
   }
 }
 
@@ -596,9 +604,10 @@ function renderCommentCard(item, entryId, replies = []) {
 
   // Toggled inline reply form (initially hidden)
   const isGuestOrLoggedIn = isLoggedIn(currentSession);
+  const lastGuestName = localStorage.getItem('perspecteave_last_guest_name') || '';
   const replyFormHTML = `
     <form class="reply-to-comment-form" id="replyToCommentForm-${item.id}" data-entry-id="${entryId}" data-parent-id="${item.id}" onsubmit="return false;" style="display: none;">
-      ${!isGuestOrLoggedIn ? `<input type="text" class="reply-to-comment-name" placeholder="Your name">` : ''}
+      ${!isGuestOrLoggedIn ? `<input type="text" class="reply-to-comment-name" placeholder="Your name" value="${escapeHTML(lastGuestName)}" ${lastGuestName ? 'disabled' : ''}>` : ''}
       <div class="textarea-wrapper mini-textarea-wrapper">
         <textarea class="reply-to-comment-text" placeholder="Reply to this critique..."></textarea>
         <button type="button" class="btn-submit-circle-mini btn-reply-to-comment" data-entry-id="${entryId}" data-parent-id="${item.id}" title="Submit reply">
@@ -715,14 +724,7 @@ function renderComments(entryId, comments) {
       ? parentComments.map(c => renderCommentCard(c, entryId, repliesByParentId[c.id] || [])).join('')
       : '<li class="no-comments">No critiques yet.</li>';
 
-    if (!isLoggedIn(currentSession)) {
-      html += `
-        <li class="comment-login-prompt" style="list-style: none; margin-top: var(--space-md); text-align: center; padding: var(--space-sm); border: 1px dashed var(--border-light); border-radius: var(--radius-sm); background: rgba(214, 142, 73, 0.03);">
-          <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: var(--space-xs); font-family: var(--font-body);">Want to share your perspective?</p>
-          <a href="#" class="btn-comment-login-trigger" style="font-size: 0.82rem; font-weight: 600; color: var(--accent-matcha); text-decoration: none; font-family: var(--font-body);">Log in or Sign up to critique</a>
-        </li>
-      `;
-    }
+    // No login prompt required
     listEl.innerHTML = html;
   }
   if (tCount) tCount.textContent = parentComments.length;
@@ -766,15 +768,7 @@ async function submitReply(entryId) {
     return;
   }
 
-  if (!isLoggedIn(currentSession)) {
-    if (globalOpenAuthModal) {
-      globalOpenAuthModal('signin', 'Sign in to continue');
-    } else {
-      const loginOverlay = document.getElementById('loginOverlay');
-      if (loginOverlay) loginOverlay.classList.add('open');
-    }
-    return;
-  }
+  // No login required to critique
 
   // Get active session
   let session = null;
@@ -799,6 +793,8 @@ async function submitReply(entryId) {
       alert('Please enter your name to post a critique.');
       return;
     }
+    localStorage.setItem('perspecteave_last_guest_name', name);
+    updateCommentForms(session);
   }
 
   if (!isConfigured) {
@@ -1008,15 +1004,7 @@ async function submitCommentReply(entryId, parentId) {
     return;
   }
 
-  if (!isLoggedIn(currentSession)) {
-    if (globalOpenAuthModal) {
-      globalOpenAuthModal('signin', 'Sign in to continue');
-    } else {
-      const loginOverlay = document.getElementById('loginOverlay');
-      if (loginOverlay) loginOverlay.classList.add('open');
-    }
-    return;
-  }
+  // No login required to reply
 
   // Get active session
   let session = null;
@@ -1041,6 +1029,8 @@ async function submitCommentReply(entryId, parentId) {
       alert('Please enter your name to post a reply.');
       return;
     }
+    localStorage.setItem('perspecteave_last_guest_name', name);
+    updateCommentForms(session);
   }
 
   // Prefix the reply text with the parent id
@@ -1210,15 +1200,7 @@ async function toggleVote(entryId, voteType) {
   const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
   if (postIndex === -1) return;
 
-  if (voteType === 'disagree' && !isLoggedIn(currentSession)) {
-    if (globalOpenAuthModal) {
-      globalOpenAuthModal('signin', 'Sign in to continue');
-    } else {
-      const loginOverlay = document.getElementById('loginOverlay');
-      if (loginOverlay) loginOverlay.classList.add('open');
-    }
-    return;
-  }
+  // No login required to vote disagree
 
   if (hasSubmittedComment(entryId)) {
     return; // Lock vote state completely if a comment has been submitted
@@ -1461,6 +1443,7 @@ function isAdmin(session) {
 function updateCommentForms(session) {
   const loggedIn = isLoggedIn(session);
   const username = getCurrentUsername(session);
+  const lastGuestName = localStorage.getItem('perspecteave_last_guest_name') || '';
 
   document.querySelectorAll('.reply-form').forEach(form => {
     const nameInput = form.querySelector('.reply-name');
@@ -1469,9 +1452,14 @@ function updateCommentForms(session) {
         nameInput.value = username;
         nameInput.style.display = 'none';
       } else {
-        nameInput.value = '';
+        nameInput.value = lastGuestName;
         nameInput.style.display = 'block';
         nameInput.placeholder = 'Your name';
+        if (lastGuestName) {
+          nameInput.disabled = true;
+        } else {
+          nameInput.disabled = false;
+        }
       }
     }
   });
@@ -1482,9 +1470,14 @@ function updateCommentForms(session) {
       requestNameInput.value = username;
       requestNameInput.style.display = 'none';
     } else {
-      requestNameInput.value = '';
+      requestNameInput.value = lastGuestName;
       requestNameInput.style.display = 'block';
       requestNameInput.placeholder = 'Your name';
+      if (lastGuestName) {
+        requestNameInput.disabled = true;
+      } else {
+        requestNameInput.disabled = false;
+      }
     }
   }
 }
@@ -1575,7 +1568,7 @@ async function updateAuthUI(session) {
       if (adminMessagesWrapper) adminMessagesWrapper.style.display = 'none';
     }
   } else {
-    loginBtn.style.display = 'flex';
+    loginBtn.style.display = 'none';
     if (profileWidget) profileWidget.style.display = 'none';
     newPostBtn.style.display = 'none';
     panel.classList.remove('open');
@@ -1670,6 +1663,25 @@ function setupAuth() {
     loginPassword.value = '';
     loginError.style.display = 'none';
   };
+
+  // Open login modal via double-click on teacup logo
+  const logoWrapper = document.querySelector('.logo-wrapper');
+  if (logoWrapper) {
+    logoWrapper.addEventListener('dblclick', () => {
+      globalOpenAuthModal('signin', 'Admin Login');
+    });
+  }
+
+  // Open login modal via URL hash route #admin
+  const checkHashRoute = () => {
+    if (window.location.hash === '#admin') {
+      window.location.hash = ''; // clear hash
+      globalOpenAuthModal('signin', 'Admin Login');
+    }
+  };
+  window.addEventListener('hashchange', checkHashRoute);
+  // Also check on initial load after a brief delay
+  setTimeout(checkHashRoute, 500);
 
   // Show login modal
   loginBtn.addEventListener('click', () => {
@@ -2308,16 +2320,7 @@ function attachEventListeners() {
       // 6. Critique Reply trigger button clicked
       if (e.target.classList.contains('btn-comment-reply-trigger')) {
         e.stopPropagation();
-        // Check guest auth
-        if (!isLoggedIn(currentSession)) {
-          if (globalOpenAuthModal) {
-            globalOpenAuthModal('signin', 'Sign in to continue');
-          } else {
-            const loginOverlay = document.getElementById('loginOverlay');
-            if (loginOverlay) loginOverlay.classList.add('open');
-          }
-          return;
-        }
+        // No guest login check required to reply
 
         const commentId = Number(e.target.dataset.commentId);
         const replyId = e.target.dataset.replyId;
@@ -2519,6 +2522,8 @@ async function submitTopicRequest() {
       alert('Please enter your name to submit a request.');
       return;
     }
+    localStorage.setItem('perspecteave_last_guest_name', name);
+    updateCommentForms(currentSession);
   }
   
   btn.disabled = true;
@@ -2804,10 +2809,16 @@ function renderAdminRequests() {
   
   if (threads.length === 0) {
     dropdown.innerHTML = `
-      <h3 class="admin-requests-title">Messages</h3>
+      <h3 class="admin-requests-title">Messages <span id="adminVisitorCount" style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted); margin-left: 6px;"></span></h3>
       <div style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-muted); padding: var(--space-md); text-align: center;">No messages yet.</div>
     `;
     updateMessagesBadge();
+    fetchUniqueVisitorsCount().then(count => {
+      const el = document.getElementById('adminVisitorCount');
+      if (el && count !== null) {
+        el.textContent = ` (${count} unique visitors)`;
+      }
+    });
     return;
   }
   
@@ -2843,11 +2854,18 @@ function renderAdminRequests() {
     }).join('');
     
     dropdown.innerHTML = `
-      <h3 class="admin-requests-title">Messages</h3>
+      <h3 class="admin-requests-title">Messages <span id="adminVisitorCount" style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted); margin-left: 6px;"></span></h3>
       <ul class="admin-requests-list" style="margin: 0; padding: 0;">
         ${threadsHTML}
       </ul>
     `;
+    
+    fetchUniqueVisitorsCount().then(count => {
+      const el = document.getElementById('adminVisitorCount');
+      if (el && count !== null) {
+        el.textContent = ` (${count} unique visitors)`;
+      }
+    });
     
     // Wire up thread click listeners
     dropdown.querySelectorAll('.admin-message-thread').forEach(item => {
@@ -3400,6 +3418,9 @@ async function init() {
 
   // Trigger initial UI render based on current auth state
   await updateAuthUI(currentSession);
+  
+  // Log page load visit
+  logVisit();
 }
 
 if (document.readyState === 'loading') {
