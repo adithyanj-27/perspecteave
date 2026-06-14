@@ -1741,32 +1741,6 @@ footer {
     left: -1.4rem;
     font-size: 1.2rem;
   }
-
-  .request-dropdown {
-    position: fixed;
-    top: auto;
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
-    width: auto;
-    max-width: calc(100% - 40px);
-    transform: translateY(30px) scale(0.95);
-    transform-origin: bottom center;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 10px 40px rgba(42, 44, 42, 0.15), var(--shadow-glow);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid var(--accent-tea);
-  }
-
-  #adminMessagesDropdown {
-    width: auto;
-  }
-
-  .request-dropdown::before {
-    display: none;
-  }
 }
 
 @media (max-width: 420px) {
@@ -2426,5 +2400,34 @@ footer {
   font-size: 0.65rem;
   color: var(--text-muted);
   align-self: flex-end;
+}
+
+/* Mobile dropdown overrides at the end of file to ensure correct ordering */
+@media (max-width: 640px) {
+  .request-dropdown {
+    position: fixed;
+    top: auto !important;
+    bottom: 20px !important;
+    left: 20px !important;
+    right: 20px !important;
+    width: auto !important;
+    max-width: calc(100% - 40px) !important;
+    transform: translateY(30px) scale(0.95);
+    transform-origin: bottom center;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: 0 10px 40px rgba(42, 44, 42, 0.15), var(--shadow-glow) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid var(--accent-tea) !important;
+  }
+
+  #adminMessagesDropdown {
+    width: auto !important;
+  }
+
+  .request-dropdown::before {
+    display: none !important;
+  }
 }
 
