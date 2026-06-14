@@ -385,7 +385,7 @@ function triggerAsmrEffect(button, isDisagree = false) {
 
 // ---- Render a Single Entry ----
 function renderEntry(post, index) {
-  const qNum = `Q${index + 1}`;
+  const qNum = `#${String(index + 1).padStart(3, '0')}`;
   let editInfo = '';
   if (post.edit_count > 0) {
     editInfo = ` <span class="edit-info">(edited ${post.edit_count} time${post.edit_count > 1 ? 's' : ''})</span>`;
