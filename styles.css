@@ -2406,14 +2406,14 @@ footer {
 @media (max-width: 640px) {
   .request-dropdown {
     position: fixed;
-    top: auto !important;
-    bottom: 20px !important;
+    top: 75px !important;
+    bottom: auto !important;
     left: 20px !important;
     right: 20px !important;
     width: auto !important;
     max-width: calc(100% - 40px) !important;
-    transform: translateY(30px) scale(0.95);
-    transform-origin: bottom center;
+    transform: translateY(-20px) scale(0.95);
+    transform-origin: top center;
     border-radius: var(--radius-lg) !important;
     box-shadow: 0 10px 40px rgba(42, 44, 42, 0.15), var(--shadow-glow) !important;
     background: rgba(255, 255, 255, 0.95) !important;
