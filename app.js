@@ -901,7 +901,7 @@ async function saveCommentEdit(commentId) {
   let commentIndex = -1;
   
   for (const postId in appComments) {
-    const idx = appComments[postId].findIndex(c => c.id === commentId);
+    const idx = appComments[postId].findIndex(c => Number(c.id) === Number(commentId));
     if (idx !== -1) {
       entryId = Number(postId);
       commentIndex = idx;
@@ -1124,7 +1124,7 @@ async function submitCommentReply(entryId, parentId) {
 // ---- Delete Critique / Reply ----
 async function deleteComment(entryId, commentId) {
   const commentsList = appComments[entryId] || [];
-  const commentToDelete = commentsList.find(c => c.id === commentId);
+  const commentToDelete = commentsList.find(c => Number(c.id) === Number(commentId));
   
   let isReply = false;
   if (commentToDelete) {
@@ -1132,7 +1132,7 @@ async function deleteComment(entryId, commentId) {
   }
 
   // Decrement disagrees count of the post by 1 if deleting a parent critique
-  const postIndex = appPosts.findIndex(x => x.id === entryId);
+  const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
   if (postIndex !== -1 && commentToDelete && !isReply) {
     const currentPost = appPosts[postIndex];
     const newDisagrees = Math.max(0, (currentPost.disagrees || 0) - 1);
@@ -1162,10 +1162,10 @@ async function deleteComment(entryId, commentId) {
     if (appComments[entryId]) {
       // Find all replies to this comment to delete them as well
       const replies = appComments[entryId].filter(x => typeof x.text === 'string' && x.text.startsWith(`[reply_to:${commentId}]`));
-      const replyIds = replies.map(r => r.id);
+      const replyIds = replies.map(r => Number(r.id));
       
       // Filter out this comment and all its replies
-      appComments[entryId] = appComments[entryId].filter(x => x.id !== commentId && !replyIds.includes(x.id));
+      appComments[entryId] = appComments[entryId].filter(x => Number(x.id) !== Number(commentId) && !replyIds.includes(Number(x.id)));
       save(COMMENTS_KEY, appComments);
     }
   } else {
@@ -1191,8 +1191,8 @@ async function deleteComment(entryId, commentId) {
 
       if (appComments[entryId]) {
         const replies = appComments[entryId].filter(x => typeof x.text === 'string' && x.text.startsWith(`[reply_to:${commentId}]`));
-        const replyIds = replies.map(r => r.id);
-        appComments[entryId] = appComments[entryId].filter(x => x.id !== commentId && !replyIds.includes(x.id));
+        const replyIds = replies.map(r => Number(r.id));
+        appComments[entryId] = appComments[entryId].filter(x => Number(x.id) !== Number(commentId) && !replyIds.includes(Number(x.id)));
       }
     } catch (err) {
       console.error('Error deleting comment from Supabase:', err);
@@ -1207,7 +1207,7 @@ async function deleteComment(entryId, commentId) {
 
 // ---- Thumbs Up/Down Voting Logic ----
 async function toggleVote(entryId, voteType) {
-  const postIndex = appPosts.findIndex(x => x.id === entryId);
+  const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
   if (postIndex === -1) return;
 
   if (voteType === 'disagree' && !isLoggedIn(currentSession)) {
@@ -1336,7 +1336,7 @@ async function savePostEdit(entryId) {
     return;
   }
 
-  const postIndex = appPosts.findIndex(x => x.id === entryId);
+  const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
   if (postIndex === -1) return;
 
   const currentPost = appPosts[postIndex];
@@ -2215,7 +2215,7 @@ function attachEventListeners() {
         
         let comment = null;
         for (const postId in appComments) {
-          const c = appComments[postId].find(x => x.id === commentId);
+          const c = appComments[postId].find(x => Number(x.id) === Number(commentId));
           if (c) { comment = c; break; }
         }
         if (!comment || !comment.history || comment.history.length === 0) return;
@@ -2264,7 +2264,7 @@ function attachEventListeners() {
         
         let comment = null;
         for (const postId in appComments) {
-          const c = appComments[postId].find(x => x.id === commentId);
+          const c = appComments[postId].find(x => Number(x.id) === Number(commentId));
           if (c) { comment = c; break; }
         }
         if (!comment || !comment.history || comment.history.length === 0) return;
@@ -2436,7 +2436,7 @@ function parseReply(req) {
 }
 
 function getLastMessageInThread(parentId) {
-  const parent = appRequests.find(r => r.id === parentId);
+  const parent = appRequests.find(r => Number(r.id) === Number(parentId));
   if (!parent) return null;
   
   const replies = appRequests.filter(r => {
@@ -2712,9 +2712,9 @@ async function dismissRequest(requestId) {
   }
   
   appRequests = appRequests.filter(r => {
-    if (r.id === requestId) return false;
+    if (Number(r.id) === Number(requestId)) return false;
     const parsed = parseReply(r);
-    return !(parsed.isReply && parsed.parentId === requestId);
+    return !(parsed.isReply && Number(parsed.parentId) === Number(requestId));
   });
   localStorage.setItem(REQUESTS_KEY, JSON.stringify(appRequests));
   renderAdminRequests();
@@ -2780,7 +2780,7 @@ function updateUserMessagesBadge() {
     if (!parsed.isReply) return false;
     
     // Find the parent request
-    const parent = appRequests.find(r => r.id === parsed.parentId);
+    const parent = appRequests.find(r => Number(r.id) === Number(parsed.parentId));
     if (!parent) return false;
     
     if (myIds.includes(Number(parent.id))) return true;
@@ -2818,11 +2818,11 @@ function renderAdminRequests() {
       const timeStr = lastMsg.created_at ? formatBubbleTime(lastMsg.created_at) : 'Just now';
       
       const hasUnread = appRequests.some(r => {
-        if (r.id === req.id) {
+        if (Number(r.id) === Number(req.id)) {
           return r.name !== 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
         }
         const parsed = parseReply(r);
-        return parsed.isReply && parsed.parentId === req.id && r.name !== 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
+        return parsed.isReply && Number(parsed.parentId) === Number(req.id) && r.name !== 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
       });
       
       const snippet = lastMsg.text.length > 30 ? lastMsg.text.substring(0, 30) + '...' : lastMsg.text;
@@ -2863,7 +2863,7 @@ function renderAdminRequests() {
         
         // Mark parent and all replies from users as read
         const threadMsgs = [
-          appRequests.find(r => r.id === reqId),
+          appRequests.find(r => Number(r.id) === Number(reqId)),
           ...replies
         ].filter(Boolean);
         
@@ -3096,11 +3096,11 @@ function renderUserRequests() {
       const timeStr = lastMsg.created_at ? formatBubbleTime(lastMsg.created_at) : 'Just now';
       
       const hasUnread = appRequests.some(r => {
-        if (r.id === req.id) {
+        if (Number(r.id) === Number(req.id)) {
           return r.name === 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
         }
         const parsed = parseReply(r);
-        return parsed.isReply && parsed.parentId === req.id && r.name === 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
+        return parsed.isReply && Number(parsed.parentId) === Number(req.id) && r.name === 'teaboy27' && !readRequestIds.map(String).includes(String(r.id));
       });
       
       const isLastMsgFromAdmin = lastMsg.name === 'teaboy27';
@@ -3155,7 +3155,7 @@ function renderUserRequests() {
         });
         
         const threadMsgs = [
-          appRequests.find(r => r.id === reqId),
+          appRequests.find(r => Number(r.id) === Number(reqId)),
           ...replies
         ].filter(Boolean);
         
