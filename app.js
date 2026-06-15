@@ -333,12 +333,19 @@ async function logVisit() {
 
     currentGuestNumber = guestNum;
 
-    // Step 3: Insert the visit row with the correct guest_name
+    // Step 3: Insert the visit row with the correct guest_name and IST time
+    const istTime = new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: true
+    });
     const { error } = await supabase
       .from('visits')
       .insert({ 
         visitor_id: visitorId,
-        guest_name: guestName
+        guest_name: guestName,
+        ist_time: istTime
       });
     if (error) {
       console.warn('Could not log visit to Supabase (table may not exist yet or missing column):', error.message);
