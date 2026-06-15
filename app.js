@@ -293,30 +293,47 @@ async function logVisit() {
   if (!isConfigured) return;
   const visitorId = getOrCreateVisitorId();
   try {
-    const { data: visitsData, error: fetchError } = await supabase
+    // Step 1: Check if this visitor already has a guest_name assigned
+    const { data: existingRows, error: existErr } = await supabase
       .from('visits')
-      .select('visitor_id, created_at')
-      .order('created_at', { ascending: true });
-      
-    let guestNum = 1;
-    if (!fetchError && visitsData) {
-      const uniqueIds = [];
-      visitsData.forEach(item => {
-        if (!uniqueIds.includes(item.visitor_id)) {
-          uniqueIds.push(item.visitor_id);
-        }
-      });
-      let idx = uniqueIds.indexOf(visitorId);
-      if (idx !== -1) {
-        guestNum = idx + 1;
-      } else {
-        guestNum = uniqueIds.length + 1;
-      }
-    }
-    
-    currentGuestNumber = guestNum;
-    const guestName = `Guest ${guestNum}`;
+      .select('guest_name')
+      .eq('visitor_id', visitorId)
+      .not('guest_name', 'is', null)
+      .limit(1);
 
+    let guestName = null;
+    let guestNum = 1;
+
+    if (!existErr && existingRows && existingRows.length > 0 && existingRows[0].guest_name) {
+      // Reuse the same guest_name this visitor already has
+      guestName = existingRows[0].guest_name;
+      const match = guestName.match(/Guest\s+(\d+)/i);
+      if (match) guestNum = parseInt(match[1], 10);
+    } else {
+      // Step 2: New visitor — find the highest guest number in the entire table
+      const { data: allRows, error: allErr } = await supabase
+        .from('visits')
+        .select('guest_name');
+
+      let maxNum = 0;
+      if (!allErr && allRows && allRows.length > 0) {
+        allRows.forEach(row => {
+          if (row.guest_name) {
+            const m = row.guest_name.match(/Guest\s+(\d+)/i);
+            if (m) {
+              const n = parseInt(m[1], 10);
+              if (n > maxNum) maxNum = n;
+            }
+          }
+        });
+      }
+      guestNum = maxNum + 1;
+      guestName = `Guest ${guestNum}`;
+    }
+
+    currentGuestNumber = guestNum;
+
+    // Step 3: Insert the visit row with the correct guest_name
     const { error } = await supabase
       .from('visits')
       .insert({ 
@@ -355,30 +372,40 @@ async function determineGuestNumber() {
   }
   const visitorId = getOrCreateVisitorId();
   try {
-    const { data, error } = await supabase
+    // Check if this visitor already has a guest_name
+    const { data: myRows, error: myErr } = await supabase
       .from('visits')
-      .select('visitor_id, created_at')
-      .order('created_at', { ascending: true });
-    
-    if (error) throw error;
-    if (!data) {
-      currentGuestNumber = 1;
-      return currentGuestNumber;
-    }
-    
-    const uniqueIds = [];
-    data.forEach(item => {
-      if (!uniqueIds.includes(item.visitor_id)) {
-        uniqueIds.push(item.visitor_id);
+      .select('guest_name')
+      .eq('visitor_id', visitorId)
+      .not('guest_name', 'is', null)
+      .limit(1);
+
+    if (!myErr && myRows && myRows.length > 0 && myRows[0].guest_name) {
+      const match = myRows[0].guest_name.match(/Guest\s+(\d+)/i);
+      if (match) {
+        currentGuestNumber = parseInt(match[1], 10);
+        return currentGuestNumber;
       }
-    });
-    
-    let idx = uniqueIds.indexOf(visitorId);
-    if (idx === -1) {
-      uniqueIds.push(visitorId);
-      idx = uniqueIds.length - 1;
     }
-    currentGuestNumber = idx + 1;
+
+    // New visitor — find max guest number and assign next
+    const { data: allRows, error: allErr } = await supabase
+      .from('visits')
+      .select('guest_name');
+
+    let maxNum = 0;
+    if (!allErr && allRows) {
+      allRows.forEach(row => {
+        if (row.guest_name) {
+          const m = row.guest_name.match(/Guest\s+(\d+)/i);
+          if (m) {
+            const n = parseInt(m[1], 10);
+            if (n > maxNum) maxNum = n;
+          }
+        }
+      });
+    }
+    currentGuestNumber = maxNum + 1;
     return currentGuestNumber;
   } catch (e) {
     console.warn('Could not determine guest number:', e);
