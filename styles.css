@@ -8,6 +8,8 @@
 
 /* --- Design Tokens --- */
 :root {
+  color-scheme: light;
+
   /* Palette */
   --bg-primary: #FAF7F2;
   --bg-card: #FFFFFF;
@@ -30,6 +32,13 @@
   --shadow-md: 0 4px 12px rgba(42, 44, 42, 0.08);
   --shadow-lg: 0 8px 30px rgba(42, 44, 42, 0.10);
   --shadow-glow: 0 0 20px rgba(214, 142, 73, 0.15);
+
+  /* Translucent & Glassmorphic Elements */
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-glass-heavy: rgba(255, 255, 255, 0.95);
+  --border-glass: rgba(232, 226, 218, 0.7);
+  --bg-pop: rgba(255, 255, 255, 0.95);
+  --bg-pop-disagree: rgba(254, 250, 245, 0.98);
 
   /* Critique category colors */
   --cat-alternative: #7B68AE;
@@ -57,6 +66,43 @@
   /* Transitions */
   --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --- Dark Theme Tokens --- */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-primary: #121413;
+  --bg-card: #1A1C1B;
+  --bg-critique: #161817;
+  --bg-input: #222523;
+
+  --text-primary: #E6EAE5;
+  --text-secondary: #ABB0AC;
+  --text-muted: #727774;
+
+  --accent-tea: #E2A05B;
+  --accent-matcha: #7EA185;
+  --accent-matcha-light: #94B59A;
+  --accent-amber-light: #302619;
+
+  --border-light: #282C29;
+  --border-card: #252826;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(226, 160, 91, 0.15);
+
+  --bg-glass: rgba(26, 28, 27, 0.85);
+  --bg-glass-heavy: rgba(26, 28, 27, 0.95);
+  --border-glass: rgba(40, 44, 41, 0.7);
+  --bg-pop: rgba(34, 37, 35, 0.95);
+  --bg-pop-disagree: rgba(38, 32, 25, 0.98);
+}
+
+[data-theme="dark"] .total-comment-count {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* --- Reset & Base --- */
@@ -116,6 +162,62 @@ a:hover {
   align-items: center;
   gap: var(--space-sm);
   margin-left: auto;
+}
+
+/* --- Theme Toggle --- */
+.btn-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.3s var(--ease-spring);
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-theme-toggle:hover {
+  transform: scale(1.08) rotate(10deg);
+  border-color: var(--accent-tea);
+  color: var(--accent-tea);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-theme-toggle:active {
+  transform: scale(0.94);
+}
+
+.btn-theme-toggle svg {
+  position: absolute;
+  transition: transform 0.5s var(--ease-spring), opacity 0.3s var(--ease-out);
+}
+
+/* Theme Icon Visibility and Animation */
+[data-theme="light"] .theme-icon-sun {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+[data-theme="light"] .theme-icon-moon {
+  opacity: 0;
+  transform: scale(0.4) rotate(-45deg);
+}
+
+[data-theme="dark"] .theme-icon-sun {
+  opacity: 0;
+  transform: scale(0.4) rotate(45deg);
+}
+
+[data-theme="dark"] .theme-icon-moon {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
 }
 
 /* --- Profile Widget --- */
@@ -185,10 +287,10 @@ a:hover {
   top: calc(100% + 12px);
   left: 0;
   width: 230px;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--bg-glass);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(232, 226, 218, 0.7);
+  border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
   box-shadow: 0 10px 30px rgba(42, 44, 42, 0.08), 0 1px 3px rgba(0, 0, 0, 0.02);
   padding: var(--space-md);
@@ -210,9 +312,9 @@ a:hover {
   left: 14px; /* (40px trigger width / 2) - (12px caret width / 2) = 14px */
   width: 12px;
   height: 12px;
-  background: rgba(255, 255, 255, 0.85);
-  border-left: 1px solid rgba(232, 226, 218, 0.7);
-  border-top: 1px solid rgba(232, 226, 218, 0.7);
+  background: var(--bg-glass);
+  border-left: 1px solid var(--border-glass);
+  border-top: 1px solid var(--border-glass);
   transform: rotate(45deg);
   z-index: 1;
 }
@@ -224,7 +326,7 @@ a:hover {
 }
 
 .profile-details {
-  border-bottom: 1px solid rgba(232, 226, 218, 0.6);
+  border-bottom: 1px solid var(--border-glass);
   padding-bottom: var(--space-sm);
   position: relative;
   z-index: 2; /* keep above caret pseudo-element */
@@ -1124,6 +1226,46 @@ header {
   margin-bottom: var(--space-md);
 }
 
+/* --- Inline Comment Area (toggle + form inside comments feed) --- */
+.inline-comment-area {
+  padding-top: var(--space-sm);
+  margin-top: var(--space-xs);
+  border-top: 1px solid var(--border-light);
+}
+
+.btn-add-inline-comment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px dashed var(--border-light);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+}
+
+.btn-add-inline-comment:hover {
+  color: var(--accent-matcha);
+  border-color: var(--accent-matcha);
+  border-style: solid;
+  background: rgba(96, 122, 102, 0.04);
+}
+
+.btn-add-inline-comment.active {
+  color: var(--text-muted);
+  border-style: solid;
+  border-color: var(--border-light);
+}
+
+.inline-comment-form {
+  margin-top: var(--space-md);
+}
+
 .comments-list::-webkit-scrollbar { width: 4px; }
 .comments-list::-webkit-scrollbar-track { background: transparent; }
 .comments-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
@@ -1904,7 +2046,7 @@ footer {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--accent-matcha);
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--bg-pop);
   border: 1px solid var(--border-light);
   padding: 5px 12px;
   border-radius: 20px;
@@ -1920,7 +2062,7 @@ footer {
   color: var(--accent-tea);
   font-weight: 600;
   border: 1px solid var(--accent-amber-light);
-  background: rgba(254, 250, 245, 0.98);
+  background: var(--bg-pop-disagree);
   box-shadow: var(--shadow-md);
   padding: 8px 16px;
   letter-spacing: 0.5px;
@@ -2474,7 +2616,7 @@ footer {
     transform-origin: top center;
     border-radius: var(--radius-lg) !important;
     box-shadow: 0 10px 40px rgba(42, 44, 42, 0.15), var(--shadow-glow) !important;
-    background: rgba(255, 255, 255, 0.95) !important;
+    background: var(--bg-glass-heavy) !important;
     backdrop-filter: blur(20px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
     border: 1px solid var(--accent-tea) !important;

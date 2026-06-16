@@ -493,6 +493,12 @@ function triggerAsmrEffect(button, isDisagree = false) {
 
 
 
+// ---- Format Display Name (Strips Guest suffix) ----
+function formatDisplayName(name) {
+  if (!name) return '';
+  return name.replace(/\s*\(Guest\s+\d+\)\s*$/i, '').trim();
+}
+
 // ---- Render a Single Entry ----
 function renderEntry(post, index) {
   const qNum = `#${String(index + 1).padStart(3, '0')}`;
@@ -587,7 +593,7 @@ function renderEntry(post, index) {
 
         <button type="button" class="btn-view-comments" data-entry-id="${post.id}">
           <span class="comment-icon">💬</span>
-          <span>Critiques</span>
+          <span>Comments</span>
           <span class="total-comment-count" id="totalCount-${post.id}">0</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="comments-arrow"><path d="M6 9l6 6 6-6"/></svg>
         </button>
@@ -596,6 +602,24 @@ function renderEntry(post, index) {
         <div class="comments-section">
           <div class="comments-body" id="commentsBody-${post.id}">
             <ul class="comments-list" id="commentsList-${post.id}"></ul>
+            <!-- Add comment toggle -->
+            <div class="inline-comment-area" id="inlineCommentArea-${post.id}">
+              <button type="button" class="btn-add-inline-comment" data-entry-id="${post.id}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add a comment
+              </button>
+              <form class="reply-form inline-comment-form" data-entry-id="${post.id}" onsubmit="return false;" style="display:none;">
+                <input type="text" class="reply-name" placeholder="Your name">
+                <div class="textarea-wrapper">
+                  <textarea class="reply-text comment-text" placeholder="What are your thoughts?"></textarea>
+                  <button type="button" class="btn-submit-circle btn-comment-submit" data-entry-id="${post.id}" title="Post comment">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -630,7 +654,7 @@ function renderReplyCard(reply, entryId, parentId) {
   ` : '';
 
   const replyButton = `
-    <button type="button" class="btn-comment-reply-trigger" data-comment-id="${parentId}" data-reply-id="${reply.id}" data-entry-id="${entryId}" data-reply-to-author="${escapeHTML(reply.name || 'Anonymous')}">Reply</button>
+    <button type="button" class="btn-comment-reply-trigger" data-comment-id="${parentId}" data-reply-id="${reply.id}" data-entry-id="${entryId}" data-reply-to-author="${escapeHTML(formatDisplayName(reply.name) || 'Anonymous')}">Reply</button>
   `;
 
   return `
@@ -638,7 +662,7 @@ function renderReplyCard(reply, entryId, parentId) {
       <div class="comment-card-static" id="commentStatic-${reply.id}">
         <div class="comment-card-meta">
           <div>
-            <span class="comment-card-author">${escapeHTML(reply.name || 'Anonymous')}</span>
+            <span class="comment-card-author">${escapeHTML(formatDisplayName(reply.name) || 'Anonymous')}</span>
             ${reply.edited ? `<span class="comment-edited-tag">(edited)</span>` : ''}
           </div>
           <div class="comment-meta-right">
@@ -709,9 +733,9 @@ function renderCommentCard(item, entryId, replies = []) {
   const lastGuestName = localStorage.getItem('perspecteave_last_guest_name') || '';
   const replyFormHTML = `
     <form class="reply-to-comment-form" id="replyToCommentForm-${item.id}" data-entry-id="${entryId}" data-parent-id="${item.id}" onsubmit="return false;" style="display: none;">
-      ${!isGuestOrLoggedIn ? `<input type="text" class="reply-to-comment-name" placeholder="Your name" value="${escapeHTML(lastGuestName)}" ${lastGuestName ? 'disabled' : ''}>` : ''}
+      ${!isGuestOrLoggedIn ? `<input type="text" class="reply-to-comment-name" placeholder="Your name" value="${escapeHTML(formatDisplayName(lastGuestName))}" ${lastGuestName ? 'disabled' : ''}>` : ''}
       <div class="textarea-wrapper mini-textarea-wrapper">
-        <textarea class="reply-to-comment-text" placeholder="Reply to this critique..."></textarea>
+        <textarea class="reply-to-comment-text" placeholder="Reply to this comment..."></textarea>
         <button type="button" class="btn-submit-circle-mini btn-reply-to-comment" data-entry-id="${entryId}" data-parent-id="${item.id}" title="Submit reply">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
             <polyline points="20 6 9 17 4 12"></polyline>
@@ -729,7 +753,7 @@ function renderCommentCard(item, entryId, replies = []) {
       <div class="comment-card-static" id="commentStatic-${item.id}">
         <div class="comment-card-meta">
           <div>
-            <span class="comment-card-author">${escapeHTML(item.name || 'Anonymous')}</span>
+            <span class="comment-card-author">${escapeHTML(formatDisplayName(item.name) || 'Anonymous')}</span>
             ${item.edited ? `<span class="comment-edited-tag">(edited)</span>` : ''}
           </div>
           <div class="comment-meta-right">
@@ -824,7 +848,7 @@ function renderComments(entryId, comments) {
   if (listEl) {
     let html = parentComments.length
       ? parentComments.map(c => renderCommentCard(c, entryId, repliesByParentId[c.id] || [])).join('')
-      : '<li class="no-comments">No critiques yet.</li>';
+      : '<li class="no-comments">No comments yet. Be the first!</li>';
 
     // No login prompt required
     listEl.innerHTML = html;
@@ -892,7 +916,7 @@ async function submitReply(entryId) {
       nameInput.style.borderColor = 'var(--accent-tea)';
       nameInput.focus();
       setTimeout(() => { nameInput.style.borderColor = ''; }, 1500);
-      alert('Please enter your name to post a critique.');
+      alert('Please enter your name to post a comment.');
       return;
     }
     const guestNum = currentGuestNumber || 1;
@@ -949,7 +973,7 @@ async function submitReply(entryId) {
       renderComments(entryId, appComments);
     } catch (err) {
       console.error('Error submitting comment to Supabase:', err);
-      alert('Could not submit critique to the database. Check console for details.');
+      alert('Could not submit comment to the database. Check console for details.');
       return;
     } finally {
       btn.disabled = false;
@@ -998,6 +1022,138 @@ async function submitReply(entryId) {
   }, 400);
 }
 
+// ---- Submit a comment from the inline form inside the comments feed ----
+async function submitComment(entryId) {
+  const entry = document.querySelector(`.entry[data-entry-id="${entryId}"]`);
+  if (!entry) return;
+  const form = entry.querySelector('.inline-comment-form');
+  if (!form) return;
+  const nameInput = form.querySelector('.reply-name');
+  const textArea = form.querySelector('.comment-text');
+  const btn = form.querySelector('.btn-comment-submit');
+
+  const text = (textArea.value || '').trim();
+  if (!text) {
+    textArea.style.borderColor = 'var(--accent-tea)';
+    textArea.focus();
+    setTimeout(() => { textArea.style.borderColor = ''; }, 1500);
+    return;
+  }
+
+  let session = null;
+  if (isConfigured) {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  } else {
+    session = currentSession;
+  }
+
+  const loggedIn = isLoggedIn(session);
+  let name = '';
+
+  if (loggedIn) {
+    name = getCurrentUsername(session);
+  } else {
+    name = (nameInput.value || '').trim();
+    if (!name) {
+      nameInput.style.borderColor = 'var(--accent-tea)';
+      nameInput.focus();
+      setTimeout(() => { nameInput.style.borderColor = ''; }, 1500);
+      alert('Please enter your name to post a comment.');
+      return;
+    }
+    const guestNum = currentGuestNumber || 1;
+    const suffix = `(Guest ${guestNum})`;
+    if (!name.includes(suffix)) name = `${name} ${suffix}`;
+    localStorage.setItem('perspecteave_last_guest_name', name);
+    updateCommentForms(session);
+  }
+
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = '✓';
+  btn.classList.add('submitted');
+  btn.disabled = true;
+
+  if (!isConfigured) {
+    if (!appComments[entryId]) appComments[entryId] = [];
+    const newCommentId = Date.now() + Math.floor(Math.random() * 1000);
+    appComments[entryId].push({
+      id: newCommentId,
+      name,
+      text,
+      edited: false,
+      history: [],
+      time: 'Just now'
+    });
+    save(COMMENTS_KEY, appComments);
+    saveCommentOwnership(newCommentId);
+    renderComments(entryId, appComments);
+    
+    setTimeout(() => {
+      textArea.value = '';
+      if (nameInput && !loggedIn) nameInput.value = '';
+      btn.innerHTML = origHTML;
+      btn.classList.remove('submitted');
+      btn.disabled = false;
+      // Collapse the form, reset the toggle button
+      if (form) form.style.display = 'none';
+      const toggleBtn = entry.querySelector('.btn-add-inline-comment');
+      if (toggleBtn) toggleBtn.classList.remove('active');
+      const commentsList = document.getElementById(`commentsList-${entryId}`);
+      const last = commentsList ? commentsList.lastElementChild : null;
+      if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 400);
+  } else {
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .insert({
+          post_id: entryId,
+          type: 'critique', // Consolidated to 'critique' type under the hood
+          name,
+          text
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      if (!appComments[entryId]) appComments[entryId] = [];
+      appComments[entryId].push({
+        id: data.id,
+        name: data.name,
+        text: data.text,
+        edited: data.edited || false,
+        history: data.history || [],
+        time: 'Just now'
+      });
+      saveCommentOwnership(data.id);
+      renderComments(entryId, appComments);
+      
+      setTimeout(() => {
+        textArea.value = '';
+        if (nameInput && !loggedIn) nameInput.value = '';
+        btn.innerHTML = origHTML;
+        btn.classList.remove('submitted');
+        btn.disabled = false;
+        // Collapse the form, reset the toggle button
+        if (form) form.style.display = 'none';
+        const toggleBtn = entry.querySelector('.btn-add-inline-comment');
+        if (toggleBtn) toggleBtn.classList.remove('active');
+        const commentsList = document.getElementById(`commentsList-${entryId}`);
+        const last = commentsList ? commentsList.lastElementChild : null;
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 400);
+    } catch (err) {
+      console.error('Error submitting inline comment to Supabase:', err);
+      alert('Could not submit comment to the database. Check console for details.');
+      btn.innerHTML = origHTML;
+      btn.classList.remove('submitted');
+      btn.disabled = false;
+    }
+  }
+}
+
 // ---- Save Comment Edit ----
 async function saveCommentEdit(commentId) {
   let entryId = null;
@@ -1018,7 +1174,7 @@ async function saveCommentEdit(commentId) {
   const newText = (textarea.value || '').trim();
   
   if (!newText) {
-    alert('Critique cannot be empty.');
+    alert('Comment cannot be empty.');
     return;
   }
   
@@ -1075,7 +1231,7 @@ async function saveCommentEdit(commentId) {
       renderComments(entryId, appComments);
     } catch (err) {
       console.error('Error saving comment edit:', err);
-      alert('Could not save critique. Check console.');
+      alert('Could not save comment. Check console.');
       return;
     } finally {
       if (saveBtn) {
@@ -1223,7 +1379,7 @@ async function submitCommentReply(entryId, parentId) {
   }
 }
 
-// ---- Delete Critique / Reply ----
+// ---- Delete Comment / Reply ----
 async function deleteComment(entryId, commentId) {
   const commentsList = appComments[entryId] || [];
   const commentToDelete = commentsList.find(c => Number(c.id) === Number(commentId));
@@ -1233,7 +1389,7 @@ async function deleteComment(entryId, commentId) {
     isReply = typeof commentToDelete.text === 'string' && commentToDelete.text.startsWith('[reply_to:');
   }
 
-  // Decrement disagrees count of the post by 1 if deleting a parent critique
+  // Decrement disagrees count of the post by 1 if deleting a parent comment
   const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
   if (postIndex !== -1 && commentToDelete && !isReply) {
     const currentPost = appPosts[postIndex];
@@ -1298,7 +1454,7 @@ async function deleteComment(entryId, commentId) {
       }
     } catch (err) {
       console.error('Error deleting comment from Supabase:', err);
-      alert('Could not delete critique. Check console.');
+      alert('Could not delete comment. Check console.');
       return;
     }
   }
@@ -1564,7 +1720,7 @@ function updateCommentForms(session) {
         nameInput.value = username;
         nameInput.style.display = 'none';
       } else {
-        nameInput.value = lastGuestName;
+        nameInput.value = formatDisplayName(lastGuestName);
         nameInput.style.display = 'block';
         nameInput.placeholder = 'Your name';
         if (lastGuestName) {
@@ -1582,7 +1738,7 @@ function updateCommentForms(session) {
       requestNameInput.value = username;
       requestNameInput.style.display = 'none';
     } else {
-      requestNameInput.value = lastGuestName;
+      requestNameInput.value = formatDisplayName(lastGuestName);
       requestNameInput.style.display = 'block';
       requestNameInput.placeholder = 'Your name';
       if (lastGuestName) {
@@ -2149,7 +2305,7 @@ function attachEventListeners() {
   });
 
   // Prevent clicks in edit forms, reply forms, comments, action rows from toggling accordion
-  document.querySelectorAll('.reply-form, .comments-section, .entry-edit-form, .entry-actions-row').forEach(el => {
+  document.querySelectorAll('.reply-form, .comments-section, .entry-edit-form, .entry-actions-row, .inline-comment-area').forEach(el => {
     if (el.dataset.propagationListenerAttached) return;
     el.dataset.propagationListenerAttached = 'true';
     el.addEventListener('click', (e) => {
@@ -2205,6 +2361,57 @@ function attachEventListeners() {
         setTimeout(() => {
           body.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 350);
+      }
+    });
+  });
+
+  // + Add a comment toggle button inside comments feed
+  document.querySelectorAll('.btn-add-inline-comment').forEach(btn => {
+    if (btn.dataset.toggleAttached) return;
+    btn.dataset.toggleAttached = 'true';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const entryId = btn.dataset.entryId;
+      const area = document.getElementById(`inlineCommentArea-${entryId}`);
+      if (!area) return;
+      const form = area.querySelector('.inline-comment-form');
+      if (!form) return;
+      const isOpen = form.style.display !== 'none';
+      if (isOpen) {
+        form.style.display = 'none';
+        btn.classList.remove('active');
+      } else {
+        form.style.display = 'block';
+        btn.classList.add('active');
+        setTimeout(() => {
+          const ta = form.querySelector('.comment-text');
+          if (ta) ta.focus();
+        }, 50);
+      }
+    });
+  });
+
+  // Inline comment submit button
+  document.querySelectorAll('.btn-comment-submit').forEach(btn => {
+    if (btn.dataset.submitListenerAttached) return;
+    btn.dataset.submitListenerAttached = 'true';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      submitComment(Number(btn.dataset.entryId));
+    });
+  });
+
+  // Enter to submit in inline comment textarea
+  document.querySelectorAll('.comment-text').forEach(ta => {
+    if (ta.dataset.keydownListenerAttached) return;
+    ta.dataset.keydownListenerAttached = 'true';
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const form = ta.closest('.inline-comment-form');
+        if (form) {
+          submitComment(Number(form.dataset.entryId));
+        }
       }
     });
   });
@@ -2269,7 +2476,7 @@ function attachEventListeners() {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const entryId = Number(btn.dataset.entryId);
-      if (confirm('Are you sure you want to delete this perspective? This will also delete all critiques.')) {
+      if (confirm('Are you sure you want to delete this perspective? This will also delete all comments.')) {
         await deletePost(entryId);
       }
     });
@@ -2954,13 +3161,13 @@ function renderAdminRequests() {
       });
       
       const snippet = lastMsg.text.length > 30 ? lastMsg.text.substring(0, 30) + '...' : lastMsg.text;
-      const initial = req.name ? req.name.trim().charAt(0).toUpperCase() : 'A';
+      const initial = req.name ? (formatDisplayName(req.name).trim().charAt(0) || 'A').toUpperCase() : 'A';
       return `
         <li class="admin-message-thread" data-request-id="${req.id}">
           <div class="message-thread-avatar">${escapeHTML(initial)}</div>
           <div class="message-thread-info">
             <div class="message-thread-header">
-              <span class="message-thread-sender">${escapeHTML(req.name || 'Anonymous')}</span>
+              <span class="message-thread-sender">${escapeHTML(formatDisplayName(req.name) || 'Anonymous')}</span>
               <span class="message-thread-time">${escapeHTML(timeStr)}</span>
             </div>
             <div class="message-thread-snippet">${escapeHTML(snippet)}</div>
@@ -3071,7 +3278,7 @@ function renderAdminRequests() {
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
-        <span style="flex: 1; font-size: 0.95rem;">${escapeHTML(req.name || 'Anonymous')}</span>
+        <span style="flex: 1; font-size: 0.95rem;">${escapeHTML(formatDisplayName(req.name) || 'Anonymous')}</span>
         <div style="display: flex; gap: 4px;">
           <button type="button" class="btn-request-action btn-request-write" data-question="${escapeHTML(req.question)}" title="Write Take" style="padding: 4px 8px; font-size: 0.75rem;">Write</button>
           <button type="button" class="btn-request-action btn-request-dismiss" data-request-id="${req.id}" title="Dismiss" style="padding: 4px 8px; font-size: 0.75rem;">Dismiss</button>
@@ -3557,6 +3764,7 @@ async function init() {
   }
 
   setupAuth();
+  setupTheme();
   setupRequestForm();
   setupAdminMessages();
   setupScrollIndicator();
@@ -3567,6 +3775,64 @@ async function init() {
   // Log page load visit and determine guest number
   logVisit().then(() => {
     determineGuestNumber();
+  });
+}
+
+// ---- Theme Toggle & Styling ----
+function triggerThemeAsmrEffect(button, theme) {
+  const rect = button.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  // 1. Floating Text Pop
+  const phrase = theme === 'dark' ? 'Dark theme 🌙' : 'Light theme ☀️';
+  const textPop = document.createElement('div');
+  textPop.className = 'asmr-text-pop';
+  textPop.style.color = theme === 'dark' ? 'var(--accent-tea)' : 'var(--accent-matcha)';
+  textPop.textContent = phrase;
+  textPop.style.left = `${centerX}px`;
+  textPop.style.top = `${centerY - 20}px`;
+  document.body.appendChild(textPop);
+  
+  setTimeout(() => textPop.remove(), 2200);
+
+  // 2. Emoji Particles
+  const emojis = theme === 'dark' ? ['✨', '🌙', '💤'] : ['☀️', '✨', '☕'];
+  const numParticles = 8 + Math.floor(Math.random() * 4);
+  
+  for (let i = 0; i < numParticles; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'asmr-particle';
+    particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    particle.style.left = `${centerX - 10}px`;
+    particle.style.top = `${centerY - 10}px`;
+    
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 30 + Math.random() * 50;
+    const dx = Math.cos(angle) * distance;
+    const dy = Math.sin(angle) * distance;
+    const rot = `${Math.random() * 720 - 360}deg`;
+    
+    particle.style.setProperty('--dx', `${dx}px`);
+    particle.style.setProperty('--dy', `${dy}px`);
+    particle.style.setProperty('--rot', rot);
+    
+    document.body.appendChild(particle);
+    setTimeout(() => particle.remove(), 1800);
+  }
+}
+
+function setupTheme() {
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  if (!themeToggleBtn) return;
+
+  themeToggleBtn.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    triggerThemeAsmrEffect(themeToggleBtn, newTheme);
   });
 }
 
