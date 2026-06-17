@@ -846,7 +846,7 @@ header {
   align-items: flex-end;
   justify-content: center;
   width: 100%;
-  padding-top: 20px; /* space for steam */
+  padding-top: 35px; /* more space for steam above the cup */
   padding-bottom: 8px; /* space for saucer */
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
@@ -987,7 +987,7 @@ header {
 /* Steam animation */
 .mug-steam {
   position: absolute;
-  top: 10px;
+  bottom: calc(100% - 35px); /* align bottom of steam to the top edge of the mug (35px from top) */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1025,18 +1025,18 @@ header {
 @keyframes steamRiseRealistic {
   0% {
     opacity: 0;
-    transform: translateY(4px) scale(0.85);
+    transform: translateY(0) scale(0.85); /* start right at the top of the cup */
   }
   35% {
     opacity: 0.55;
   }
   80% {
     opacity: 0.3;
-    transform: translateY(-8px) scale(1.1);
+    transform: translateY(-14px) scale(1.1); /* rise upwards above the cup */
   }
   100% {
     opacity: 0;
-    transform: translateY(-16px) scale(0.9);
+    transform: translateY(-26px) scale(0.9);
   }
 }
 
