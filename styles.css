@@ -630,44 +630,32 @@ header {
 /* Steam animation paths */
 .steam {
   opacity: 0;
-  animation: steamRiseRealisticLogo 3.2s ease-in-out infinite;
-  filter: blur(0.6px); /* Realistic mist effect */
-}
-
-.steam path {
-  stroke: rgba(214, 142, 73, 0.8) !important;
-  stroke-width: 2.5px;
+  animation: steamRise 3s ease-in-out infinite;
 }
 
 .steam:nth-child(2) {
-  animation-delay: 0.8s;
-  animation-duration: 3.6s;
+  animation-delay: 0.6s;
 }
 
 .steam:nth-child(3) {
-  animation-delay: 1.6s;
-  animation-duration: 2.8s;
+  animation-delay: 1.2s;
 }
 
-@keyframes steamRiseRealisticLogo {
+@keyframes steamRise {
   0% {
     opacity: 0;
-    transform: translateY(2px) translateX(0) scaleX(0.8);
+    transform: translateY(0) scaleX(1);
   }
-  20% {
-    opacity: 0.8;
+  15% {
+    opacity: 0.7;
   }
-  65% {
-    opacity: 0.45;
-    transform: translateY(-16px) translateX(4px) scaleX(1.3);
-  }
-  85% {
-    opacity: 0.15;
-    transform: translateY(-30px) translateX(-2px) scaleX(0.9);
+  50% {
+    opacity: 0.4;
+    transform: translateY(-12px) scaleX(1.2);
   }
   100% {
     opacity: 0;
-    transform: translateY(-40px) translateX(1px) scaleX(0.6);
+    transform: translateY(-28px) scaleX(0.8);
   }
 }
 
@@ -1003,58 +991,52 @@ header {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 8px;
+  gap: 6px;
   z-index: 3;
 }
 
 .steam-wave {
-  width: 12px;
-  height: 28px;
-  animation: steamRiseRealistic 2.8s ease-in-out infinite;
+  width: 10px;
+  height: 24px;
+  animation: steamRiseRealistic 2.6s ease-in-out infinite;
   opacity: 0;
   transform-origin: bottom center;
-  filter: blur(0.8px); /* Realistic mist effect */
 }
 
 .steam-wave path {
-  stroke: rgba(214, 142, 73, 0.75) !important; /* Rich warm amber/tea color */
-  stroke-width: 2.5px;
-  filter: drop-shadow(0 0 2px rgba(214, 142, 73, 0.4)); /* Subtle warm glow */
+  stroke: rgba(214, 142, 73, 0.45) !important; /* Elegant warm amber tea mist */
+  stroke-width: 2.0px;
 }
 
 .steam-wave:nth-child(2) {
-  animation-delay: 0.7s;
-  height: 32px;
-  width: 14px;
-  animation-duration: 3.2s;
+  animation-delay: 0.6s;
+  height: 28px;
+  width: 12px;
+  animation-duration: 3.0s;
 }
 
 .steam-wave:nth-child(3) {
-  animation-delay: 1.4s;
-  height: 24px;
-  width: 10px;
-  animation-duration: 2.5s;
+  animation-delay: 1.2s;
+  height: 20px;
+  width: 8px;
+  animation-duration: 2.2s;
 }
 
 @keyframes steamRiseRealistic {
   0% {
     opacity: 0;
-    transform: translateY(6px) translateX(0) scale(0.7) skewX(0deg);
+    transform: translateY(4px) scale(0.85);
   }
-  20% {
-    opacity: 0.8; /* Higher visibility */
-  }
-  60% {
-    opacity: 0.5;
-    transform: translateY(-12px) translateX(3px) scale(1.2) skewX(4deg);
+  35% {
+    opacity: 0.55;
   }
   80% {
-    opacity: 0.2;
-    transform: translateY(-24px) translateX(-2px) scale(1.4) skewX(-4deg);
+    opacity: 0.3;
+    transform: translateY(-8px) scale(1.1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-34px) translateX(1px) scale(1.1) skewX(2deg);
+    transform: translateY(-16px) scale(0.9);
   }
 }
 
