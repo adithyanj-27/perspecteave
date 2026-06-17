@@ -916,8 +916,8 @@ header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 18px 8px 6px;
+  justify-content: center;
+  padding: 10px 8px 6px;
   z-index: 2;
   position: relative;
 }
