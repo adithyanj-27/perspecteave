@@ -839,6 +839,10 @@ function renderAllEntries(posts) {
     const expandedEntry = container.querySelector('.entry.expanded');
     const expandedId = expandedEntry ? expandedEntry.getAttribute('data-entry-id') : null;
 
+    // 1b. Remember spilled cup container ID
+    const spilledEntry = container.querySelector('.cup-container.spilled');
+    const spilledId = spilledEntry ? spilledEntry.getAttribute('data-entry-id') : null;
+
     // 2. Remember open comments bodies
     const openCommentsIds = [];
     container.querySelectorAll('.comments-body.open').forEach(body => {
@@ -854,6 +858,18 @@ function renderAllEntries(posts) {
       const entryToExpand = container.querySelector(`.entry[data-entry-id="${expandedId}"]`);
       if (entryToExpand) {
         entryToExpand.classList.add('expanded');
+      }
+    }
+
+    // 4b. Restore spilled entry ID if any (checks previous state OR URL query parameter on load)
+    const urlParams = new URLSearchParams(window.location.search);
+    const postIdParam = urlParams.get('post');
+    const targetSpilledId = spilledId || postIdParam;
+
+    if (targetSpilledId) {
+      const entryToSpill = container.querySelector(`.cup-container[data-entry-id="${targetSpilledId}"]`);
+      if (entryToSpill) {
+        entryToSpill.classList.add('spilled');
       }
     }
 
@@ -1598,16 +1614,31 @@ function updateVoteUI(entryId, agrees, disagrees, activeVote) {
     else disagreeBtn.classList.remove('active');
   }
 
-  // Slide open/close the comment input box conditional on Thumbs Down
-  if (replySection) {
+  // Open/close the inline comment form based on Thumbs Down / Disagree active vote state
+  const body = document.getElementById(`commentsBody-${entryId}`);
+  const section = body ? body.closest('.comments-section') : null;
+  const form = section ? section.querySelector('.inline-comment-form') : null;
+  const toggleBtn = section ? section.querySelector('.btn-add-inline-comment') : null;
+
+  if (form) {
     if (activeVote === 'disagree') {
-      replySection.classList.add('open');
+      // First, expand the comments section
+      setCommentsExpanded(entryId, true);
+      // Display the inline comment form
+      form.style.display = 'block';
+      if (toggleBtn) toggleBtn.classList.add('active');
+      
       setTimeout(() => {
-        replySection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 150);
+        const ta = form.querySelector('.comment-text');
+        if (ta) {
+          ta.focus();
+          ta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 450); // wait for comments transition to complete
     } else {
-      replySection.classList.remove('open');
-      const ta = replySection.querySelector('.reply-text');
+      form.style.display = 'none';
+      if (toggleBtn) toggleBtn.classList.remove('active');
+      const ta = form.querySelector('.comment-text');
       if (ta) ta.value = '';
     }
   }
