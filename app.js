@@ -1038,14 +1038,7 @@ async function submitReply(entryId) {
   
   // Dynamic UI actions on success:
   // 1. Open the comments feed section
-  const commentsBody = document.getElementById(`commentsBody-${entryId}`);
-  const viewCommentsBtn = document.querySelector(`.btn-view-comments[data-entry-id="${entryId}"]`);
-  if (commentsBody && !commentsBody.classList.contains('open')) {
-    commentsBody.classList.add('open');
-  }
-  if (viewCommentsBtn && !viewCommentsBtn.classList.contains('open')) {
-    viewCommentsBtn.classList.add('open');
-  }
+  setCommentsExpanded(entryId, true);
 
   // 2. Hide the criticism reply box smoothly
   const replySection = document.getElementById(`replySection-${entryId}`);
@@ -2466,6 +2459,32 @@ function showShareMenu(postId, btnEl) {
   }, 10);
 }
 
+// ---- Expand/Collapse Comments Feed ----
+function setCommentsExpanded(entryId, show) {
+  const body = document.getElementById(`commentsBody-${entryId}`);
+  const btn = document.querySelector(`.btn-view-comments[data-entry-id="${entryId}"]`);
+  const section = body ? body.closest('.comments-section') : null;
+  
+  if (!body || !section) return;
+
+  if (show) {
+    section.style.display = 'block';
+    // Force reflow for height transition animations
+    section.offsetHeight;
+    body.classList.add('open');
+    if (btn) btn.classList.add('open');
+  } else {
+    body.classList.remove('open');
+    if (btn) btn.classList.remove('open');
+    setTimeout(() => {
+      // Only hide if the user hasn't opened it again in the meantime
+      if (!body.classList.contains('open')) {
+        section.style.display = 'none';
+      }
+    }, 400); // 400ms matches max-height transition duration in styles.css
+  }
+}
+
 // ---- Attach Dynamic DOM Event Listeners ----
 function attachEventListeners() {
   // Cup Click — Open Spilled View directly (no top-down view or Zoom)
@@ -2545,16 +2564,8 @@ function attachEventListeners() {
       e.stopPropagation();
       const entryId = btn.dataset.entryId;
       const body = document.getElementById(`commentsBody-${entryId}`);
-      const wasOpen = body.classList.contains('open');
-      
-      body.classList.toggle('open');
-      btn.classList.toggle('open');
-      
-      if (!wasOpen) {
-        setTimeout(() => {
-          body.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 350);
-      }
+      const wasOpen = body ? body.classList.contains('open') : false;
+      setCommentsExpanded(entryId, !wasOpen);
     });
   });
 
