@@ -3119,6 +3119,26 @@ footer {
   .request-dropdown::before {
     display: none !important;
   }
+
+  /* Spill Page & Social Actions Mobile Optimization */
+  .spill-page {
+    padding: 40px var(--space-sm) var(--space-xl);
+  }
+
+  .spill-body {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .social-actions-row {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-sm);
+  }
+
+  .btn-view-comments,
+  .btn-share-link {
+    padding: 8px 12px;
+  }
 }
 
 
