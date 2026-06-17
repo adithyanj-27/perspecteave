@@ -426,12 +426,8 @@ function isClientVerified(session) {
   return isLoggedIn(session);
 }
 
-// 10-Minute Guest Timer Logic
+// 10-Minute Guest Timer Logic (Legacy - Disabled)
 function setupGuestTimer() {
-  const timeLockOverlay = document.getElementById('timeLockOverlay');
-  if (timeLockOverlay) {
-    timeLockOverlay.classList.remove('open');
-  }
   document.body.style.overflow = '';
   if (guestTimerTimeout) {
     clearTimeout(guestTimerTimeout);
@@ -2061,24 +2057,14 @@ function setupAuth() {
           sessionStorage.setItem('perspecteave_auth_email', 'teaboy27@perspecteave.com');
           sessionStorage.setItem('perspecteave_auth_verified', 'true');
           loginOverlay.classList.remove('open');
-          
-          const timeLockOverlay = document.getElementById('timeLockOverlay');
-          if (timeLockOverlay) timeLockOverlay.classList.remove('open');
-          document.body.style.overflow = '';
           updateAuthUI();
-          localStorage.removeItem('perspecteave_first_visit');
         } else if (found) {
           sessionStorage.setItem('perspecteave_auth_session', 'true');
           sessionStorage.setItem('perspecteave_auth_username', found.username);
           sessionStorage.setItem('perspecteave_auth_email', found.email);
           sessionStorage.setItem('perspecteave_auth_verified', 'true');
           loginOverlay.classList.remove('open');
-          
-          const timeLockOverlay = document.getElementById('timeLockOverlay');
-          if (timeLockOverlay) timeLockOverlay.classList.remove('open');
-          document.body.style.overflow = '';
           updateAuthUI();
-          localStorage.removeItem('perspecteave_first_visit');
         } else {
           loginError.textContent = 'Incorrect username or password';
           loginError.style.display = 'block';
@@ -2107,12 +2093,7 @@ function setupAuth() {
         sessionStorage.setItem('perspecteave_auth_email', email);
         sessionStorage.setItem('perspecteave_auth_verified', 'true');
         loginOverlay.classList.remove('open');
-        
-        const timeLockOverlay = document.getElementById('timeLockOverlay');
-        if (timeLockOverlay) timeLockOverlay.classList.remove('open');
-        document.body.style.overflow = '';
         updateAuthUI();
-        localStorage.removeItem('perspecteave_first_visit');
       }
     } else {
       // Real Supabase Auth
@@ -2129,12 +2110,7 @@ function setupAuth() {
           
           currentSession = data.session;
           loginOverlay.classList.remove('open');
-          
-          const timeLockOverlay = document.getElementById('timeLockOverlay');
-          if (timeLockOverlay) timeLockOverlay.classList.remove('open');
-          document.body.style.overflow = '';
           updateAuthUI(data.session);
-          localStorage.removeItem('perspecteave_first_visit');
         } else {
           // Sign Up
           const { data, error } = await supabase.auth.signUp({
@@ -2162,12 +2138,7 @@ function setupAuth() {
 
           currentSession = data.session;
           loginOverlay.classList.remove('open');
-          
-          const timeLockOverlay = document.getElementById('timeLockOverlay');
-          if (timeLockOverlay) timeLockOverlay.classList.remove('open');
-          document.body.style.overflow = '';
           updateAuthUI(data.session);
-          localStorage.removeItem('perspecteave_first_visit');
         }
       } catch (err) {
         console.error('Auth error:', err);
@@ -2192,19 +2163,6 @@ function setupAuth() {
     }
   });
 
-  // Time limit lock overlay button handlers
-  const timeLockSignupBtn = document.getElementById('timeLockSignupBtn');
-  const timeLockLoginBtn = document.getElementById('timeLockLoginBtn');
-  if (timeLockSignupBtn) {
-    timeLockSignupBtn.addEventListener('click', () => {
-      if (globalOpenAuthModal) globalOpenAuthModal('signup');
-    });
-  }
-  if (timeLockLoginBtn) {
-    timeLockLoginBtn.addEventListener('click', () => {
-      if (globalOpenAuthModal) globalOpenAuthModal('signin');
-    });
-  }
 
   // Profile dropdown toggling
   if (profileTrigger && profileDropdown) {
