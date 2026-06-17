@@ -501,7 +501,7 @@ function formatDisplayName(name) {
 
 // ---- Render a Single Entry ----
 function renderEntry(post, index) {
-  const qNum = `#${String(index + 1).padStart(3, '0')}`;
+  const qNum = index + 1;
   let editInfo = '';
   if (post.edit_count > 0) {
     editInfo = ` <span class="edit-info">(edited ${post.edit_count} time${post.edit_count > 1 ? 's' : ''})</span>`;
@@ -510,115 +510,161 @@ function renderEntry(post, index) {
   const currentVote = getPostVote(post.id);
   const agreeClass = currentVote === 'agree' ? 'active' : '';
   const disagreeClass = currentVote === 'disagree' ? 'active' : '';
-  const replyOpenClass = currentVote === 'disagree' ? 'open' : '';
 
   return `
-    <article class="entry" data-entry-id="${post.id}" id="entry-${post.id}">
-      <div class="entry-summary">
-        <div class="entry-number">${qNum}</div>
-        <h2 class="question" id="entryQuestionText-${post.id}">${escapeHTML(post.question)}</h2>
-        <div class="expand-indicator">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="arrow-svg"><path d="M6 9l6 6 6-6"/></svg>
+    <article class="entry cup-container" data-entry-id="${post.id}" id="entry-${post.id}">
+      
+      <!-- ===== MUG (Grid View) ===== -->
+      <div class="teacup" data-entry-id="${post.id}">
+        <div class="mug-steam">
+          <svg class="steam-wave" viewBox="0 0 12 28">
+            <path d="M6,28 C2,20 10,12 6,4" fill="none" stroke="rgba(214, 142, 73, 0.25)" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+          <svg class="steam-wave" viewBox="0 0 12 28">
+            <path d="M6,28 C10,20 2,12 6,4" fill="none" stroke="rgba(214, 142, 73, 0.25)" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+          <svg class="steam-wave" viewBox="0 0 12 28">
+            <path d="M6,28 C3,22 9,14 6,4" fill="none" stroke="rgba(214, 142, 73, 0.25)" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
         </div>
+        <div class="mug-body">
+          <div class="mug-front">
+            <span class="cup-number">${qNum}</span>
+            <p class="cup-question">${escapeHTML(post.question)}</p>
+          </div>
+          <div class="mug-liquid"></div>
+        </div>
+        <div class="mug-handle"></div>
       </div>
-      <div class="entry-body">
-        
-        <!-- Static Perspective Content -->
-        <div class="entry-static-view" id="entryStatic-${post.id}">
-          <p class="perspective">${(() => {
-            const fullText = post.perspective;
-            const charLimit = 800;
-            if (fullText.length > charLimit) {
-              const truncated = fullText.substring(0, charLimit);
-              return `<span class="perspective-text-truncated" id="perspectiveTruncated-${post.id}">${escapeHTML(truncated)}...<a href="#" class="btn-read-more" data-entry-id="${post.id}">Read more</a></span><span class="perspective-text-full" id="perspectiveFull-${post.id}" style="display: none;">${escapeHTML(fullText)}</span>`;
-            }
-            return escapeHTML(fullText);
-          })()}${editInfo}</p>
-          
-          <!-- Admin actions (only visible to admin) -->
-          <div class="entry-admin-actions" data-entry-id="${post.id}">
-            <button type="button" class="btn-entry-edit" data-entry-id="${post.id}">Edit</button>
-            <button type="button" class="btn-entry-delete" data-entry-id="${post.id}">Delete</button>
-          </div>
+
+      <!-- ===== EXPANDED (Top-down circle) ===== -->
+      <div class="cup-topdown">
+        <div class="topdown-saucer"></div>
+        <div class="topdown-rim"></div>
+        <div class="topdown-tea">
+          <span class="topdown-number">${qNum}.</span>
+          <p class="topdown-question">${escapeHTML(post.question)}</p>
         </div>
-
-        <!-- Inline Edit Form (Hidden by default) -->
-        <form class="entry-edit-form" id="entryEdit-${post.id}" onsubmit="return false;" style="display: none;">
-          <div class="edit-field">
-            <label>Question</label>
-            <input type="text" class="edit-question-input" id="editQuestion-${post.id}" value="${escapeHTML(post.question)}" required>
-          </div>
-          <div class="edit-field">
-            <label>Perspective</label>
-            <textarea class="edit-perspective-textarea" id="editPerspective-${post.id}" required>${escapeHTML(post.perspective)}</textarea>
-          </div>
-          <div class="edit-actions">
-            <button type="button" class="btn-edit-save" data-entry-id="${post.id}">Save</button>
-            <button type="button" class="btn-edit-cancel" data-entry-id="${post.id}">Cancel</button>
-          </div>
-        </form>
-
-        <!-- Social Action Buttons (Do you agree?) -->
-        <div class="entry-actions-row">
-          <div class="agree-question-wrapper">
-            <span class="agree-label">Do you agree?</span>
-            <div class="agree-buttons">
-              <button type="button" class="btn-vote btn-agree ${agreeClass}" data-entry-id="${post.id}">
-                <span class="vote-icon">👍</span>
-                <span class="vote-count" id="agreeCount-${post.id}">${post.agrees || 0}</span>
-              </button>
-              <button type="button" class="btn-vote btn-disagree ${disagreeClass}" data-entry-id="${post.id}">
-                <span class="vote-icon">👎</span>
-                <span class="vote-count" id="disagreeCount-${post.id}">${post.disagrees || 0}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Conditional Critique Form (Only shown if thumbs down is clicked) -->
-        <div class="reply-section ${replyOpenClass}" id="replySection-${post.id}">
-          <h3 class="reply-section-title">Why do you disagree?</h3>
-          <form class="reply-form" data-entry-id="${post.id}" onsubmit="return false;">
-            <input type="text" class="reply-name" placeholder="Your name">
-            <div class="textarea-wrapper">
-              <textarea class="reply-text" placeholder="Write your counterpoint..."></textarea>
-              <button type="button" class="btn-submit-circle btn-reply" data-entry-id="${post.id}" title="Submit criticism">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <button type="button" class="btn-view-comments" data-entry-id="${post.id}">
-          <span class="comment-icon">💬</span>
-          <span>Comments</span>
-          <span class="total-comment-count" id="totalCount-${post.id}">0</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="comments-arrow"><path d="M6 9l6 6 6-6"/></svg>
+        <div class="topdown-handle"></div>
+        <button class="btn-spill-tea" data-entry-id="${post.id}">
+          <span class="spill-icon">☕</span> Spill the tea
         </button>
+      </div>
 
-        <!-- Collapsible Comments Feed -->
-        <div class="comments-section">
-          <div class="comments-body" id="commentsBody-${post.id}">
-            <ul class="comments-list" id="commentsList-${post.id}"></ul>
-            <!-- Add comment toggle -->
-            <div class="inline-comment-area" id="inlineCommentArea-${post.id}">
-              <button type="button" class="btn-add-inline-comment" data-entry-id="${post.id}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add a comment
-              </button>
-              <form class="reply-form inline-comment-form" data-entry-id="${post.id}" onsubmit="return false;" style="display:none;">
-                <input type="text" class="reply-name" placeholder="Your name">
-                <div class="textarea-wrapper">
-                  <textarea class="reply-text comment-text" placeholder="What are your thoughts?"></textarea>
-                  <button type="button" class="btn-submit-circle btn-comment-submit" data-entry-id="${post.id}" title="Post comment">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
+      <!-- ===== SPILLED VIEW ===== -->
+      <div class="spill-overlay" id="spillOverlay-${post.id}">
+        <!-- Animated stain layers -->
+        <div class="stain stain-1"></div>
+        <div class="stain stain-2"></div>
+        <div class="stain stain-3"></div>
+        <div class="stain-ring stain-ring-1"></div>
+        <div class="stain-ring stain-ring-2"></div>
+
+        <div class="spill-page">
+          <button class="btn-close-spill" data-entry-id="${post.id}" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+
+          <div class="spill-header">
+            <span class="spill-num">${qNum}.</span>
+            <h2 class="spill-question">${escapeHTML(post.question)}</h2>
+          </div>
+
+          <div class="spill-body">
+            <!-- Perspective -->
+            <div class="entry-static-view" id="entryStatic-${post.id}">
+              <p class="perspective">${(() => {
+                const fullText = post.perspective;
+                const charLimit = 800;
+                if (fullText.length > charLimit) {
+                  const truncated = fullText.substring(0, charLimit);
+                  return `<span class="perspective-text-truncated" id="perspectiveTruncated-${post.id}">${escapeHTML(truncated)}...<a href="#" class="btn-read-more" data-entry-id="${post.id}">Read more</a></span><span class="perspective-text-full" id="perspectiveFull-${post.id}" style="display: none;">${escapeHTML(fullText)}</span>`;
+                }
+                return escapeHTML(fullText);
+              })()}${editInfo}</p>
+              
+              <div class="entry-admin-actions" data-entry-id="${post.id}">
+                <button type="button" class="btn-entry-edit" data-entry-id="${post.id}">Edit</button>
+                <button type="button" class="btn-entry-delete" data-entry-id="${post.id}">Delete</button>
+              </div>
+            </div>
+
+            <!-- Edit Form -->
+            <form class="entry-edit-form" id="entryEdit-${post.id}" onsubmit="return false;" style="display: none;">
+              <div class="edit-field">
+                <label>Question</label>
+                <input type="text" class="edit-question-input" id="editQuestion-${post.id}" value="${escapeHTML(post.question)}" required>
+              </div>
+              <div class="edit-field">
+                <label>Perspective</label>
+                <textarea class="edit-perspective-textarea" id="editPerspective-${post.id}" required>${escapeHTML(post.perspective)}</textarea>
+              </div>
+              <div class="edit-actions">
+                <button type="button" class="btn-edit-save" data-entry-id="${post.id}">Save</button>
+                <button type="button" class="btn-edit-cancel" data-entry-id="${post.id}">Cancel</button>
+              </div>
+            </form>
+
+            <!-- Vote -->
+            <div class="entry-actions-row">
+              <div class="agree-question-wrapper">
+                <span class="agree-label">Do you agree?</span>
+                <div class="agree-buttons">
+                  <button type="button" class="btn-vote btn-agree ${agreeClass}" data-entry-id="${post.id}">
+                    <span class="vote-icon">👍</span>
+                    <span class="vote-count" id="agreeCount-${post.id}">${post.agrees || 0}</span>
+                  </button>
+                  <button type="button" class="btn-vote btn-disagree ${disagreeClass}" data-entry-id="${post.id}">
+                    <span class="vote-icon">👎</span>
+                    <span class="vote-count" id="disagreeCount-${post.id}">${post.disagrees || 0}</span>
                   </button>
                 </div>
-              </form>
+              </div>
+            </div>
+
+            <!-- Comments & Share -->
+            <div class="social-actions-row">
+              <button type="button" class="btn-view-comments" data-entry-id="${post.id}">
+                <span class="comment-icon">💬</span>
+                <span>Comments</span>
+                <span class="total-comment-count" id="totalCount-${post.id}">0</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="comments-arrow"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="share-btn-wrapper">
+                <button type="button" class="btn-share-link" data-entry-id="${post.id}" title="Share this take">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" class="share-svg-icon" style="margin-right: 6px; display: inline-block; vertical-align: middle;">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                  </svg>
+                  <span class="share-status-text">Share</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="comments-section" style="display:none;">
+              <div class="comments-body" id="commentsBody-${post.id}">
+                <ul class="comments-list" id="commentsList-${post.id}"></ul>
+                <div class="inline-comment-area" id="inlineCommentArea-${post.id}">
+                  <button type="button" class="btn-add-inline-comment" data-entry-id="${post.id}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add a comment
+                  </button>
+                  <form class="reply-form inline-comment-form" data-entry-id="${post.id}" onsubmit="return false;" style="display:none;">
+                    <input type="text" class="reply-name" placeholder="Your name">
+                    <div class="textarea-wrapper">
+                      <textarea class="comment-text" placeholder="What are your thoughts?"></textarea>
+                      <button type="button" class="btn-submit-circle btn-comment-submit" data-entry-id="${post.id}" title="Post comment">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2282,45 +2328,189 @@ function setupAuth() {
   }
 }
 
+// ---- Show Wavy Social Share Dialog Menu ----
+function showShareMenu(postId, btnEl) {
+  const shareUrl = `${window.location.origin}${window.location.pathname}?post=${postId}`;
+  const text = "Check out this take on PerspecTEAve!";
+
+  // Find the wrapper container for relative positioning
+  const wrapper = btnEl.closest('.share-btn-wrapper');
+  if (!wrapper) return;
+
+  // Close any existing open share menus first
+  document.querySelectorAll('.custom-share-menu').forEach(menu => {
+    menu.classList.remove('open');
+    setTimeout(() => menu.remove(), 200);
+  });
+
+  const menu = document.createElement('div');
+  menu.className = 'custom-share-menu';
+
+  menu.innerHTML = `
+    <div class="share-menu-header">Share Take</div>
+    <div class="share-menu-options">
+      <button class="share-menu-item" data-action="copy">
+        <span class="share-item-icon">🔗</span> Copy link
+      </button>
+      <a class="share-menu-item" href="https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + shareUrl)}" target="_blank" rel="noopener">
+        <span class="share-item-icon">🟢</span> WhatsApp
+      </a>
+      <a class="share-menu-item" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener">
+        <span class="share-item-icon">🔵</span> Facebook
+      </a>
+      <button class="share-menu-item" data-action="instagram">
+        <span class="share-item-icon">📸</span> Instagram
+      </button>
+      <a class="share-menu-item" href="https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener">
+        <span class="share-item-icon">✖️</span> X (Twitter)
+      </a>
+      <a class="share-menu-item" href="https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}" target="_blank" rel="noopener">
+        <span class="share-item-icon">✈️</span> Telegram
+      </a>
+      <a class="share-menu-item" href="mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(shareUrl)}">
+        <span class="share-item-icon">✉️</span> Email
+      </a>
+      ${navigator.share ? `
+      <button class="share-menu-item" data-action="native">
+        <span class="share-item-icon">📱</span> More Options
+      </button>
+      ` : ''}
+    </div>
+  `;
+
+  wrapper.appendChild(menu);
+
+  // Trigger CSS entry animation
+  requestAnimationFrame(() => {
+    menu.classList.add('open');
+  });
+
+  // Stop click event propagation inside the menu
+  menu.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  // Action: Copy Link
+  menu.querySelector('[data-action="copy"]').addEventListener('click', (e) => {
+    e.preventDefault();
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      const copyBtn = menu.querySelector('[data-action="copy"]');
+      copyBtn.innerHTML = '<span class="share-item-icon">✅</span> Copied!';
+      copyBtn.style.color = 'var(--accent-matcha)';
+      
+      const shareStatusText = btnEl.querySelector('.share-status-text');
+      if (shareStatusText) {
+        const originalText = shareStatusText.textContent;
+        shareStatusText.textContent = 'Copied!';
+        btnEl.classList.add('copied');
+        setTimeout(() => {
+          shareStatusText.textContent = originalText;
+          btnEl.classList.remove('copied');
+        }, 2000);
+      }
+
+      setTimeout(() => {
+        menu.classList.remove('open');
+        setTimeout(() => menu.remove(), 200);
+      }, 800);
+    }).catch(err => {
+      console.error('Failed to copy share link: ', err);
+    });
+  });
+
+  // Action: Instagram
+  menu.querySelector('[data-action="instagram"]').addEventListener('click', (e) => {
+    e.preventDefault();
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      const igBtn = menu.querySelector('[data-action="instagram"]');
+      igBtn.innerHTML = '<span class="share-item-icon">📸</span> Copied! Opening IG...';
+      igBtn.style.color = 'var(--accent-matcha)';
+
+      setTimeout(() => {
+        window.open('https://www.instagram.com', '_blank');
+        menu.classList.remove('open');
+        setTimeout(() => menu.remove(), 200);
+      }, 1000);
+    }).catch(err => {
+      console.error('Failed to copy for Instagram: ', err);
+    });
+  });
+
+  // Action: Native Share
+  const nativeBtn = menu.querySelector('[data-action="native"]');
+  if (nativeBtn) {
+    nativeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigator.share({
+        title: 'PerspecTEAve',
+        text: text,
+        url: shareUrl
+      }).then(() => {
+        menu.classList.remove('open');
+        setTimeout(() => menu.remove(), 200);
+      }).catch(err => console.log('System share canceled:', err));
+    });
+  }
+
+  // Close menu on click outside
+  const closeMenuHandler = (e) => {
+    if (!menu.contains(e.target) && e.target !== btnEl && !btnEl.contains(e.target)) {
+      menu.classList.remove('open');
+      setTimeout(() => menu.remove(), 200);
+      document.removeEventListener('click', closeMenuHandler);
+    }
+  };
+
+  setTimeout(() => {
+    document.addEventListener('click', closeMenuHandler);
+  }, 10);
+}
+
 // ---- Attach Dynamic DOM Event Listeners ----
 function attachEventListeners() {
-  // Entry expand/collapse (Accordion)
-  document.querySelectorAll('.entry-summary').forEach(summary => {
-    if (summary.dataset.accordionListenerAttached) return;
-    summary.dataset.accordionListenerAttached = 'true';
-    summary.addEventListener('click', () => {
-      const entry = summary.closest('.entry');
-      // Ignore click if editing inside the form
-      const editForm = entry.querySelector('.entry-edit-form');
-      const isEditing = editForm && editForm.style.display === 'flex';
-      if (isEditing) return;
-
-      const wasExpanded = entry.classList.contains('expanded');
-      document.querySelectorAll('.entry').forEach(el => el.classList.remove('expanded'));
-      if (!wasExpanded) {
-        entry.classList.add('expanded');
-        setTimeout(() => entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 350);
-      }
-    });
-  });
-
-  // Prevent clicks in edit forms, reply forms, comments, action rows from toggling accordion
-  document.querySelectorAll('.reply-form, .comments-section, .entry-edit-form, .entry-actions-row, .inline-comment-area').forEach(el => {
-    if (el.dataset.propagationListenerAttached) return;
-    el.dataset.propagationListenerAttached = 'true';
-    el.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn-comment-edit') || 
-          e.target.classList.contains('btn-comment-save') || 
-          e.target.classList.contains('btn-comment-cancel') || 
-          e.target.classList.contains('btn-comment-reply-trigger') || 
-          e.target.classList.contains('btn-comment-delete') || 
-          e.target.closest('.btn-reply-to-comment') || 
-          e.target.closest('.comment-history-nav')) {
-        return; // Allow propagation for comment action buttons and history nav
-      }
+  // Cup Click — Open Spilled View directly (no top-down view or Zoom)
+  document.querySelectorAll('.cup-container').forEach(cup => {
+    if (cup.dataset.cupListenerAttached) return;
+    cup.dataset.cupListenerAttached = 'true';
+    
+    const teacup = cup.querySelector('.teacup');
+    if (!teacup) return;
+    
+    teacup.addEventListener('click', (e) => {
+      if (cup.classList.contains('spilled')) return;
       e.stopPropagation();
+      
+      cup.classList.add('spilled');
     });
   });
+
+  // Close Spilled View
+  document.querySelectorAll('.btn-close-spill').forEach(btn => {
+    if (btn.dataset.closeListenerAttached) return;
+    btn.dataset.closeListenerAttached = 'true';
+    
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const cup = btn.closest('.cup-container');
+      if (!cup) return;
+      
+      cup.classList.remove('spilled');
+    });
+  });
+
+  
+  // Share button click handler (Opens social share dialog)
+  document.querySelectorAll('.btn-share-link').forEach(btn => {
+    if (btn.dataset.shareListenerAttached) return;
+    btn.dataset.shareListenerAttached = 'true';
+    
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const entryId = btn.dataset.entryId;
+      showShareMenu(entryId, btn);
+    });
+  });
+
 
   // Reply submit buttons (Circular checkmark)
   document.querySelectorAll('.btn-reply').forEach(btn => {
@@ -3771,6 +3961,20 @@ async function init() {
 
   // Trigger initial UI render based on current auth state
   await updateAuthUI(currentSession);
+
+  // Handle shared post deep link
+  const urlParams = new URLSearchParams(window.location.search);
+  const postIdParam = urlParams.get('post');
+  if (postIdParam) {
+    const cup = document.querySelector(`.cup-container[data-entry-id="${postIdParam}"]`);
+    if (cup) {
+      cup.classList.add('spilled');
+      setTimeout(() => {
+        cup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
+    }
+  }
+
   
   // Log page load visit and determine guest number
   logVisit().then(() => {
