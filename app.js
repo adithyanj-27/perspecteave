@@ -2481,6 +2481,8 @@ function attachEventListeners() {
       e.stopPropagation();
       
       cup.classList.add('spilled');
+      const entryId = cup.dataset.entryId;
+      history.pushState({ post: entryId }, '', `?post=${entryId}`);
     });
   });
 
@@ -2495,6 +2497,7 @@ function attachEventListeners() {
       if (!cup) return;
       
       cup.classList.remove('spilled');
+      history.pushState(null, '', window.location.pathname);
     });
   });
 
@@ -3974,6 +3977,24 @@ async function init() {
       }, 500);
     }
   }
+
+  // Handle popstate for browser back/forward navigation
+  window.addEventListener('popstate', () => {
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('post');
+    
+    // Close any currently spilled cup overlays
+    document.querySelectorAll('.cup-container.spilled').forEach(cup => {
+      cup.classList.remove('spilled');
+    });
+
+    if (postId) {
+      const cup = document.querySelector(`.cup-container[data-entry-id="${postId}"]`);
+      if (cup) {
+        cup.classList.add('spilled');
+      }
+    }
+  });
 
   
   // Log page load visit and determine guest number
