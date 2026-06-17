@@ -934,7 +934,7 @@ header {
 .cup-question {
   font-family: var(--font-display); /* Playfair Display font */
   font-style: normal;
-  font-size: 0.82rem;
+  font-size: 1.0rem;
   font-weight: 600;
   color: var(--text-primary);
   text-align: center;
