@@ -2352,143 +2352,6 @@ function setupAuth() {
   }
 }
 
-// ---- Show Wavy Social Share Dialog Menu ----
-function showShareMenu(postId, btnEl) {
-  const shareUrl = `${window.location.origin}${window.location.pathname}?post=${postId}`;
-  const text = "Check out this take on PerspecTEAve!";
-
-  // Find the wrapper container for relative positioning
-  const wrapper = btnEl.closest('.share-btn-wrapper');
-  if (!wrapper) return;
-
-  // Close any existing open share menus first
-  document.querySelectorAll('.custom-share-menu').forEach(menu => {
-    menu.classList.remove('open');
-    setTimeout(() => menu.remove(), 200);
-  });
-
-  const menu = document.createElement('div');
-  menu.className = 'custom-share-menu';
-
-  menu.innerHTML = `
-    <div class="share-menu-header">Share Take</div>
-    <div class="share-menu-options">
-      <button class="share-menu-item" data-action="copy">
-        <span class="share-item-icon">🔗</span> Copy link
-      </button>
-      <a class="share-menu-item" href="https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + shareUrl)}" target="_blank" rel="noopener">
-        <span class="share-item-icon">🟢</span> WhatsApp
-      </a>
-      <a class="share-menu-item" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener">
-        <span class="share-item-icon">🔵</span> Facebook
-      </a>
-      <button class="share-menu-item" data-action="instagram">
-        <span class="share-item-icon">📸</span> Instagram
-      </button>
-      <a class="share-menu-item" href="https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener">
-        <span class="share-item-icon">✖️</span> X (Twitter)
-      </a>
-      <a class="share-menu-item" href="https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}" target="_blank" rel="noopener">
-        <span class="share-item-icon">✈️</span> Telegram
-      </a>
-      <a class="share-menu-item" href="mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(shareUrl)}">
-        <span class="share-item-icon">✉️</span> Email
-      </a>
-      ${navigator.share ? `
-      <button class="share-menu-item" data-action="native">
-        <span class="share-item-icon">📱</span> More Options
-      </button>
-      ` : ''}
-    </div>
-  `;
-
-  wrapper.appendChild(menu);
-
-  // Trigger CSS entry animation
-  requestAnimationFrame(() => {
-    menu.classList.add('open');
-  });
-
-  // Stop click event propagation inside the menu
-  menu.addEventListener('click', (e) => {
-    e.stopPropagation();
-  });
-
-  // Action: Copy Link
-  menu.querySelector('[data-action="copy"]').addEventListener('click', (e) => {
-    e.preventDefault();
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      const copyBtn = menu.querySelector('[data-action="copy"]');
-      copyBtn.innerHTML = '<span class="share-item-icon">✅</span> Copied!';
-      copyBtn.style.color = 'var(--accent-matcha)';
-      
-      const shareStatusText = btnEl.querySelector('.share-status-text');
-      if (shareStatusText) {
-        const originalText = shareStatusText.textContent;
-        shareStatusText.textContent = 'Copied!';
-        btnEl.classList.add('copied');
-        setTimeout(() => {
-          shareStatusText.textContent = originalText;
-          btnEl.classList.remove('copied');
-        }, 2000);
-      }
-
-      setTimeout(() => {
-        menu.classList.remove('open');
-        setTimeout(() => menu.remove(), 200);
-      }, 800);
-    }).catch(err => {
-      console.error('Failed to copy share link: ', err);
-    });
-  });
-
-  // Action: Instagram
-  menu.querySelector('[data-action="instagram"]').addEventListener('click', (e) => {
-    e.preventDefault();
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      const igBtn = menu.querySelector('[data-action="instagram"]');
-      igBtn.innerHTML = '<span class="share-item-icon">📸</span> Copied! Opening IG...';
-      igBtn.style.color = 'var(--accent-matcha)';
-
-      setTimeout(() => {
-        window.open('https://www.instagram.com', '_blank');
-        menu.classList.remove('open');
-        setTimeout(() => menu.remove(), 200);
-      }, 1000);
-    }).catch(err => {
-      console.error('Failed to copy for Instagram: ', err);
-    });
-  });
-
-  // Action: Native Share
-  const nativeBtn = menu.querySelector('[data-action="native"]');
-  if (nativeBtn) {
-    nativeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      navigator.share({
-        title: 'PerspecTEAve',
-        text: text,
-        url: shareUrl
-      }).then(() => {
-        menu.classList.remove('open');
-        setTimeout(() => menu.remove(), 200);
-      }).catch(err => console.log('System share canceled:', err));
-    });
-  }
-
-  // Close menu on click outside
-  const closeMenuHandler = (e) => {
-    if (!menu.contains(e.target) && e.target !== btnEl && !btnEl.contains(e.target)) {
-      menu.classList.remove('open');
-      setTimeout(() => menu.remove(), 200);
-      document.removeEventListener('click', closeMenuHandler);
-    }
-  };
-
-  setTimeout(() => {
-    document.addEventListener('click', closeMenuHandler);
-  }, 10);
-}
 
 // ---- Expand/Collapse Comments Feed ----
 function setCommentsExpanded(entryId, show) {
@@ -2552,15 +2415,45 @@ function attachEventListeners() {
   });
 
   
-  // Share button click handler (Opens social share dialog)
+  // Share button click handler (Triggers native share, falls back to copy link)
   document.querySelectorAll('.btn-share-link').forEach(btn => {
     if (btn.dataset.shareListenerAttached) return;
     btn.dataset.shareListenerAttached = 'true';
     
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const entryId = btn.dataset.entryId;
-      showShareMenu(entryId, btn);
+      const shareUrl = `${window.location.origin}${window.location.pathname}?post=${entryId}`;
+      const shareTitle = "PerspecTEAve";
+      const shareText = "Check out this take on PerspecTEAve!";
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: shareTitle,
+            text: shareText,
+            url: shareUrl
+          });
+        } catch (err) {
+          console.log('Share canceled or failed:', err);
+        }
+      } else {
+        // Fallback: copy link to clipboard
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          const statusText = btn.querySelector('.share-status-text');
+          const origText = statusText ? statusText.textContent : 'Share';
+          btn.classList.add('copied');
+          if (statusText) statusText.textContent = 'Copied!';
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            if (statusText) statusText.textContent = origText;
+          }, 2000);
+        } catch (copyErr) {
+          console.error('Clipboard copy failed:', copyErr);
+          alert('Could not copy link to clipboard.');
+        }
+      }
     });
   });
 
