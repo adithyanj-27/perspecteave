@@ -824,7 +824,7 @@ header {
 .cup-container {
   position: relative;
   width: 100%;
-  max-width: 200px;
+  max-width: 230px;
   cursor: pointer;
   margin: 0 auto;
   border: none;
@@ -856,8 +856,8 @@ header {
   content: '';
   position: absolute;
   bottom: 2px;
-  left: 14%;
-  width: 72%;
+  left: 12%;
+  width: 76%;
   height: 6px;
   background: var(--bg-card);
   border: 3px solid var(--accent-matcha);
@@ -873,7 +873,7 @@ header {
 
 .mug-body {
   position: relative;
-  width: 70%;
+  width: 74%;
   aspect-ratio: 1.05;
   background: var(--bg-card);
   border: 3px solid var(--accent-matcha);
