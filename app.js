@@ -655,7 +655,7 @@ function renderEntry(post, index) {
                   <form class="reply-form inline-comment-form" data-entry-id="${post.id}" onsubmit="return false;" style="display:none;">
                     <input type="text" class="reply-name" placeholder="Your name">
                     <div class="textarea-wrapper">
-                      <textarea class="comment-text" placeholder="What are your thoughts?"></textarea>
+                      <textarea class="comment-text reply-text" placeholder="What are your thoughts?"></textarea>
                       <button type="button" class="btn-submit-circle btn-comment-submit" data-entry-id="${post.id}" title="Post comment">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                           <polyline points="20 6 9 17 4 12"></polyline>
