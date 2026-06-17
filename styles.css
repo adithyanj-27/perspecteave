@@ -813,8 +813,8 @@ header {
 
 @media (max-width: 640px) {
   .entries-list {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-lg) var(--space-md);
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
   }
 }
 
@@ -941,7 +941,7 @@ header {
   line-height: 1.35;
   margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
