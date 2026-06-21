@@ -4,6 +4,15 @@
 
 import { supabase, isConfigured } from './supabaseClient.js';
 
+// Register Service Worker for PWA installability
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+      .catch(err => console.warn('Service Worker registration failed:', err));
+  });
+}
+
 // ---- Default posts (seed data) ----
 const DEFAULT_POSTS = [
   {
