@@ -1,0 +1,17 @@
+{
+  "name": "PerspecTEAve",
+  "short_name": "PerspecTEAve",
+  "description": "Sharing thoughts, one cup at a time.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#607A66",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
