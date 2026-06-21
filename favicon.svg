@@ -4,8 +4,7 @@
   <!-- Tea fill (solid warm amber) -->
   <rect x="16" y="29" width="22" height="8" rx="2" fill="#D68E49"/>
   <!-- Handle (solid matcha green stroke) -->
-  <path d="M42 32 Q52 32 52 42 Q52 48 42 48" stroke="#607A66" stroke-width="3" fill="none"/>
+  <path d="M42 29 Q52 29 52 39 Q52 45 42 45" stroke="#607A66" stroke-width="3" fill="none"/>
   <!-- Steam (solid warm amber stroke) -->
-  <path d="M22 22 Q20 16 24 12" stroke="#D68E49" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-  <path d="M32 22 Q30 16 34 12" stroke="#D68E49" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M27 22 C24.5 19.5 29.5 14.5 27 12" stroke="#D68E49" stroke-width="2" stroke-linecap="round" fill="none"/>
 </svg>
