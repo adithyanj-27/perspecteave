@@ -6,5 +6,6 @@
   <!-- Handle (solid matcha green stroke) -->
   <path d="M42 29 Q52 29 52 39 Q52 45 42 45" stroke="#607A66" stroke-width="3" fill="none"/>
   <!-- Steam (solid warm amber stroke) -->
-  <path d="M27 22 C24.5 19.5 29.5 14.5 27 12" stroke="#D68E49" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M24.5 22 C22 19.5 27 14.5 24.5 12" stroke="#D68E49" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M29.5 22 C27 19.5 32 14.5 29.5 12" stroke="#D68E49" stroke-width="2" stroke-linecap="round" fill="none"/>
 </svg>
