@@ -21,7 +21,8 @@ const DEFAULT_POSTS = [
     perspective: 'Geography naturally shapes how we live — the food we eat, the languages we speak, the stories we tell. But enforcing strict cultural identities based purely on modern political borders often ignores the shared history of neighboring regions. The Basque culture straddles France and Spain. Bengali identity flows across India and Bangladesh. True culture is fluid and bleeds across lines drawn on a map by politicians, generals, and colonial cartographers. Maybe identity should be a river, not a fence.',
     edit_count: 0,
     agrees: 12,
-    disagrees: 2
+    disagrees: 2,
+    categories: ['Politics', 'Geopolitics']
   },
   {
     id: 2,
@@ -29,7 +30,8 @@ const DEFAULT_POSTS = [
     perspective: 'We can video-call someone across the planet in real time, yet we don\'t know our neighbor\'s name. Social media promised to bring us closer but created curated highlight reels instead of genuine connection. The paradox is sharp: we are more "connected" than any generation before us and simultaneously lonelier. Perhaps the issue isn\'t the tool but the illusion — the belief that watching someone\'s life is the same as being part of it.',
     edit_count: 0,
     agrees: 8,
-    disagrees: 4
+    disagrees: 4,
+    categories: ['Philosophy', '3am thoughts']
   },
   {
     id: 3,
@@ -37,7 +39,8 @@ const DEFAULT_POSTS = [
     perspective: 'Every generation believes it\'s more morally evolved than the last. Yet history suggests moral stances oscillate rather than march in a straight line. The liberalism of the Roaring Twenties gave way to the conservatism of the 1950s. Empires that championed pluralism eventually collapsed into xenophobia. Perhaps "progress" isn\'t a destination but a pendulum — and the real question is whether we can learn to keep the pendulum from swinging too far in either direction.',
     edit_count: 0,
     agrees: 15,
-    disagrees: 3
+    disagrees: 3,
+    categories: ['Philosophy', 'History']
   }
 ];
 
@@ -63,7 +66,29 @@ const COMMENTS_KEY = 'perspecteave_comments_v3';
 // ---- App State Variables ----
 let appPosts = [];
 let appComments = {};
+// Categories data preserved for future use
+const AVAILABLE_CATEGORIES = [
+  'All',
+  'History',
+  'Politics',
+  'Geopolitics',
+  'Indian politics',
+  'Philosophy',
+  '3am thoughts',
+  'Social',
+  'Science',
+  'Case study',
+  'People',
+  'Places'
+];
 let currentSession = null;
+let lastRenderedState = {
+  loggedIn: null,
+  adminLoggedIn: null,
+  username: null,
+  email: null,
+  initialized: false
+};
 let guestTimerTimeout = null;
 let globalOpenAuthModal = null;
 let currentGuestNumber = null;
@@ -572,7 +597,9 @@ function renderEntry(post, index) {
 
           <div class="spill-header">
             <span class="spill-num">${qNum}.</span>
-            <h2 class="spill-question">${escapeHTML(post.question)}</h2>
+            <div class="spill-header-content">
+              <h2 class="spill-question">${escapeHTML(post.question)}</h2>
+            </div>
           </div>
 
           <div class="spill-body">
@@ -604,6 +631,7 @@ function renderEntry(post, index) {
                 <label>Perspective</label>
                 <textarea class="edit-perspective-textarea" id="editPerspective-${post.id}" required>${escapeHTML(post.perspective)}</textarea>
               </div>
+
               <div class="edit-actions">
                 <button type="button" class="btn-edit-save" data-entry-id="${post.id}">Save</button>
                 <button type="button" class="btn-edit-cancel" data-entry-id="${post.id}">Cancel</button>
@@ -1667,11 +1695,14 @@ async function savePostEdit(entryId) {
   const currentPost = appPosts[postIndex];
   const newEditCount = (currentPost.edit_count || 0) + 1;
 
+  const checkedCats = [];
+
   if (!isConfigured) {
     // Local fallback
     appPosts[postIndex].question = q;
     appPosts[postIndex].perspective = p;
     appPosts[postIndex].edit_count = newEditCount;
+    appPosts[postIndex].categories = checkedCats;
     save(POSTS_KEY, appPosts);
   } else {
     // Supabase
@@ -1685,7 +1716,8 @@ async function savePostEdit(entryId) {
         .update({
           question: q,
           perspective: p,
-          edit_count: newEditCount
+          edit_count: newEditCount,
+          categories: checkedCats
         })
         .eq('id', entryId);
 
@@ -1694,6 +1726,7 @@ async function savePostEdit(entryId) {
       appPosts[postIndex].question = q;
       appPosts[postIndex].perspective = p;
       appPosts[postIndex].edit_count = newEditCount;
+      appPosts[postIndex].categories = checkedCats;
     } catch (err) {
       console.error('Error saving post edit to Supabase:', err);
       alert('Could not save edit. Check console.');
@@ -1842,14 +1875,34 @@ async function updateAuthUI(session) {
   const loggedIn = isLoggedIn(session);
   const adminLoggedIn = isAdmin(session);
 
-  // Render entries and comments dynamically based on auth/verification state
-  renderAllEntries(appPosts);
-  if (appPosts.length > 0) {
-    appPosts.forEach(post => renderComments(post.id, appComments));
-  }
+  const username = getCurrentUsername(session);
+  const email = isConfigured ? (session?.user?.email || '') : (sessionStorage.getItem('perspecteave_auth_email') || '');
 
-  // Refresh event listeners since entries list was re-rendered
-  attachEventListeners();
+  const stateChanged = !lastRenderedState.initialized ||
+                       lastRenderedState.loggedIn !== loggedIn ||
+                       lastRenderedState.adminLoggedIn !== adminLoggedIn ||
+                       lastRenderedState.username !== username ||
+                       lastRenderedState.email !== email;
+
+  if (stateChanged) {
+    // Render entries and comments dynamically based on auth/verification state
+    renderAllEntries(appPosts);
+    if (appPosts.length > 0) {
+      appPosts.forEach(post => renderComments(post.id, appComments));
+    }
+
+    // Refresh event listeners since entries list was re-rendered
+    attachEventListeners();
+
+    // Update tracking state
+    lastRenderedState = {
+      loggedIn,
+      adminLoggedIn,
+      username,
+      email,
+      initialized: true
+    };
+  }
 
   updateCommentForms(session);
 
@@ -2250,6 +2303,7 @@ function setupAuth() {
     panel.classList.remove('open');
     qInput.value = '';
     pInput.value = '';
+
   });
 
   // Publish post
@@ -2262,16 +2316,18 @@ function setupAuth() {
       return;
     }
 
+    const checkedCats = [];
+
     if (!isConfigured) {
       const newId = appPosts.length > 0 ? Math.max(...appPosts.map(x => x.id)) + 1 : 1;
-      appPosts.push({ id: newId, question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0 });
+      appPosts.push({ id: newId, question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats });
       save(POSTS_KEY, appPosts);
     } else {
       try {
         postBtn.disabled = true;
         const { data, error } = await supabase
           .from('posts')
-          .insert({ question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0 })
+          .insert({ question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats })
           .select('*')
           .single();
 
@@ -2297,6 +2353,7 @@ function setupAuth() {
 
     qInput.value = '';
     pInput.value = '';
+
     panel.classList.remove('open');
 
     // Smoothly scroll to the new post
@@ -3825,6 +3882,7 @@ function setupScrollIndicator() {
 
 // ---- Initialization ----
 async function init() {
+
   // Load posts
   appPosts = await fetchPosts();
 
