@@ -3400,5 +3400,96 @@ footer {
   margin: 0;
 }
 
+/* ============================================
+   TEXT FORMATTING TOOLBAR & PERSPECTIVE LISTS
+   ============================================ */
+.edit-field-with-toolbar {
+  display: flex;
+  flex-direction: column;
+}
+
+.formatting-toolbar {
+  display: flex;
+  gap: var(--space-xs);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 6px 8px;
+  align-items: center;
+}
+
+.formatting-toolbar button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  min-width: 28px;
+  height: 28px;
+}
+
+.formatting-toolbar button:hover {
+  background: var(--bg-hover);
+  color: var(--accent-tea);
+}
+
+.formatting-toolbar button.btn-bold {
+  font-weight: 800;
+}
+
+.formatting-toolbar button.btn-italic {
+  font-style: italic;
+  font-family: "Georgia", serif;
+}
+
+.formatting-toolbar button.btn-underline {
+  text-decoration: underline;
+}
+
+.formatting-toolbar button.btn-bullet {
+  font-size: 1.1rem;
+}
+
+/* Flatten top borders of textarea when it is preceded by a toolbar */
+.formatting-toolbar + textarea,
+.edit-field-with-toolbar textarea {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+/* Perspective bullet lists */
+.perspective ul,
+.perspective ol {
+  margin: var(--space-sm) 0 var(--space-sm) var(--space-md);
+  padding-left: var(--space-md);
+}
+
+.perspective ul {
+  list-style-type: disc;
+}
+
+.perspective ol {
+  list-style-type: decimal;
+}
+
+.perspective li {
+  margin-bottom: var(--space-xs);
+  line-height: 1.7;
+}
+
+.perspective li:last-child {
+  margin-bottom: 0;
+}
+
+
 
 

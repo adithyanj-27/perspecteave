@@ -152,7 +152,15 @@
       <h2 class="admin-title">New Perspective</h2>
       <form class="admin-form" id="adminForm" onsubmit="return false;">
         <input type="text" id="adminQuestion" placeholder="The question you're thinking about…" required>
-        <textarea id="adminPerspective" placeholder="Write your take on it…" required></textarea>
+        <div class="edit-field-with-toolbar">
+          <div class="formatting-toolbar" data-textarea-id="adminPerspective">
+            <button type="button" class="btn-bold" title="Bold">B</button>
+            <button type="button" class="btn-italic" title="Italic">I</button>
+            <button type="button" class="btn-underline" title="Underline">U</button>
+            <button type="button" class="btn-bullet" title="Bullet List">•</button>
+          </div>
+          <textarea id="adminPerspective" placeholder="Write your take on it…" required></textarea>
+        </div>
 
 
         <div class="admin-actions">

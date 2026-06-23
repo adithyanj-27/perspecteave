@@ -238,6 +238,102 @@ function escapeHTML(str) {
   return div.innerHTML;
 }
 
+// Check if the perspective text represents "Coming soon"
+function isComingSoonText(text) {
+  if (!text) return false;
+  return text.trim().toLowerCase().startsWith('coming soon');
+}
+
+// Lightweight client-side Markdown parser for bold, italic, underline, and bullet lists
+function parsePerspectiveMarkdown(text) {
+  if (!text) return '';
+  
+  // 1. Escape everything to prevent XSS
+  let html = escapeHTML(text);
+
+  // 2. Parse markdown bold: **text**
+  html = html.replace(/\*\*([\s\S]*?)\*\*/g, '<strong>$1</strong>');
+  
+  // 3. Parse markdown italic: *text* (avoiding inner strong asterisk)
+  html = html.replace(/\*([^\*]+?)\*/g, '<em>$1</em>');
+  
+  // 4. Parse markdown underline: __text__
+  html = html.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
+
+  // 5. Parse bullet points
+  const lines = html.split('\n');
+  let inList = false;
+  const resultLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = line.match(/^(\s*)(?:-|\*)\s+(.*)$/);
+    if (match) {
+      if (!inList) {
+        resultLines.push('<ul>');
+        inList = true;
+      }
+      resultLines.push(`<li>${match[2]}</li>`);
+    } else {
+      if (inList) {
+        resultLines.push('</ul>');
+        inList = false;
+      }
+      resultLines.push(line);
+    }
+  }
+  if (inList) {
+    resultLines.push('</ul>');
+  }
+
+  return resultLines.join('\n');
+}
+
+// Insert formatting tags around selection in a textarea
+function applyFormatting(textareaEl, type) {
+  if (!textareaEl) return;
+  const start = textareaEl.selectionStart;
+  const end = textareaEl.selectionEnd;
+  const text = textareaEl.value;
+  const selected = text.substring(start, end);
+  
+  let formatted = '';
+  let cursorOffset = 0;
+  
+  switch (type) {
+    case 'bold':
+      formatted = `**${selected || 'bold text'}**`;
+      cursorOffset = 2;
+      break;
+    case 'italic':
+      formatted = `*${selected || 'italic text'}*`;
+      cursorOffset = 1;
+      break;
+    case 'underline':
+      formatted = `__${selected || 'underlined text'}__`;
+      cursorOffset = 2;
+      break;
+    case 'bullet':
+      if (selected.includes('\n')) {
+        formatted = selected.split('\n').map(line => {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) return line;
+          return `- ${line}`;
+        }).join('\n');
+      } else {
+        formatted = `- ${selected || 'list item'}`;
+      }
+      cursorOffset = 2;
+      break;
+  }
+  
+  textareaEl.value = text.substring(0, start) + formatted + text.substring(end);
+  textareaEl.focus();
+  
+  textareaEl.selectionStart = start + cursorOffset;
+  textareaEl.selectionEnd = start + cursorOffset + (selected || '').length;
+}
+
 // ---- Local Comment Ownership Helpers ----
 function canEditComment(commentId, authorName) {
   const username = isLoggedIn(currentSession) ? getCurrentUsername(currentSession) : 'guest';
@@ -532,8 +628,10 @@ function formatDisplayName(name) {
 // ---- Render a Single Entry ----
 function renderEntry(post, index) {
   const qNum = index + 1;
+  const isComingSoon = isComingSoonText(post.perspective);
+
   let editInfo = '';
-  if (post.edit_count > 0) {
+  if (post.edit_count > 0 && !isComingSoon) {
     editInfo = ` <span class="edit-info">(edited ${post.edit_count} time${post.edit_count > 1 ? 's' : ''})</span>`;
   }
 
@@ -610,9 +708,9 @@ function renderEntry(post, index) {
                 const charLimit = 800;
                 if (fullText.length > charLimit) {
                   const truncated = fullText.substring(0, charLimit);
-                  return `<span class="perspective-text-truncated" id="perspectiveTruncated-${post.id}">${escapeHTML(truncated)}...<a href="#" class="btn-read-more" data-entry-id="${post.id}">Read more</a></span><span class="perspective-text-full" id="perspectiveFull-${post.id}" style="display: none;">${escapeHTML(fullText)}</span>`;
+                  return `<span class="perspective-text-truncated" id="perspectiveTruncated-${post.id}">${parsePerspectiveMarkdown(truncated)}...<a href="#" class="btn-read-more" data-entry-id="${post.id}">Read more</a></span><span class="perspective-text-full" id="perspectiveFull-${post.id}" style="display: none;">${parsePerspectiveMarkdown(fullText)}</span>`;
                 }
-                return escapeHTML(fullText);
+                return parsePerspectiveMarkdown(fullText);
               })()}${editInfo}</p>
               
               <div class="entry-admin-actions" data-entry-id="${post.id}">
@@ -627,8 +725,14 @@ function renderEntry(post, index) {
                 <label>Question</label>
                 <input type="text" class="edit-question-input" id="editQuestion-${post.id}" value="${escapeHTML(post.question)}" required>
               </div>
-              <div class="edit-field">
+              <div class="edit-field edit-field-with-toolbar">
                 <label>Perspective</label>
+                <div class="formatting-toolbar" data-textarea-id="editPerspective-${post.id}">
+                  <button type="button" class="btn-bold" title="Bold">B</button>
+                  <button type="button" class="btn-italic" title="Italic">I</button>
+                  <button type="button" class="btn-underline" title="Underline">U</button>
+                  <button type="button" class="btn-bullet" title="Bullet List">•</button>
+                </div>
                 <textarea class="edit-perspective-textarea" id="editPerspective-${post.id}" required>${escapeHTML(post.perspective)}</textarea>
               </div>
 
@@ -639,7 +743,7 @@ function renderEntry(post, index) {
             </form>
 
             <!-- Vote -->
-            <div class="entry-actions-row">
+            <div class="entry-actions-row" ${isComingSoon ? 'style="display: none !important;"' : ''}>
               <div class="agree-question-wrapper">
                 <span class="agree-label">Do you agree?</span>
                 <div class="agree-buttons">
@@ -656,7 +760,7 @@ function renderEntry(post, index) {
             </div>
 
             <!-- Comments & Share -->
-            <div class="social-actions-row">
+            <div class="social-actions-row" ${isComingSoon ? 'style="display: none !important;"' : ''}>
               <button type="button" class="btn-view-comments" data-entry-id="${post.id}">
                 <span class="comment-icon">💬</span>
                 <span>Comments</span>
@@ -666,18 +770,18 @@ function renderEntry(post, index) {
               <div class="share-btn-wrapper">
                 <button type="button" class="btn-share-link" data-entry-id="${post.id}" title="Share this take">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" class="share-svg-icon" style="margin-right: 6px; display: inline-block; vertical-align: middle;">
-                    <circle cx="18" cy="5" r="3"></circle>
-                    <circle cx="6" cy="12" r="3"></circle>
-                    <circle cx="18" cy="19" r="3"></circle>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                     <circle cx="18" cy="5" r="3"></circle>
+                     <circle cx="6" cy="12" r="3"></circle>
+                     <circle cx="18" cy="19" r="3"></circle>
+                     <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                     <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
                   </svg>
                   <span class="share-status-text">Share</span>
                 </button>
               </div>
             </div>
 
-            <div class="comments-section" style="display:none;">
+            <div class="comments-section" style="display:none; ${isComingSoon ? 'display: none !important;' : ''}">
               <div class="comments-body" id="commentsBody-${post.id}">
                 <ul class="comments-list" id="commentsList-${post.id}"></ul>
                 <div class="inline-comment-area" id="inlineCommentArea-${post.id}">
@@ -1679,37 +1783,56 @@ function updateVoteUI(entryId, agrees, disagrees, activeVote) {
 
 // ---- Save Post Edit ----
 async function savePostEdit(entryId) {
-  const qInput = document.getElementById(`editQuestion-${entryId}`);
-  const pInput = document.getElementById(`editPerspective-${entryId}`);
-  const q = (qInput.value || '').trim();
-  const p = (pInput.value || '').trim();
+  try {
+    const qInput = document.getElementById(`editQuestion-${entryId}`);
+    const pInput = document.getElementById(`editPerspective-${entryId}`);
+    if (!qInput || !pInput) {
+      alert('Could not find the question or perspective edit input elements.');
+      return;
+    }
+    const q = (qInput.value || '').trim();
+    const p = (pInput.value || '').trim();
 
-  if (!q || !p) {
-    alert('Both question and perspective are required.');
-    return;
-  }
+    if (!q || !p) {
+      alert('Both question and perspective are required.');
+      return;
+    }
 
-  const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
-  if (postIndex === -1) return;
+    const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
+    if (postIndex === -1) {
+      alert('Could not find the post index.');
+      return;
+    }
 
-  const currentPost = appPosts[postIndex];
-  const newEditCount = (currentPost.edit_count || 0) + 1;
+    const currentPost = appPosts[postIndex];
+    const wasComingSoon = isComingSoonText(currentPost.perspective);
+    const isNowComingSoon = isComingSoonText(p);
 
-  const checkedCats = [];
+    let newEditCount = currentPost.edit_count || 0;
+    if (!wasComingSoon && !isNowComingSoon) {
+      newEditCount = (currentPost.edit_count || 0) + 1;
+    } else if (wasComingSoon && !isNowComingSoon) {
+      newEditCount = 0;
+    } else {
+      newEditCount = 0;
+    }
 
-  if (!isConfigured) {
-    // Local fallback
-    appPosts[postIndex].question = q;
-    appPosts[postIndex].perspective = p;
-    appPosts[postIndex].edit_count = newEditCount;
-    appPosts[postIndex].categories = checkedCats;
-    save(POSTS_KEY, appPosts);
-  } else {
-    // Supabase
-    try {
+    const checkedCats = [];
+
+    if (!isConfigured) {
+      // Local fallback
+      appPosts[postIndex].question = q;
+      appPosts[postIndex].perspective = p;
+      appPosts[postIndex].edit_count = newEditCount;
+      appPosts[postIndex].categories = checkedCats;
+      save(POSTS_KEY, appPosts);
+    } else {
+      // Supabase
       const saveBtn = document.querySelector(`.btn-edit-save[data-entry-id="${entryId}"]`);
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving...';
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+      }
       
       const { error } = await supabase
         .from('posts')
@@ -1727,33 +1850,33 @@ async function savePostEdit(entryId) {
       appPosts[postIndex].perspective = p;
       appPosts[postIndex].edit_count = newEditCount;
       appPosts[postIndex].categories = checkedCats;
-    } catch (err) {
-      console.error('Error saving post edit to Supabase:', err);
-      alert('Could not save edit. Check console.');
-      return;
     }
-  }
 
-  // Re-render all elements
-  renderAllEntries(appPosts);
-  appPosts.forEach(post => renderComments(post.id, appComments));
-  
-  // Re-bind listeners and update Admin UI
-  attachEventListeners();
-  let session = null;
-  if (isConfigured) {
-    const { data } = await supabase.auth.getSession();
-    session = data.session;
-  }
-  updateAuthUI(session);
-
-  // Smoothly scroll edited card into view
-  setTimeout(() => {
-    const entryEl = document.getElementById(`entry-${entryId}`);
-    if (entryEl) {
-      entryEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Re-render all elements
+    renderAllEntries(appPosts);
+    appPosts.forEach(post => renderComments(post.id, appComments));
+    
+    // Re-bind listeners and update Admin UI
+    attachEventListeners();
+    let session = null;
+    if (isConfigured) {
+      const { data } = await supabase.auth.getSession();
+      session = data.session;
     }
-  }, 100);
+    updateAuthUI(session);
+
+    // Smoothly scroll edited card into view
+    setTimeout(() => {
+      const entryEl = document.getElementById(`entry-${entryId}`);
+      if (entryEl) {
+        entryEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 100);
+
+  } catch (err) {
+    console.error('Error saving post edit:', err);
+    alert('Could not save edit. Error: ' + err.message);
+  }
 }
 
 // ---- Delete Post ----
@@ -3933,6 +4056,24 @@ async function init() {
   // Log page load visit and determine guest number
   logVisit().then(() => {
     determineGuestNumber();
+  });
+
+  // Delegated event listener for formatting toolbar buttons (uses mousedown to prevent loss of focus/selection)
+  document.addEventListener('mousedown', (e) => {
+    const btn = e.target.closest('.formatting-toolbar button');
+    if (btn) {
+      e.preventDefault();
+      const toolbar = btn.closest('.formatting-toolbar');
+      const textareaId = toolbar.getAttribute('data-textarea-id');
+      const textarea = document.getElementById(textareaId);
+      if (textarea) {
+        let type = 'bold';
+        if (btn.classList.contains('btn-italic')) type = 'italic';
+        else if (btn.classList.contains('btn-underline')) type = 'underline';
+        else if (btn.classList.contains('btn-bullet')) type = 'bullet';
+        applyFormatting(textarea, type);
+      }
+    }
   });
 }
 
