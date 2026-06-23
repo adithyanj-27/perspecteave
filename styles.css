@@ -785,7 +785,7 @@ header {
 @media (max-width: 640px) {
   .entries-list {
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-md) 10px;
+    gap: var(--space-md) 8px;
   }
 }
 
@@ -2428,53 +2428,59 @@ footer {
 
   /* Teacups two-column layout scaling adjustments */
   .teacup {
-    padding-top: 25px; /* Shorter vertical padding for smaller mist */
-    padding-bottom: 5px;
+    padding-top: 30px; /* slightly more space for mist */
+    padding-bottom: 6px;
   }
 
   .teacup::after {
-    border-width: 2px;
-    height: 4px;
-    bottom: 1px;
+    border-width: 2.2px;
+    height: 5px;
+    bottom: 2px;
+    left: 8%;
+    width: 84%;
   }
 
   .mug-body {
-    border-width: 2px;
+    border-width: 2.2px;
+    width: 80%;
   }
 
   .mug-handle {
-    border-width: 2px;
+    border-width: 2.2px;
+    width: 18%;
+    right: 1%;
+    top: calc(26px + 25%);
   }
 
   .mug-front {
-    padding: 8px 6px 4px;
+    padding: 10px 8px 6px;
   }
 
   .cup-number {
-    font-size: 1.35rem;
-    margin-bottom: 2px;
+    font-size: 1.6rem;
+    margin-bottom: 3px;
   }
 
   .cup-question {
-    font-size: 0.8rem;
-    line-height: 1.3;
+    font-size: 0.95rem;
+    line-height: 1.35;
     -webkit-line-clamp: 3;
   }
 
   .mug-steam {
-    bottom: calc(100% - 25px);
-    gap: 4px;
+    bottom: calc(100% - 30px);
+    gap: 5px;
   }
 
   .steam-wave {
-    width: 8px;
-    height: 18px;
+    width: 9px;
+    height: 20px;
   }
 }
 
 @media (max-width: 420px) {
   .container {
-    padding: 0 var(--space-md);
+    padding: 0 10px;
   }
 
   .site-title {
