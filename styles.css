@@ -784,8 +784,8 @@ header {
 
 @media (max-width: 640px) {
   .entries-list {
-    grid-template-columns: 1fr;
-    gap: var(--space-lg);
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md) 10px;
   }
 }
 
@@ -2424,6 +2424,51 @@ footer {
   .perspective::before {
     left: 0;
     font-size: 1.15rem;
+  }
+
+  /* Teacups two-column layout scaling adjustments */
+  .teacup {
+    padding-top: 25px; /* Shorter vertical padding for smaller mist */
+    padding-bottom: 5px;
+  }
+
+  .teacup::after {
+    border-width: 2px;
+    height: 4px;
+    bottom: 1px;
+  }
+
+  .mug-body {
+    border-width: 2px;
+  }
+
+  .mug-handle {
+    border-width: 2px;
+  }
+
+  .mug-front {
+    padding: 8px 6px 4px;
+  }
+
+  .cup-number {
+    font-size: 1.35rem;
+    margin-bottom: 2px;
+  }
+
+  .cup-question {
+    font-size: 0.8rem;
+    line-height: 1.3;
+    -webkit-line-clamp: 3;
+  }
+
+  .mug-steam {
+    bottom: calc(100% - 25px);
+    gap: 4px;
+  }
+
+  .steam-wave {
+    width: 8px;
+    height: 18px;
   }
 }
 
