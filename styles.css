@@ -20,9 +20,9 @@
   --text-secondary: #5E6260;
   --text-muted: #8A8E8B;
 
-  --accent-tea: #D68E49;
-  --accent-matcha: #607A66;
-  --accent-matcha-light: #7A9A80;
+  --accent-tea: #D37214;
+  --accent-matcha: #45643C;
+  --accent-matcha-light: #5C8451;
   --accent-amber-light: #F2D9B8;
 
   --border-light: #E8E2DA;
@@ -31,7 +31,7 @@
   --shadow-sm: 0 1px 3px rgba(42, 44, 42, 0.06);
   --shadow-md: 0 4px 12px rgba(42, 44, 42, 0.08);
   --shadow-lg: 0 8px 30px rgba(42, 44, 42, 0.10);
-  --shadow-glow: 0 0 20px rgba(214, 142, 73, 0.15);
+  --shadow-glow: 0 0 20px rgba(211, 114, 20, 0.15);
 
   /* Translucent & Glassmorphic Elements */
   --bg-glass: rgba(255, 255, 255, 0.85);
