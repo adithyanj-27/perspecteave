@@ -732,41 +732,6 @@ header {
   opacity: 0.4;
 }
 
-.scroll-down-indicator {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 24px;
-  margin: -6px auto 0;
-  color: var(--accent-tea);
-  opacity: 0.7;
-  cursor: pointer;
-  transition: opacity 0.4s ease, visibility 0.4s;
-  position: relative;
-  z-index: 2;
-}
-
-@media (min-width: 641px) {
-  .scroll-down-indicator {
-    display: none;
-  }
-}
-
-.scroll-down-indicator.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.scroll-down-indicator svg {
-  width: 24px;
-  height: 24px;
-  animation: bounceDown 2s infinite ease-in-out;
-}
-
-@keyframes bounceDown {
-  0%, 100% { transform: translateY(-2px); }
-  50% { transform: translateY(3px); }
-}
 
 
 /* ============================================

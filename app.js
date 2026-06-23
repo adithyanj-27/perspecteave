@@ -3853,32 +3853,6 @@ function setupAdminMessages() {
   }
 }
 
-// ---- UI Helpers ----
-function setupScrollIndicator() {
-  const indicator = document.getElementById('scrollDownIndicator');
-  if (!indicator) return;
-
-  // Hide on scroll
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      indicator.classList.add('hidden');
-    } else {
-      indicator.classList.remove('hidden');
-    }
-  }, { passive: true });
-
-  // Scroll to posts on click
-  indicator.addEventListener('click', () => {
-    const entriesList = document.getElementById('entriesList');
-    if (entriesList) {
-      const topOffset = entriesList.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({
-        top: topOffset,
-        behavior: 'smooth'
-      });
-    }
-  });
-}
 
 // ---- Initialization ----
 async function init() {
@@ -3920,7 +3894,6 @@ async function init() {
   setupTheme();
   setupRequestForm();
   setupAdminMessages();
-  setupScrollIndicator();
 
   // Trigger initial UI render based on current auth state
   await updateAuthUI(currentSession);
