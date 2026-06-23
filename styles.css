@@ -850,8 +850,6 @@ header {
   border: 3px solid var(--accent-matcha);
   border-radius: 4px 4px 28px 28px; /* elegant teacup curve */
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
   z-index: 2;
   box-shadow:
     0 6px 16px rgba(0,0,0,0.06),
@@ -883,14 +881,17 @@ header {
 }
 
 .mug-front {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 28%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 10px 8px 6px;
   z-index: 2;
-  position: relative;
 }
 
 .cup-number {
@@ -919,12 +920,14 @@ header {
 
 /* Liquid at bottom of mug */
 .mug-liquid {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 28%;
   background: linear-gradient(180deg, #e8a856 0%, var(--accent-tea) 100%);
   border-radius: 0 0 25px 25px; /* curve matches the cup bottom border-radius! */
-  position: relative;
   z-index: 1;
-  flex-shrink: 0;
 }
 
 .mug-liquid::before {
@@ -2455,6 +2458,7 @@ footer {
 
   .mug-front {
     padding: 8px 6px 4px;
+    bottom: 24%;
   }
 
   .cup-number {
