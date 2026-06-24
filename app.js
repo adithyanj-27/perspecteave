@@ -4410,7 +4410,8 @@ async function sendPushNotification(title, body) {
           method: 'POST',
           headers: {
             'TTL': '2419200',
-            'Authorization': `WebPush ${jwt}`
+            'Authorization': `WebPush ${jwt}`,
+            'Crypto-Key': `p256ecdsa=${publicKey}`
           }
         });
       } catch (errSub) {
