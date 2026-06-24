@@ -352,6 +352,31 @@ a:hover {
   word-break: break-all;
 }
 
+.btn-dropdown-notifications {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 8px;
+  transition: all 0.3s var(--ease-out);
+}
+
+.btn-dropdown-notifications:hover {
+  color: var(--accent-matcha);
+  border-color: var(--accent-matcha);
+  background: rgba(69, 100, 60, 0.03);
+}
+
 .btn-dropdown-logout {
   display: flex;
   align-items: center;

@@ -1185,6 +1185,13 @@ async function submitReply(entryId) {
 
       if (error) throw error;
 
+      if (name !== 'teaboy27') {
+        sendPushNotification(
+          `New Critique from ${name}`,
+          `On Perspective #${entryId}: "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}"`
+        );
+      }
+
       if (!appComments[entryId]) appComments[entryId] = [];
       appComments[entryId].push({
         id: data.id,
@@ -1335,6 +1342,13 @@ async function submitComment(entryId) {
         .single();
 
       if (error) throw error;
+
+      if (name !== 'teaboy27') {
+        sendPushNotification(
+          `New Critique from ${name}`,
+          `On Perspective #${entryId}: "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}"`
+        );
+      }
 
       if (!appComments[entryId]) appComments[entryId] = [];
       appComments[entryId].push({
@@ -1569,6 +1583,13 @@ async function submitCommentReply(entryId, parentId) {
 
       if (error) throw error;
 
+      if (name !== 'teaboy27') {
+        sendPushNotification(
+          `New Critique from ${name}`,
+          `On Perspective #${entryId}: "${dbText.substring(0, 60)}${dbText.length > 60 ? '...' : ''}"`
+        );
+      }
+
       if (!appComments[entryId]) appComments[entryId] = [];
       appComments[entryId].push({
         id: data.id,
@@ -1744,6 +1765,20 @@ async function toggleVote(entryId, voteType) {
         .eq('id', entryId);
 
       if (error) throw error;
+
+      if (!isAdmin(currentSession)) {
+        if (newVote === 'agree') {
+          sendPushNotification(
+            `New Like (Agree) 👍`,
+            `Someone liked Perspective #${entryId}: "${currentPost.question.substring(0, 50)}${currentPost.question.length > 50 ? '...' : ''}"`
+          );
+        } else if (newVote === 'disagree') {
+          sendPushNotification(
+            `New Dislike (Disagree) 👎`,
+            `Someone disliked Perspective #${entryId}: "${currentPost.question.substring(0, 50)}${currentPost.question.length > 50 ? '...' : ''}"`
+          );
+        }
+      }
       
       appPosts[postIndex].agrees = newAgrees;
       appPosts[postIndex].disagrees = newDisagrees;
@@ -2095,8 +2130,13 @@ async function updateAuthUI(session) {
     // Hide New Post button if signed-in user is not the admin
     const askAuthorWrapper = document.getElementById('askAuthorWrapper');
     const adminMessagesWrapper = document.getElementById('adminMessagesWrapper');
+    const dropdownNotificationsBtn = document.getElementById('dropdownNotificationsBtn');
     if (adminLoggedIn) {
       newPostBtn.style.display = 'flex';
+      if (dropdownNotificationsBtn) {
+        dropdownNotificationsBtn.style.display = 'flex';
+        updateNotificationsBtnUI();
+      }
       if (askAuthorWrapper) askAuthorWrapper.style.display = 'none';
       if (adminMessagesWrapper) adminMessagesWrapper.style.display = 'block';
       const requestDropdown = document.getElementById('requestDropdown');
@@ -2109,6 +2149,7 @@ async function updateAuthUI(session) {
       updateMessagesBadge();
     } else {
       newPostBtn.style.display = 'none';
+      if (dropdownNotificationsBtn) dropdownNotificationsBtn.style.display = 'none';
       if (askAuthorWrapper) askAuthorWrapper.style.display = 'block';
       if (adminMessagesWrapper) adminMessagesWrapper.style.display = 'none';
     }
@@ -2116,6 +2157,8 @@ async function updateAuthUI(session) {
     loginBtn.style.display = 'none';
     if (profileWidget) profileWidget.style.display = 'none';
     newPostBtn.style.display = 'none';
+    const dropdownNotificationsBtn = document.getElementById('dropdownNotificationsBtn');
+    if (dropdownNotificationsBtn) dropdownNotificationsBtn.style.display = 'none';
     panel.classList.remove('open');
     
     const askAuthorWrapper = document.getElementById('askAuthorWrapper');
@@ -3161,6 +3204,13 @@ async function submitTopicRequest() {
         .select('*')
         .single();
       if (error) throw error;
+
+      if (name !== 'teaboy27') {
+        sendPushNotification(
+          `New Suggestion from ${name}`,
+          `"${question.substring(0, 60)}${question.length > 60 ? '...' : ''}"`
+        );
+      }
       
       if (data) {
         myRequestIds.push(data.id);
@@ -3274,6 +3324,13 @@ async function submitChatReply(parentRequestId, isFromAdmin) {
         .select('*')
         .single();
       if (error) throw error;
+
+      if (!isFromAdmin) {
+        sendPushNotification(
+          `New Reply from ${name}`,
+          `"${text.substring(0, 60)}${text.length > 60 ? '...' : ''}"`
+        );
+      }
       
       await loadTopicRequests();
     } catch (err) {
@@ -4043,6 +4100,8 @@ async function init() {
   setupTheme();
   setupRequestForm();
   setupAdminMessages();
+  setupNotificationsBtn();
+  await cacheSupabaseConfig();
 
   // Trigger initial UI render based on current auth state
   await updateAuthUI(currentSession);
@@ -4117,6 +4176,249 @@ async function init() {
       // Hide the install button
       pwaBtn.style.display = 'none';
     });
+  }
+}
+
+// ============================================
+// Web Push Notification System (Author Only)
+// ============================================
+
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BMMdv7F4CsfOFKFeWReqhDG1z-S4CbFYiJpvVTtGmZ6aRTER945-LhFabNsd4U_KVcZsSFCxznFX5LqaR3F3VTY';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// Cache Supabase configuration for the Service Worker
+async function cacheSupabaseConfig() {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (supabaseUrl && supabaseAnonKey && isConfigured) {
+      const cache = await caches.open('perspecteave-config');
+      await cache.put('/config.json', new Response(JSON.stringify({ supabaseUrl, supabaseAnonKey })));
+      console.log('Supabase configuration cached for Service Worker.');
+    }
+  } catch (err) {
+    console.warn('Failed to cache Supabase configuration:', err);
+  }
+}
+
+// Update the notifications toggle button state
+async function updateNotificationsBtnUI() {
+  const btnText = document.getElementById('notificationsBtnText');
+  if (!btnText) return;
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    btnText.textContent = 'Push Unsupported';
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    btnText.textContent = 'Notifications Blocked';
+    return;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      btnText.textContent = 'Disable Notifications';
+    } else {
+      btnText.textContent = 'Enable Notifications';
+    }
+  } catch (err) {
+    console.warn('Error checking push subscription:', err);
+    btnText.textContent = 'Notification Error';
+  }
+}
+
+// Setup notifications button click handler
+function setupNotificationsBtn() {
+  const btn = document.getElementById('dropdownNotificationsBtn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('Push notifications are not supported on this browser/device.');
+      return;
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+
+    if (sub) {
+      // Unsubscribe
+      try {
+        await sub.unsubscribe();
+        
+        // Remove from Supabase
+        if (isConfigured) {
+          await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('endpoint', sub.endpoint);
+        }
+        
+        console.log('Unsubscribed from push notifications.');
+        updateNotificationsBtnUI();
+      } catch (err) {
+        console.error('Failed to unsubscribe:', err);
+        alert('Failed to disable notifications: ' + err.message);
+      }
+    } else {
+      // Subscribe
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          alert('Notification permission denied.');
+          updateNotificationsBtnUI();
+          return;
+        }
+
+        const newSub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+
+        // Save to Supabase
+        if (isConfigured) {
+          const p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(newSub.getKey('p256dh'))))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+          const auth = btoa(String.fromCharCode.apply(null, new Uint8Array(newSub.getKey('auth'))))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+          const { error } = await supabase
+            .from('push_subscriptions')
+            .insert({
+              endpoint: newSub.endpoint,
+              p256dh,
+              auth,
+              user_id: 'teaboy27'
+            });
+
+          if (error) throw error;
+        }
+
+        console.log('Subscribed to push notifications successfully!');
+        updateNotificationsBtnUI();
+      } catch (err) {
+        console.error('Failed to subscribe to push notifications:', err);
+        alert('Failed to enable notifications: ' + err.message);
+      }
+    }
+  });
+}
+
+// Send Web Push notification client-side (using VAPID EC Private Key via Web Crypto)
+async function sendPushNotification(title, body) {
+  if (!isConfigured) {
+    console.log('[Mock Push] Notification triggered:', { title, body });
+    return;
+  }
+
+  try {
+    // 1. Insert into Supabase notifications table
+    const { error: notifError } = await supabase
+      .from('notifications')
+      .insert({ title, body, read: false });
+    if (notifError) throw notifError;
+
+    // 2. Fetch all active subscriptions
+    const { data: subscriptions, error: subsError } = await supabase
+      .from('push_subscriptions')
+      .select('*');
+    if (subsError) throw subsError;
+    if (!subscriptions || subscriptions.length === 0) return;
+
+    // 3. Import private VAPID key
+    const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY;
+    const privateKeyStr = import.meta.env.VITE_VAPID_PRIVATE_KEY;
+    if (!publicKey || !privateKeyStr) {
+      console.warn('VAPID keys not configured in environment. Cannot send Web Push.');
+      return;
+    }
+
+    // Decode public coordinate bytes to base64url for the JWK import format
+    const pubBuffer = urlBase64ToUint8Array(publicKey);
+    const xBuffer = pubBuffer.slice(1, 33);
+    const yBuffer = pubBuffer.slice(33, 65);
+    const xBase64url = btoa(String.fromCharCode.apply(null, xBuffer))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const yBase64url = btoa(String.fromCharCode.apply(null, yBuffer))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const privateKeyJwk = {
+      kty: 'EC',
+      crv: 'P-256',
+      x: xBase64url,
+      y: yBase64url,
+      d: privateKeyStr,
+      key_ops: ['sign']
+    };
+
+    const privateKey = await window.crypto.subtle.importKey(
+      'jwk',
+      privateKeyJwk,
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true,
+      ['sign']
+    );
+
+    // 4. Ping each subscription endpoint with a VAPID signed token
+    for (const sub of subscriptions) {
+      try {
+        const endpointUrl = new URL(sub.endpoint);
+        const audience = endpointUrl.origin;
+
+        const header = { alg: 'ES256', typ: 'JWT' };
+        const payload = {
+          aud: audience,
+          exp: Math.floor(Date.now() / 1000) + 12 * 3600, // 12 hours
+          sub: 'mailto:adithyanjayaraj2007@gmail.com'
+        };
+
+        const encodeJson = (obj) => {
+          return btoa(JSON.stringify(obj))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        };
+
+        const tokenInput = `${encodeJson(header)}.${encodeJson(payload)}`;
+        const encoder = new TextEncoder();
+        const signatureBuffer = await window.crypto.subtle.sign(
+          { name: 'ECDSA', hash: { name: 'SHA-256' } },
+          privateKey,
+          encoder.encode(tokenInput)
+        );
+
+        const signatureBase64url = btoa(String.fromCharCode.apply(null, new Uint8Array(signatureBuffer)))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        const jwt = `${tokenInput}.${signatureBase64url}`;
+
+        // Send payload-free push request
+        await fetch(sub.endpoint, {
+          method: 'POST',
+          headers: {
+            'TTL': '2419200',
+            'Authorization': `WebPush ${jwt}`
+          }
+        });
+      } catch (errSub) {
+        console.error('Failed to send push to subscription:', sub.endpoint, errSub);
+      }
+    }
+  } catch (err) {
+    console.error('Error in sendPushNotification:', err);
   }
 }
 
