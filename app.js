@@ -3660,13 +3660,13 @@ function renderUserRequests() {
   if (userThreads.length === 0 || userShowingForm) {
     // ---- Render Submission Form ----
     dropdown.innerHTML = `
-      <h3 class="admin-requests-title">Suggestions</h3>
+      <h3 class="admin-requests-title" style="padding-left: var(--space-sm);">Suggestions</h3>
       <form class="login-form" id="requestForm" onsubmit="return false;" style="display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-sm); margin: 0;">
         ${!loggedIn ? `
           <input type="text" id="requestName" placeholder="Your name" required style="border-radius: 8px; border: 1px solid var(--border-light); padding: 8px 12px; font-family: var(--font-body); font-size: 0.88rem; outline: none; background: var(--bg-card); color: var(--text-primary);">
         ` : ''}
-        <textarea id="requestQuestionText" placeholder="Write a suggestion or ask a question..." rows="3" required style="border-radius: 8px; border: 1px solid var(--border-light); padding: 8px 12px; font-family: var(--font-body); font-size: 0.88rem; outline: none; resize: vertical; background: var(--bg-card); color: var(--text-primary);"></textarea>
-        <button type="button" class="btn-login-submit" id="requestSubmitBtn" style="border-radius: 8px; padding: 8px var(--space-md); font-weight: 600; width: 100%;">Submit Suggestions</button>
+        <textarea id="requestQuestionText" placeholder="Suggest topic or ask a question..." rows="3" required style="border-radius: 8px; border: 1px solid var(--border-light); padding: 8px 12px; font-family: var(--font-body); font-size: 0.88rem; outline: none; resize: vertical; background: var(--bg-card); color: var(--text-primary);"></textarea>
+        <button type="button" class="btn-login-submit" id="requestSubmitBtn" style="border-radius: 8px; padding: 8px var(--space-md); font-weight: 600; width: 100%;">Submit</button>
       </form>
       ${userThreads.length > 0 ? `
         <div style="text-align: center; margin-top: -4px; padding-bottom: var(--space-sm);">
