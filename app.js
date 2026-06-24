@@ -4271,21 +4271,47 @@ function unsubscribeFromAdminNotifications() {
   }
 }
 
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BMMdv7F4CsfOFKFeWReqhDG1z-S4CbFYiJpvVTtGmZ6aRTER945-LhFabNsd4U_KVcZsSFCxznFX5LqaR3F3VTY';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 // Update the notifications toggle button state
-function updateNotificationsBtnUI() {
+async function updateNotificationsBtnUI() {
   const btnText = document.getElementById('notificationsBtnText');
   if (!btnText) return;
 
-  if (!('Notification' in window)) {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
     btnText.textContent = 'Notifications Unsupported';
     return;
   }
 
-  if (Notification.permission === 'granted') {
-    btnText.textContent = 'Notifications On ✓';
-  } else if (Notification.permission === 'denied') {
-    btnText.textContent = 'Notifications Blocked';
-  } else {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!reg.pushManager) {
+      btnText.textContent = 'Push Unsupported';
+      return;
+    }
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      btnText.textContent = 'Notifications On ✓';
+    } else {
+      btnText.textContent = 'Enable Notifications';
+    }
+  } catch (err) {
+    console.error('Error updating notifications UI:', err);
     btnText.textContent = 'Enable Notifications';
   }
 }
@@ -4296,52 +4322,97 @@ function setupNotificationsBtn() {
   if (!btn) return;
 
   btn.addEventListener('click', async () => {
-    if (!('Notification' in window)) {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       alert('Notifications are not supported on this browser/device.');
       return;
     }
 
-    if (Notification.permission === 'granted') {
-      // Already enabled — show confirmation via SW notification
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        await reg.showNotification('Notifications Active ✓', {
-          body: 'You will receive alerts when users interact with your posts.',
-          icon: '/logo.png',
-          tag: 'perspecteave-test'
-        });
-      } catch (e) {
-        try { new Notification('Notifications Active ✓', { body: 'You will receive alerts when users interact with your posts.', icon: '/logo.png' }); } catch (_) {}
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (!reg.pushManager) {
+        alert('Push notifications are not supported on this browser/device.');
+        return;
       }
-    } else if (Notification.permission === 'denied') {
-      alert('Notifications are blocked. Please enable them in your browser/phone settings for this site.');
-    } else {
-      // Request permission
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
+
+      const sub = await reg.pushManager.getSubscription();
+
+      if (sub) {
+        // Unsubscribe
         try {
-          const reg = await navigator.serviceWorker.ready;
-          await reg.showNotification('Notifications Enabled! 🔔', {
-            body: 'You will now receive alerts when users interact.',
-            icon: '/logo.png',
-            tag: 'perspecteave-enabled'
+          await sub.unsubscribe();
+          
+          // Remove from Supabase
+          if (isConfigured) {
+            await supabase
+              .from('push_subscriptions')
+              .delete()
+              .eq('endpoint', sub.endpoint);
+          }
+          
+          console.log('Unsubscribed from push notifications.');
+          updateNotificationsBtnUI();
+          alert('Notifications disabled.');
+        } catch (err) {
+          console.error('Failed to unsubscribe:', err);
+          alert('Failed to disable notifications: ' + err.message);
+        }
+      } else {
+        // Subscribe
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            alert('Notification permission denied.');
+            updateNotificationsBtnUI();
+            return;
+          }
+
+          const newSub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
           });
-        } catch (e) {
-          try { new Notification('Notifications Enabled! 🔔', { body: 'You will now receive alerts when users interact.', icon: '/logo.png' }); } catch (_) {}
+
+          // Save to Supabase
+          if (isConfigured) {
+            const p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(newSub.getKey('p256dh'))))
+              .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            const auth = btoa(String.fromCharCode.apply(null, new Uint8Array(newSub.getKey('auth'))))
+              .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+            const { error } = await supabase
+              .from('push_subscriptions')
+              .insert({
+                endpoint: newSub.endpoint,
+                p256dh,
+                auth,
+                user_id: 'teaboy27'
+              });
+
+            if (error) throw error;
+          }
+
+          console.log('Subscribed to push notifications successfully!');
+          updateNotificationsBtnUI();
+          alert('Notifications enabled successfully! You will now receive notifications even when the app is closed.');
+        } catch (err) {
+          console.error('Failed to subscribe to push notifications:', err);
+          alert('Failed to enable notifications: ' + err.message);
         }
       }
-      updateNotificationsBtnUI();
+    } catch (e) {
+      console.error('Failed to access service worker registration:', e);
+      alert('Service worker error. Please refresh and try again.');
     }
   });
 }
 
-// Insert a notification row into Supabase (delivered to admin via Realtime)
+// Insert a notification row into Supabase and trigger Vercel Serverless Web Push
 async function sendPushNotification(title, body) {
   if (!isConfigured) {
     console.log('[Mock Push] Notification triggered:', { title, body });
     return;
   }
 
+  // 1. Insert into database (always do this so notifications list page works)
   try {
     const { error } = await supabase
       .from('notifications')
@@ -4350,9 +4421,27 @@ async function sendPushNotification(title, body) {
       console.warn('Failed to insert notification:', error);
     }
   } catch (err) {
-    console.error('Error in sendPushNotification:', err);
+    console.error('Error in inserting notification row:', err);
+  }
+
+  // 2. Call Vercel serverless function to send physical Web Push notification
+  try {
+    const res = await fetch('/api/send-push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ title, body })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      console.warn('Vercel push function returned status:', res.status, errData);
+    }
+  } catch (err) {
+    console.error('Failed to trigger serverless push notification:', err);
   }
 }
+
 
 
 
