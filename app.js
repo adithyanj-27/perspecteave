@@ -2147,8 +2147,10 @@ async function updateAuthUI(session) {
       if (askAuthorBtn) askAuthorBtn.classList.remove('active');
       renderAdminRequests();
       updateMessagesBadge();
+      subscribeToAdminNotifications();
     } else {
       newPostBtn.style.display = 'none';
+      unsubscribeFromAdminNotifications();
       if (dropdownNotificationsBtn) dropdownNotificationsBtn.style.display = 'none';
       if (askAuthorWrapper) askAuthorWrapper.style.display = 'block';
       if (adminMessagesWrapper) adminMessagesWrapper.style.display = 'none';
@@ -2157,6 +2159,7 @@ async function updateAuthUI(session) {
     loginBtn.style.display = 'none';
     if (profileWidget) profileWidget.style.display = 'none';
     newPostBtn.style.display = 'none';
+    unsubscribeFromAdminNotifications();
     const dropdownNotificationsBtn = document.getElementById('dropdownNotificationsBtn');
     if (dropdownNotificationsBtn) dropdownNotificationsBtn.style.display = 'none';
     panel.classList.remove('open');
@@ -4132,7 +4135,7 @@ async function init() {
   setupRequestForm();
   setupAdminMessages();
   setupNotificationsBtn();
-  await cacheSupabaseConfig();
+  // Realtime notifications are set up via updateAuthUI when admin logs in
 
   // Trigger initial UI render based on current auth state
   await updateAuthUI(currentSession);
@@ -4211,65 +4214,79 @@ async function init() {
 }
 
 // ============================================
-// Web Push Notification System (Author Only)
+// Realtime Notification System (Author Only)
 // ============================================
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BMMdv7F4CsfOFKFeWReqhDG1z-S4CbFYiJpvVTtGmZ6aRTER945-LhFabNsd4U_KVcZsSFCxznFX5LqaR3F3VTY';
+let adminNotificationChannel = null;
 
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/\-/g, '+')
-    .replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
+/**
+ * Subscribe to Supabase Realtime INSERT events on the notifications table.
+ * Called when the admin logs in. Shows a browser notification for each new row.
+ */
+function subscribeToAdminNotifications() {
+  if (!isConfigured || adminNotificationChannel) return;
+
+  adminNotificationChannel = supabase
+    .channel('admin-notifications')
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'notifications' },
+      async (payload) => {
+        const { title, body } = payload.new;
+        if (Notification.permission !== 'granted') return;
+
+        try {
+          // Use ServiceWorker showNotification for reliable mobile/PWA support
+          const reg = await navigator.serviceWorker.ready;
+          await reg.showNotification(title, {
+            body,
+            icon: '/logo.png',
+            badge: '/logo.png',
+            vibrate: [100, 50, 100],
+            tag: 'perspecteave-' + (payload.new.id || Date.now()),
+            data: { url: '/' }
+          });
+        } catch (e) {
+          // Fallback to basic Notification API (desktop browsers)
+          try {
+            new Notification(title, { body, icon: '/logo.png' });
+          } catch (e2) {
+            console.warn('Could not show notification:', e2);
+          }
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log('[Realtime] Notification channel:', status);
+    });
 }
 
-// Cache Supabase configuration for the Service Worker
-async function cacheSupabaseConfig() {
-  try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    if (supabaseUrl && supabaseAnonKey && isConfigured) {
-      const cache = await caches.open('perspecteave-config');
-      await cache.put('/config.json', new Response(JSON.stringify({ supabaseUrl, supabaseAnonKey })));
-      console.log('Supabase configuration cached for Service Worker.');
-    }
-  } catch (err) {
-    console.warn('Failed to cache Supabase configuration:', err);
+/**
+ * Unsubscribe from the Realtime notification channel.
+ * Called when the admin logs out or when a non-admin user is detected.
+ */
+function unsubscribeFromAdminNotifications() {
+  if (adminNotificationChannel) {
+    supabase.removeChannel(adminNotificationChannel);
+    adminNotificationChannel = null;
   }
 }
 
 // Update the notifications toggle button state
-async function updateNotificationsBtnUI() {
+function updateNotificationsBtnUI() {
   const btnText = document.getElementById('notificationsBtnText');
   if (!btnText) return;
 
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    btnText.textContent = 'Push Unsupported';
+  if (!('Notification' in window)) {
+    btnText.textContent = 'Notifications Unsupported';
     return;
   }
 
-  if (Notification.permission === 'denied') {
+  if (Notification.permission === 'granted') {
+    btnText.textContent = 'Notifications On ✓';
+  } else if (Notification.permission === 'denied') {
     btnText.textContent = 'Notifications Blocked';
-    return;
-  }
-
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    if (sub) {
-      btnText.textContent = 'Disable Notifications';
-    } else {
-      btnText.textContent = 'Enable Notifications';
-    }
-  } catch (err) {
-    console.warn('Error checking push subscription:', err);
-    btnText.textContent = 'Notification Error';
+  } else {
+    btnText.textContent = 'Enable Notifications';
   }
 }
 
@@ -4279,78 +4296,46 @@ function setupNotificationsBtn() {
   if (!btn) return;
 
   btn.addEventListener('click', async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Push notifications are not supported on this browser/device.');
+    if (!('Notification' in window)) {
+      alert('Notifications are not supported on this browser/device.');
       return;
     }
 
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-
-    if (sub) {
-      // Unsubscribe
+    if (Notification.permission === 'granted') {
+      // Already enabled — show confirmation via SW notification
       try {
-        await sub.unsubscribe();
-        
-        // Remove from Supabase
-        if (isConfigured) {
-          await supabase
-            .from('push_subscriptions')
-            .delete()
-            .eq('endpoint', sub.endpoint);
-        }
-        
-        console.log('Unsubscribed from push notifications.');
-        updateNotificationsBtnUI();
-      } catch (err) {
-        console.error('Failed to unsubscribe:', err);
-        alert('Failed to disable notifications: ' + err.message);
-      }
-    } else {
-      // Subscribe
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          alert('Notification permission denied.');
-          updateNotificationsBtnUI();
-          return;
-        }
-
-        const newSub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification('Notifications Active ✓', {
+          body: 'You will receive alerts when users interact with your posts.',
+          icon: '/logo.png',
+          tag: 'perspecteave-test'
         });
-
-        // Save to Supabase
-        if (isConfigured) {
-          const p256dh = btoa(String.fromCharCode.apply(null, new Uint8Array(newSub.getKey('p256dh'))))
-            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-          const auth = btoa(String.fromCharCode.apply(null, new Uint8Array(newSub.getKey('auth'))))
-            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-          const { error } = await supabase
-            .from('push_subscriptions')
-            .insert({
-              endpoint: newSub.endpoint,
-              p256dh,
-              auth,
-              user_id: 'teaboy27'
-            });
-
-          if (error) throw error;
-        }
-
-        console.log('Subscribed to push notifications successfully!');
-        updateNotificationsBtnUI();
-      } catch (err) {
-        console.error('Failed to subscribe to push notifications:', err);
-        alert('Failed to enable notifications: ' + err.message);
+      } catch (e) {
+        try { new Notification('Notifications Active ✓', { body: 'You will receive alerts when users interact with your posts.', icon: '/logo.png' }); } catch (_) {}
       }
+    } else if (Notification.permission === 'denied') {
+      alert('Notifications are blocked. Please enable them in your browser/phone settings for this site.');
+    } else {
+      // Request permission
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          await reg.showNotification('Notifications Enabled! 🔔', {
+            body: 'You will now receive alerts when users interact.',
+            icon: '/logo.png',
+            tag: 'perspecteave-enabled'
+          });
+        } catch (e) {
+          try { new Notification('Notifications Enabled! 🔔', { body: 'You will now receive alerts when users interact.', icon: '/logo.png' }); } catch (_) {}
+        }
+      }
+      updateNotificationsBtnUI();
     }
   });
 }
 
-// Send Web Push notification client-side (using VAPID EC Private Key via Web Crypto)
+// Insert a notification row into Supabase (delivered to admin via Realtime)
 async function sendPushNotification(title, body) {
   if (!isConfigured) {
     console.log('[Mock Push] Notification triggered:', { title, body });
@@ -4358,107 +4343,21 @@ async function sendPushNotification(title, body) {
   }
 
   try {
-    // Safety check for Web Crypto support (non-secure context check)
-    if (!window.crypto || !window.crypto.subtle) {
-      console.warn('Web Crypto API is not supported or not available (non-secure context). Push skipped.');
-      return;
-    }
-
-    // 1. Insert into Supabase notifications table
-    const { error: notifError } = await supabase
+    const { error } = await supabase
       .from('notifications')
       .insert({ title, body, read: false });
-    if (notifError) throw notifError;
-
-    // 2. Fetch all active subscriptions
-    const { data: subscriptions, error: subsError } = await supabase
-      .from('push_subscriptions')
-      .select('*');
-    if (subsError) throw subsError;
-    if (!subscriptions || subscriptions.length === 0) return;
-
-    // 3. Import private VAPID key
-    const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY;
-    const privateKeyStr = import.meta.env.VITE_VAPID_PRIVATE_KEY;
-    if (!publicKey || !privateKeyStr) {
-      console.warn('VAPID keys not configured in environment. Cannot send Web Push.');
-      return;
-    }
-
-    // Decode public coordinate bytes to base64url for the JWK import format
-    const pubBuffer = urlBase64ToUint8Array(publicKey);
-    const xBuffer = pubBuffer.slice(1, 33);
-    const yBuffer = pubBuffer.slice(33, 65);
-    const xBase64url = btoa(String.fromCharCode.apply(null, xBuffer))
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    const yBase64url = btoa(String.fromCharCode.apply(null, yBuffer))
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-    const privateKeyJwk = {
-      kty: 'EC',
-      crv: 'P-256',
-      x: xBase64url,
-      y: yBase64url,
-      d: privateKeyStr,
-      key_ops: ['sign']
-    };
-
-    const privateKey = await window.crypto.subtle.importKey(
-      'jwk',
-      privateKeyJwk,
-      { name: 'ECDSA', namedCurve: 'P-256' },
-      true,
-      ['sign']
-    );
-
-    // 4. Ping each subscription endpoint with a VAPID signed token
-    for (const sub of subscriptions) {
-      try {
-        const endpointUrl = new URL(sub.endpoint);
-        const audience = endpointUrl.origin;
-
-        const header = { alg: 'ES256', typ: 'JWT' };
-        const payload = {
-          aud: audience,
-          exp: Math.floor(Date.now() / 1000) + 12 * 3600, // 12 hours
-          sub: 'mailto:adithyanjayaraj2007@gmail.com'
-        };
-
-        const encodeJson = (obj) => {
-          return btoa(JSON.stringify(obj))
-            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        };
-
-        const tokenInput = `${encodeJson(header)}.${encodeJson(payload)}`;
-        const encoder = new TextEncoder();
-        const signatureBuffer = await window.crypto.subtle.sign(
-          { name: 'ECDSA', hash: { name: 'SHA-256' } },
-          privateKey,
-          encoder.encode(tokenInput)
-        );
-
-        const signatureBase64url = btoa(String.fromCharCode.apply(null, new Uint8Array(signatureBuffer)))
-          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-        const jwt = `${tokenInput}.${signatureBase64url}`;
-
-        // Send payload-free push request
-        await fetch(sub.endpoint, {
-          method: 'POST',
-          headers: {
-            'TTL': '2419200',
-            'Authorization': `WebPush ${jwt}`,
-            'Crypto-Key': `p256ecdsa=${publicKey}`
-          }
-        });
-      } catch (errSub) {
-        console.error('Failed to send push to subscription:', sub.endpoint, errSub);
-      }
+    if (error) {
+      console.warn('Failed to insert notification:', error);
     }
   } catch (err) {
     console.error('Error in sendPushNotification:', err);
   }
 }
+
+
+
+
+
 
 // ---- Theme Toggle & Styling ----
 function triggerThemeAsmrEffect(button, theme) {
