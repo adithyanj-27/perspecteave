@@ -3490,6 +3490,43 @@ footer {
   margin-bottom: 0;
 }
 
+/* ============================================
+   PWA INSTALL BUTTON & TOP BAR LEFT
+   ============================================ */
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.btn-install-pwa {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-tea);
+  color: #fff !important;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  height: 32px;
+}
+
+.btn-install-pwa:hover {
+  background: #be7e40;
+  transform: translateY(-1px);
+}
+
+.btn-install-pwa svg {
+  stroke: #fff;
+}
+
+
 
 
 
