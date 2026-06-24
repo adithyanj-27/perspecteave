@@ -633,6 +633,18 @@ header {
   height: 100%;
 }
 
+.logo-dark {
+  display: none;
+}
+
+[data-theme="dark"] .logo-light {
+  display: none !important;
+}
+
+[data-theme="dark"] .logo-dark {
+  display: inline-block !important;
+}
+
 /* Steam animation paths */
 .steam {
   opacity: 0;
