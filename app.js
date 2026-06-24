@@ -3146,6 +3146,25 @@ async function loadTopicRequests() {
       if (error) throw error;
       if (data) {
         appRequests = data;
+        
+        // Auto-clean up orphaned replies from the database if logged in as admin
+        if (isAdmin(currentSession)) {
+          const parentIds = new Set(data.filter(r => !parseReply(r).isReply).map(r => Number(r.id)));
+          const orphans = data.filter(r => {
+            const parsed = parseReply(r);
+            return parsed.isReply && !parentIds.has(Number(parsed.parentId));
+          });
+          
+          if (orphans.length > 0) {
+            const orphanIds = orphans.map(o => o.id);
+            console.log('Auto-cleaning orphaned replies:', orphanIds);
+            supabase.from('topic_requests').delete().in('id', orphanIds).then(({ error: delErr }) => {
+              if (delErr) console.warn('Orphan cleanup error:', delErr);
+            });
+            appRequests = appRequests.filter(r => !orphanIds.includes(r.id));
+          }
+        }
+        
         updateMessagesBadge();
         updateUserMessagesBadge();
         return;
@@ -3441,8 +3460,20 @@ function updateMessagesBadge() {
   const badge = document.getElementById('adminMessagesBadge');
   if (!badge) return;
   
-  // Calculate unread requests (exclude admin's own replies)
-  const unreadCount = appRequests.filter(req => req.name !== 'teaboy27' && !readRequestIds.map(String).includes(String(req.id))).length;
+  // Calculate unread requests (exclude admin's own replies and orphaned replies)
+  const unreadCount = appRequests.filter(req => {
+    if (req.name === 'teaboy27') return false;
+    if (readRequestIds.map(String).includes(String(req.id))) return false;
+    
+    const parsed = parseReply(req);
+    if (parsed.isReply) {
+      // It's a reply; verify the parent thread exists
+      const parentExists = appRequests.some(r => Number(r.id) === Number(parsed.parentId));
+      if (!parentExists) return false;
+    }
+    return true;
+  }).length;
+  
   if (unreadCount > 0) {
     badge.textContent = unreadCount;
     badge.style.display = 'flex';
@@ -4327,6 +4358,12 @@ async function sendPushNotification(title, body) {
   }
 
   try {
+    // Safety check for Web Crypto support (non-secure context check)
+    if (!window.crypto || !window.crypto.subtle) {
+      console.warn('Web Crypto API is not supported or not available (non-secure context). Push skipped.');
+      return;
+    }
+
     // 1. Insert into Supabase notifications table
     const { error: notifError } = await supabase
       .from('notifications')
