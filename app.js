@@ -4174,6 +4174,13 @@ function setupTheme() {
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     
+    // Update PWA theme-color meta tag
+    const themeColor = newTheme === 'dark' ? '#7EA185' : '#45643C';
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', themeColor);
+    }
+    
     triggerThemeAsmrEffect(themeToggleBtn, newTheme);
   });
 }

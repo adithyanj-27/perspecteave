@@ -7,6 +7,7 @@
   <meta name="description" content="A personal space for raw thoughts on politics, geography, and life — presented as numbered perspectives with open critique sections.">
   <link class="favicon-link" rel="icon" type="image/png" href="/logo.png">
   <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#45643C">
   <link rel="stylesheet" href="styles.css">
   <script>
     (function() {
@@ -14,6 +15,12 @@
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const theme = savedTheme || (prefersDark ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', theme);
+      
+      const themeColor = theme === 'dark' ? '#7EA185' : '#45643C';
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', themeColor);
+      }
     })();
   </script>
 </head>
