@@ -2682,7 +2682,12 @@ function attachEventListeners() {
       if (!cup) return;
       
       cup.classList.remove('spilled');
-      history.pushState(null, '', window.location.pathname);
+      
+      if (history.state && history.state.post) {
+        history.back();
+      } else {
+        history.pushState(null, '', window.location.pathname);
+      }
     });
   });
 
