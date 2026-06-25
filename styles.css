@@ -3482,7 +3482,7 @@ footer {
 
 .category-checkboxes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-xs);
   padding: var(--space-sm);
   background: rgba(0, 0, 0, 0.01);
@@ -3510,7 +3510,8 @@ footer {
   color: var(--text-primary);
 }
 
-.category-checkbox-label input[type="checkbox"] {
+.category-checkbox-label input[type="checkbox"],
+.category-checkbox-label input[type="radio"] {
   accent-color: var(--accent-matcha);
   cursor: pointer;
 }

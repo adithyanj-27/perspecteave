@@ -48,7 +48,7 @@ const DEFAULT_POSTS = [
     edit_count: 0,
     agrees: 12,
     disagrees: 2,
-    categories: ['Politics', 'Geopolitics']
+    categories: ['Scholarly']
   },
   {
     id: 2,
@@ -57,7 +57,7 @@ const DEFAULT_POSTS = [
     edit_count: 0,
     agrees: 8,
     disagrees: 4,
-    categories: ['Philosophy', '3am thoughts']
+    categories: ['Cosmic']
   },
   {
     id: 3,
@@ -66,7 +66,7 @@ const DEFAULT_POSTS = [
     edit_count: 0,
     agrees: 15,
     disagrees: 3,
-    categories: ['Philosophy', 'History']
+    categories: ['Cosmic']
   }
 ];
 
@@ -92,20 +92,12 @@ const COMMENTS_KEY = 'perspecteave_comments_v3';
 // ---- App State Variables ----
 let appPosts = [];
 let appComments = {};
-// Categories data preserved for future use
-const AVAILABLE_CATEGORIES = [
-  'All',
-  'History',
-  'Politics',
-  'Geopolitics',
-  'Indian politics',
-  'Philosophy',
-  '3am thoughts',
-  'Social',
-  'Science',
-  'Case study',
-  'People',
-  'Places'
+// Categories / Themes data
+const AVAILABLE_THEMES = [
+  { value: 'Scholarly', label: 'Scholarly (Politics, History, Geopolitics)' },
+  { value: 'Cosmic', label: 'Cosmic (Philosophy, 3am thoughts)' },
+  { value: 'Science', label: 'Science (Science & Tech)' },
+  { value: 'Warm', label: 'Warm (Social, People, Places)' }
 ];
 let currentSession = null;
 let lastRenderedState = {
@@ -658,16 +650,16 @@ function getCategoryThemeClass(categories) {
   }
   // Use the first category as the primary one
   const primary = categories[0].toLowerCase();
-  if (['history', 'politics', 'geopolitics', 'indian politics', 'case study'].includes(primary)) {
+  if (primary === 'scholarly' || ['history', 'politics', 'geopolitics', 'indian politics', 'case study'].includes(primary)) {
     return 'theme-scholarly';
   }
-  if (['philosophy', '3am thoughts'].includes(primary)) {
+  if (primary === 'cosmic' || ['philosophy', '3am thoughts'].includes(primary)) {
     return 'theme-cosmic';
   }
-  if (['science'].includes(primary)) {
+  if (primary === 'science' || ['science & tech'].includes(primary)) {
     return 'theme-science';
   }
-  if (['social', 'people', 'places'].includes(primary)) {
+  if (primary === 'warm' || ['social', 'people', 'places'].includes(primary)) {
     return 'theme-warm';
   }
   return 'theme-default';
@@ -785,14 +777,22 @@ function renderEntry(post, index) {
               </div>
 
               <div class="edit-category-select">
-                <span class="category-select-label">Select Categories:</span>
+                <span class="category-select-label">Select Theme:</span>
                 <div class="category-checkboxes-grid">
-                  ${AVAILABLE_CATEGORIES.filter(cat => cat !== 'All').map(cat => {
-                    const isChecked = post.categories && post.categories.includes(cat) ? 'checked' : '';
+                  ${AVAILABLE_THEMES.map((theme, idx) => {
+                    const matchesTheme = post.categories && post.categories.some(cat => {
+                      const c = cat.toLowerCase();
+                      if (theme.value === 'Scholarly') return ['scholarly', 'history', 'politics', 'geopolitics', 'indian politics', 'case study'].includes(c);
+                      if (theme.value === 'Cosmic') return ['cosmic', 'philosophy', '3am thoughts'].includes(c);
+                      if (theme.value === 'Science') return ['science', 'science & tech'].includes(c);
+                      if (theme.value === 'Warm') return ['warm', 'social', 'people', 'places'].includes(c);
+                      return false;
+                    });
+                    const isChecked = matchesTheme || (!post.categories && idx === 0) ? 'checked' : '';
                     return `
                       <label class="category-checkbox-label">
-                        <input type="checkbox" name="editCategories-${post.id}" value="${cat}" ${isChecked}>
-                        <span>${cat}</span>
+                        <input type="radio" name="editCategories-${post.id}" value="${theme.value}" ${isChecked}>
+                        <span>${theme.label}</span>
                       </label>
                     `;
                   }).join('')}
@@ -1916,9 +1916,12 @@ async function savePostEdit(entryId) {
     }
 
     const checkedCats = [];
-    document.querySelectorAll(`input[name="editCategories-${entryId}"]:checked`).forEach(cb => {
-      checkedCats.push(cb.value);
-    });
+    const selectedRadio = document.querySelector(`input[name="editCategories-${entryId}"]:checked`);
+    if (selectedRadio) {
+      checkedCats.push(selectedRadio.value);
+    } else {
+      checkedCats.push('Scholarly');
+    }
 
     if (!isConfigured) {
       // Local fallback
@@ -2552,9 +2555,12 @@ function setupAuth() {
     }
 
     const checkedCats = [];
-    document.querySelectorAll('#adminCategoryCheckboxes input[type="checkbox"]:checked').forEach(cb => {
-      checkedCats.push(cb.value);
-    });
+    const selectedRadio = document.querySelector('#adminCategoryCheckboxes input[type="radio"]:checked');
+    if (selectedRadio) {
+      checkedCats.push(selectedRadio.value);
+    } else {
+      checkedCats.push('Scholarly');
+    }
 
     if (!isConfigured) {
       const newId = appPosts.length > 0 ? Math.max(...appPosts.map(x => x.id)) + 1 : 1;
@@ -2591,8 +2597,9 @@ function setupAuth() {
 
     qInput.value = '';
     pInput.value = '';
-    document.querySelectorAll('#adminCategoryCheckboxes input[type="checkbox"]').forEach(cb => {
-      cb.checked = false;
+    const adminRadios = document.querySelectorAll('#adminCategoryCheckboxes input[type="radio"]');
+    adminRadios.forEach((radio, idx) => {
+      radio.checked = (idx === 0);
     });
 
     panel.classList.remove('open');
@@ -4179,10 +4186,10 @@ async function init() {
   // Populate admin categories checklist
   const adminCheckboxGrid = document.getElementById('adminCategoryCheckboxes');
   if (adminCheckboxGrid) {
-    adminCheckboxGrid.innerHTML = AVAILABLE_CATEGORIES.filter(cat => cat !== 'All').map(cat => `
+    adminCheckboxGrid.innerHTML = AVAILABLE_THEMES.map((theme, idx) => `
       <label class="category-checkbox-label">
-        <input type="checkbox" name="adminCategory" value="${cat}">
-        <span>${cat}</span>
+        <input type="radio" name="adminCategory" value="${theme.value}" ${idx === 0 ? 'checked' : ''}>
+        <span>${theme.label}</span>
       </label>
     `).join('');
   }
