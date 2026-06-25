@@ -784,6 +784,21 @@ function renderEntry(post, index) {
                 <textarea class="edit-perspective-textarea" id="editPerspective-${post.id}" required>${escapeHTML(post.perspective)}</textarea>
               </div>
 
+              <div class="edit-category-select">
+                <span class="category-select-label">Select Categories:</span>
+                <div class="category-checkboxes-grid">
+                  ${AVAILABLE_CATEGORIES.filter(cat => cat !== 'All').map(cat => {
+                    const isChecked = post.categories && post.categories.includes(cat) ? 'checked' : '';
+                    return `
+                      <label class="category-checkbox-label">
+                        <input type="checkbox" name="editCategories-${post.id}" value="${cat}" ${isChecked}>
+                        <span>${cat}</span>
+                      </label>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+
               <div class="edit-actions">
                 <button type="button" class="btn-edit-save" data-entry-id="${post.id}">Save</button>
                 <button type="button" class="btn-edit-cancel" data-entry-id="${post.id}">Cancel</button>
@@ -1901,6 +1916,9 @@ async function savePostEdit(entryId) {
     }
 
     const checkedCats = [];
+    document.querySelectorAll(`input[name="editCategories-${entryId}"]:checked`).forEach(cb => {
+      checkedCats.push(cb.value);
+    });
 
     if (!isConfigured) {
       // Local fallback
@@ -2534,6 +2552,9 @@ function setupAuth() {
     }
 
     const checkedCats = [];
+    document.querySelectorAll('#adminCategoryCheckboxes input[type="checkbox"]:checked').forEach(cb => {
+      checkedCats.push(cb.value);
+    });
 
     if (!isConfigured) {
       const newId = appPosts.length > 0 ? Math.max(...appPosts.map(x => x.id)) + 1 : 1;
@@ -2570,6 +2591,9 @@ function setupAuth() {
 
     qInput.value = '';
     pInput.value = '';
+    document.querySelectorAll('#adminCategoryCheckboxes input[type="checkbox"]').forEach(cb => {
+      cb.checked = false;
+    });
 
     panel.classList.remove('open');
 
@@ -4150,6 +4174,17 @@ async function init() {
         }
       }
     }
+  }
+
+  // Populate admin categories checklist
+  const adminCheckboxGrid = document.getElementById('adminCategoryCheckboxes');
+  if (adminCheckboxGrid) {
+    adminCheckboxGrid.innerHTML = AVAILABLE_CATEGORIES.filter(cat => cat !== 'All').map(cat => `
+      <label class="category-checkbox-label">
+        <input type="checkbox" name="adminCategory" value="${cat}">
+        <span>${cat}</span>
+      </label>
+    `).join('');
   }
 
   setupAuth();
