@@ -651,6 +651,28 @@ function formatDisplayName(name) {
   return name.replace(/\s*\(Guest\s+\d+\)\s*$/i, '').trim();
 }
 
+// ---- Determine category-specific theme class for overlay ----
+function getCategoryThemeClass(categories) {
+  if (!categories || !Array.isArray(categories) || categories.length === 0) {
+    return 'theme-default';
+  }
+  // Use the first category as the primary one
+  const primary = categories[0].toLowerCase();
+  if (['history', 'politics', 'geopolitics', 'indian politics', 'case study'].includes(primary)) {
+    return 'theme-scholarly';
+  }
+  if (['philosophy', '3am thoughts'].includes(primary)) {
+    return 'theme-cosmic';
+  }
+  if (['science'].includes(primary)) {
+    return 'theme-science';
+  }
+  if (['social', 'people', 'places'].includes(primary)) {
+    return 'theme-warm';
+  }
+  return 'theme-default';
+}
+
 // ---- Render a Single Entry ----
 function renderEntry(post, index) {
   const qNum = index + 1;
@@ -706,7 +728,7 @@ function renderEntry(post, index) {
       </div>
 
       <!-- ===== SPILLED VIEW ===== -->
-      <div class="spill-overlay" id="spillOverlay-${post.id}">
+      <div class="spill-overlay ${getCategoryThemeClass(post.categories)}" id="spillOverlay-${post.id}">
         <!-- Animated stain layers -->
         <div class="stain stain-1"></div>
         <div class="stain stain-2"></div>

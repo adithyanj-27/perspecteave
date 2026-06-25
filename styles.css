@@ -1271,6 +1271,74 @@ body.cup-open::after {
   display: none !important;
 }
 
+/* --- Spill/Stain Categories Custom Theme Overrides --- */
+
+/* 1. Scholarly Theme (Default for History, Politics, Geopolitics, Indian politics) */
+.spill-overlay.theme-scholarly,
+.spill-overlay.theme-default {
+  --stain-color-1: rgba(211, 114, 20, 0.12);
+  --stain-color-2: rgba(139, 69, 19, 0.08);
+  --stain-color-3: rgba(211, 114, 20, 0.07);
+  --stain-ring-color-1: rgba(211, 114, 20, 0.14);
+  --stain-ring-color-2: rgba(139, 69, 19, 0.12);
+}
+[data-theme="dark"] .spill-overlay.theme-scholarly,
+[data-theme="dark"] .spill-overlay.theme-default {
+  --stain-color-1: rgba(226, 160, 91, 0.08);
+  --stain-color-2: rgba(186, 140, 99, 0.05);
+  --stain-color-3: rgba(226, 160, 91, 0.05);
+  --stain-ring-color-1: rgba(226, 160, 91, 0.12);
+  --stain-ring-color-2: rgba(186, 140, 99, 0.10);
+}
+
+/* 2. Cosmic Theme (Philosophy, 3am thoughts) */
+.spill-overlay.theme-cosmic {
+  --stain-color-1: rgba(106, 90, 205, 0.10);
+  --stain-color-2: rgba(147, 112, 219, 0.09);
+  --stain-color-3: rgba(75, 0, 130, 0.05);
+  --stain-ring-color-1: rgba(106, 90, 205, 0.12);
+  --stain-ring-color-2: rgba(147, 112, 219, 0.10);
+}
+[data-theme="dark"] .spill-overlay.theme-cosmic {
+  --stain-color-1: rgba(123, 104, 238, 0.08);
+  --stain-color-2: rgba(186, 85, 211, 0.06);
+  --stain-color-3: rgba(138, 43, 226, 0.04);
+  --stain-ring-color-1: rgba(123, 104, 238, 0.10);
+  --stain-ring-color-2: rgba(186, 85, 211, 0.08);
+}
+
+/* 3. Science Theme (Science, Tech, Case study) */
+.spill-overlay.theme-science {
+  --stain-color-1: rgba(46, 139, 87, 0.10);
+  --stain-color-2: rgba(69, 100, 60, 0.09);
+  --stain-color-3: rgba(32, 178, 170, 0.05);
+  --stain-ring-color-1: rgba(46, 139, 87, 0.12);
+  --stain-ring-color-2: rgba(69, 100, 60, 0.10);
+}
+[data-theme="dark"] .spill-overlay.theme-science {
+  --stain-color-1: rgba(60, 179, 113, 0.08);
+  --stain-color-2: rgba(126, 161, 133, 0.06);
+  --stain-color-3: rgba(0, 250, 154, 0.04);
+  --stain-ring-color-1: rgba(60, 179, 113, 0.10);
+  --stain-ring-color-2: rgba(126, 161, 133, 0.08);
+}
+
+/* 4. Warm Theme (Social, People, Places) */
+.spill-overlay.theme-warm {
+  --stain-color-1: rgba(205, 92, 92, 0.10);
+  --stain-color-2: rgba(233, 150, 122, 0.08);
+  --stain-color-3: rgba(219, 112, 147, 0.05);
+  --stain-ring-color-1: rgba(205, 92, 92, 0.12);
+  --stain-ring-color-2: rgba(233, 150, 122, 0.10);
+}
+[data-theme="dark"] .spill-overlay.theme-warm {
+  --stain-color-1: rgba(240, 128, 128, 0.07);
+  --stain-color-2: rgba(255, 160, 122, 0.05);
+  --stain-color-3: rgba(255, 182, 193, 0.04);
+  --stain-ring-color-1: rgba(240, 128, 128, 0.09);
+  --stain-ring-color-2: rgba(255, 160, 122, 0.07);
+}
+
 /* — Tea stain layers — */
 .stain {
   position: fixed;
