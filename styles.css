@@ -1244,6 +1244,7 @@ body.cup-open::after {
   z-index: 300;
   overflow-y: auto;
   background: var(--bg-primary); /* paper background */
+  cursor: default;
 }
 
 .cup-container.spilled .spill-overlay {
