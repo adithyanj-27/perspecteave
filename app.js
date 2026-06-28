@@ -906,8 +906,10 @@ function renderReplyCard(reply, entryId, parentId) {
     <button type="button" class="btn-comment-reply-trigger" data-comment-id="${parentId}" data-reply-id="${reply.id}" data-entry-id="${entryId}" data-reply-to-author="${escapeHTML(formatDisplayName(reply.name) || 'Anonymous')}">Reply</button>
   `;
 
+  const showAsHidden = reply.hidden && isUserAdmin;
+
   return `
-    <li class="reply-card comment-card${reply.hidden ? ' comment-hidden' : ''}" id="comment-${reply.id}">
+    <li class="reply-card comment-card${showAsHidden ? ' comment-hidden' : ''}" id="comment-${reply.id}">
       <div class="comment-card-static" id="commentStatic-${reply.id}">
         <div class="comment-card-meta">
           <div>
@@ -1001,8 +1003,10 @@ function renderCommentCard(item, entryId, replies = []) {
     </form>
   `;
 
+  const showAsHidden = item.hidden && isUserAdmin;
+
   return `
-    <li class="comment-card${item.hidden ? ' comment-hidden' : ''}" id="comment-${item.id}">
+    <li class="comment-card${showAsHidden ? ' comment-hidden' : ''}" id="comment-${item.id}">
       <div class="comment-card-static" id="commentStatic-${item.id}">
         <div class="comment-card-meta">
           <div>
@@ -1103,8 +1107,8 @@ function renderComments(entryId, comments) {
   const isUserAdmin = isAdmin(currentSession);
 
   list.forEach(c => {
-    // Non-admin users don't see hidden comments at all
-    if (c.hidden && !isUserAdmin) return;
+    // Non-admin users don't see hidden comments at all, unless they are the author of the comment
+    if (c.hidden && !isUserAdmin && !canEditComment(c.id, c.name)) return;
 
     // Check if this comment is a reply (starts with [reply_to:parentId])
     const match = typeof c.text === 'string' && c.text.match(/^\[reply_to:(\d+)\]\s*([\s\S]*)$/);
