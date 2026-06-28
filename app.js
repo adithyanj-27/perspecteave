@@ -898,13 +898,16 @@ function renderReplyCard(reply, entryId, parentId) {
   const deleteButton = isUserAdmin ? `
     <button type="button" class="btn-comment-delete" data-comment-id="${reply.id}" data-entry-id="${entryId}">Delete</button>
   ` : '';
+  const hideButton = isUserAdmin ? `
+    <button type="button" class="btn-comment-hide" data-comment-id="${reply.id}" data-entry-id="${entryId}">${reply.hidden ? 'Unhide' : 'Hide'}</button>
+  ` : '';
 
   const replyButton = `
     <button type="button" class="btn-comment-reply-trigger" data-comment-id="${parentId}" data-reply-id="${reply.id}" data-entry-id="${entryId}" data-reply-to-author="${escapeHTML(formatDisplayName(reply.name) || 'Anonymous')}">Reply</button>
   `;
 
   return `
-    <li class="reply-card comment-card" id="comment-${reply.id}">
+    <li class="reply-card comment-card${reply.hidden ? ' comment-hidden' : ''}" id="comment-${reply.id}">
       <div class="comment-card-static" id="commentStatic-${reply.id}">
         <div class="comment-card-meta">
           <div>
@@ -916,6 +919,7 @@ function renderReplyCard(reply, entryId, parentId) {
             ${historyNav}
             ${replyButton}
             ${editButton}
+            ${hideButton}
             ${deleteButton}
           </div>
         </div>
@@ -959,6 +963,9 @@ function renderCommentCard(item, entryId, replies = []) {
   const deleteButton = isUserAdmin ? `
     <button type="button" class="btn-comment-delete" data-comment-id="${item.id}" data-entry-id="${entryId}">Delete</button>
   ` : '';
+  const hideButton = isUserAdmin ? `
+    <button type="button" class="btn-comment-hide" data-comment-id="${item.id}" data-entry-id="${entryId}">${item.hidden ? 'Unhide' : 'Hide'}</button>
+  ` : '';
 
   const replyButton = `
     <button type="button" class="btn-comment-reply-trigger" data-comment-id="${item.id}" data-reply-id="${item.id}" data-entry-id="${entryId}">Reply</button>
@@ -995,7 +1002,7 @@ function renderCommentCard(item, entryId, replies = []) {
   `;
 
   return `
-    <li class="comment-card" id="comment-${item.id}">
+    <li class="comment-card${item.hidden ? ' comment-hidden' : ''}" id="comment-${item.id}">
       <div class="comment-card-static" id="commentStatic-${item.id}">
         <div class="comment-card-meta">
           <div>
@@ -1007,6 +1014,7 @@ function renderCommentCard(item, entryId, replies = []) {
             ${historyNav}
             ${replyButton}
             ${editButton}
+            ${hideButton}
             ${deleteButton}
           </div>
         </div>
@@ -1092,7 +1100,12 @@ function renderComments(entryId, comments) {
   const parentComments = [];
   const repliesByParentId = {};
 
+  const isUserAdmin = isAdmin(currentSession);
+
   list.forEach(c => {
+    // Non-admin users don't see hidden comments at all
+    if (c.hidden && !isUserAdmin) return;
+
     // Check if this comment is a reply (starts with [reply_to:parentId])
     const match = typeof c.text === 'string' && c.text.match(/^\[reply_to:(\d+)\]\s*([\s\S]*)$/);
     if (match) {
@@ -1731,6 +1744,39 @@ async function deleteComment(entryId, commentId) {
     } catch (err) {
       console.error('Error deleting comment from Supabase:', err);
       alert('Could not delete comment. Check console.');
+      return;
+    }
+  }
+
+  // Re-render comments for this post
+  renderComments(entryId, appComments);
+}
+
+// ---- Toggle Hide/Unhide Comment ----
+async function toggleHideComment(entryId, commentId) {
+  const commentsList = appComments[entryId] || [];
+  const comment = commentsList.find(c => Number(c.id) === Number(commentId));
+  if (!comment) return;
+
+  const newHidden = !comment.hidden;
+
+  if (!isConfigured) {
+    // Local fallback
+    comment.hidden = newHidden;
+    save(COMMENTS_KEY, appComments);
+  } else {
+    // Supabase
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .update({ hidden: newHidden })
+        .eq('id', commentId);
+
+      if (error) throw error;
+      comment.hidden = newHidden;
+    } catch (err) {
+      console.error('Error toggling comment visibility:', err);
+      alert('Could not update comment visibility. Check console.');
       return;
     }
   }
@@ -3107,6 +3153,14 @@ function attachEventListeners() {
         if (confirm('Are you sure you want to delete this comment?')) {
           await deleteComment(entryId, commentId);
         }
+      }
+
+      // 9. Admin Hide/Unhide Comment button clicked
+      if (e.target.classList.contains('btn-comment-hide')) {
+        e.stopPropagation();
+        const commentId = Number(e.target.dataset.commentId);
+        const entryId = Number(e.target.dataset.entryId);
+        await toggleHideComment(entryId, commentId);
       }
     });
   }

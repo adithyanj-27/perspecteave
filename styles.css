@@ -2139,6 +2139,36 @@ body.cup-open::after {
   background: rgba(214, 142, 73, 0.03);
 }
 
+.btn-comment-hide {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+}
+
+.btn-comment-hide:hover {
+  color: #b08030;
+  border-color: #b08030;
+  background: rgba(176, 128, 48, 0.04);
+}
+
+/* Hidden comment styling (admin-only view) */
+.comment-card.comment-hidden {
+  opacity: 0.45;
+  border-left: 2px solid var(--accent-tea);
+  padding-left: var(--space-xs);
+}
+
+.comment-card.comment-hidden .comment-card-text {
+  font-style: italic;
+}
+
 .replies-container {
   margin-top: var(--space-sm);
   display: flex;
