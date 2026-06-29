@@ -182,7 +182,8 @@ async function fetchComments() {
           text: c.text,
           time: c.time,
           edited: false,
-          history: []
+          history: [],
+          hidden: false
         }));
       }
       save(COMMENTS_KEY, comments);
@@ -199,6 +200,10 @@ async function fetchComments() {
           }
           if (updated.edited === undefined) {
             updated.edited = false;
+            needsUpdate = true;
+          }
+          if (updated.hidden === undefined) {
+            updated.hidden = false;
             needsUpdate = true;
           }
           if (!updated.history) {
@@ -238,6 +243,7 @@ async function fetchComments() {
         text: item.text,
         edited: item.edited || false,
         history: item.history || [],
+        hidden: item.hidden || false,
         time: formatTime(item.created_at)
       });
     });
@@ -1217,6 +1223,7 @@ async function submitReply(entryId) {
       text,
       edited: false,
       history: [],
+      hidden: false,
       time: 'Just now'
     });
     save(COMMENTS_KEY, appComments);
@@ -1253,6 +1260,7 @@ async function submitReply(entryId) {
         text: data.text,
         edited: data.edited || false,
         history: data.history || [],
+        hidden: data.hidden || false,
         time: 'Just now'
       });
       saveCommentOwnership(data.id);
@@ -1362,6 +1370,7 @@ async function submitComment(entryId) {
       text,
       edited: false,
       history: [],
+      hidden: false,
       time: 'Just now'
     });
     save(COMMENTS_KEY, appComments);
@@ -1411,6 +1420,7 @@ async function submitComment(entryId) {
         text: data.text,
         edited: data.edited || false,
         history: data.history || [],
+        hidden: data.hidden || false,
         time: 'Just now'
       });
       saveCommentOwnership(data.id);
@@ -1605,6 +1615,7 @@ async function submitCommentReply(entryId, parentId) {
       text: dbText,
       edited: false,
       history: [],
+      hidden: false,
       time: 'Just now'
     });
     save(COMMENTS_KEY, appComments);
@@ -1651,6 +1662,7 @@ async function submitCommentReply(entryId, parentId) {
         text: data.text,
         edited: data.edited || false,
         history: data.history || [],
+        hidden: data.hidden || false,
         time: 'Just now'
       });
       saveCommentOwnership(data.id);
