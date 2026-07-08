@@ -948,7 +948,10 @@ function renderEntry(post, index) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="comments-arrow"><path d="M6 9l6 6 6-6"/></svg>
               </button>
               <div class="post-views-badge">
-                <span class="views-badge-icon">👁️</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" class="views-svg-icon" style="margin-right: 6px; display: inline-block; vertical-align: middle;">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
                 <span class="views-badge-count" id="viewsCount-${post.id}">${(appPostViews[post.id] || 0)} view${(appPostViews[post.id] || 0) === 1 ? '' : 's'}</span>
               </div>
               <div class="share-btn-wrapper">

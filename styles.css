@@ -1577,6 +1577,11 @@ body.cup-open::after {
   user-select: none;
 }
 
+.views-svg-icon {
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
 [data-theme="dark"] .post-views-badge {
   background: rgba(255, 255, 255, 0.02);
 }
