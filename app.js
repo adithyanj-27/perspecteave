@@ -88,10 +88,12 @@ const SEED_COMMENTS = {
 
 const POSTS_KEY = 'perspecteave_posts_v3';
 const COMMENTS_KEY = 'perspecteave_comments_v3';
+const VIEWS_KEY = 'perspecteave_post_views_v3';
 
 // ---- App State Variables ----
 let appPosts = [];
 let appComments = {};
+let appPostViews = {};
 // Categories / Themes data
 const AVAILABLE_THEMES = [
   { value: 'Scholarly', label: 'Scholarly (Politics, History, Geopolitics)' },
@@ -252,6 +254,31 @@ async function fetchComments() {
   } catch (err) {
     console.error('Error fetching comments from Supabase:', err);
     return load(COMMENTS_KEY) || SEED_COMMENTS;
+  }
+}
+
+async function fetchPostViews() {
+  if (!isConfigured) {
+    return load(VIEWS_KEY) || {};
+  }
+  try {
+    const { data, error } = await supabase
+      .from('post_views')
+      .select('post_id');
+
+    if (error) throw error;
+
+    const viewsMap = {};
+    if (data) {
+      data.forEach(item => {
+        const pid = item.post_id;
+        viewsMap[pid] = (viewsMap[pid] || 0) + 1;
+      });
+    }
+    return viewsMap;
+  } catch (err) {
+    console.error('Error fetching post views from Supabase:', err);
+    return load(VIEWS_KEY) || {};
   }
 }
 
@@ -525,6 +552,71 @@ async function fetchUniqueVisitorsCount() {
   }
 }
 
+// ---- Post Views Tracking ----
+const sessionLoggedViews = new Set();
+
+async function logPostView(postId) {
+  if (!postId) return;
+  const numericId = Number(postId);
+  
+  if (sessionLoggedViews.has(numericId)) return;
+  sessionLoggedViews.add(numericId);
+  
+  const visitorId = getOrCreateVisitorId();
+  
+  if (!isConfigured) {
+    try {
+      let localViews = load(VIEWS_KEY) || {};
+      if (!localViews[numericId]) {
+        localViews[numericId] = [];
+      }
+      if (!localViews[numericId].includes(visitorId)) {
+        localViews[numericId].push(visitorId);
+        save(VIEWS_KEY, localViews);
+        const currentCount = (appPostViews[numericId] || 0) + 1;
+        appPostViews[numericId] = currentCount;
+        updateViewsUI(numericId, currentCount);
+      }
+    } catch (e) {
+      console.warn('Failed to log post view locally:', e);
+    }
+    return;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('post_views')
+      .insert({
+        post_id: numericId,
+        visitor_id: visitorId
+      });
+    
+    if (!error) {
+      const currentCount = (appPostViews[numericId] || 0) + 1;
+      appPostViews[numericId] = currentCount;
+      updateViewsUI(numericId, currentCount);
+    } else if (error.code === '23505') {
+      // Postgres unique_violation is expected
+    } else {
+      console.warn('Failed to log post view to Supabase:', error.message);
+    }
+  } catch (err) {
+    console.error('Error logging post view:', err);
+  }
+}
+
+async function triggerPostView(postId) {
+  if (!postId) return;
+  await logPostView(Number(postId));
+}
+
+function updateViewsUI(postId, count) {
+  const viewsEl = document.getElementById(`viewsCount-${postId}`);
+  if (viewsEl) {
+    viewsEl.textContent = `👁️ ${count || 0} view${count === 1 ? '' : 's'}`;
+  }
+}
+
 async function determineGuestNumber() {
   if (currentGuestNumber !== null) return currentGuestNumber;
   if (!isConfigured) {
@@ -743,6 +835,9 @@ function renderEntry(post, index) {
             <span class="spill-num">${qNum}.</span>
             <div class="spill-header-content">
               <h2 class="spill-question">${escapeHTML(post.question)}</h2>
+              <div class="spill-meta-row">
+                <span class="post-views-count" id="viewsCount-${post.id}">👁️ ${(appPostViews[post.id] || 0)} view${(appPostViews[post.id] || 0) === 1 ? '' : 's'}</span>
+              </div>
             </div>
           </div>
 
@@ -2730,6 +2825,7 @@ function attachEventListeners() {
       cup.classList.add('spilled');
       const entryId = cup.dataset.entryId;
       history.pushState({ post: entryId }, '', `?post=${entryId}`);
+      triggerPostView(entryId);
     });
   });
 
@@ -4228,6 +4324,9 @@ async function init() {
   // Load posts
   appPosts = await fetchPosts();
 
+  // Load post views
+  appPostViews = await fetchPostViews();
+
   // Load comments
   appComments = await fetchComments();
 
@@ -4286,6 +4385,7 @@ async function init() {
     const cup = document.querySelector(`.cup-container[data-entry-id="${postIdParam}"]`);
     if (cup) {
       cup.classList.add('spilled');
+      triggerPostView(postIdParam);
       setTimeout(() => {
         cup.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 500);
@@ -4306,6 +4406,7 @@ async function init() {
       const cup = document.querySelector(`.cup-container[data-entry-id="${postId}"]`);
       if (cup) {
         cup.classList.add('spilled');
+        triggerPostView(postId);
       }
     }
   });

@@ -136,3 +136,26 @@ BEGIN
         ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
     END IF;
 END $$;
+
+-- ===================================================================
+-- 8. Setup post_views table and RLS policies
+-- ===================================================================
+CREATE TABLE IF NOT EXISTS public.post_views (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  post_id INTEGER REFERENCES public.posts(id) ON DELETE CASCADE,
+  visitor_id TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE (post_id, visitor_id)
+);
+
+ALTER TABLE public.post_views ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow anyone to read post views" ON public.post_views;
+CREATE POLICY "Allow anyone to read post views" ON public.post_views
+    FOR SELECT TO anon, authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS "Allow anyone to insert post views" ON public.post_views;
+CREATE POLICY "Allow anyone to insert post views" ON public.post_views
+    FOR INSERT TO anon, authenticated
+    WITH CHECK (true);

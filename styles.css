@@ -1563,6 +1563,24 @@ body.cup-open::after {
   margin: 0;
 }
 
+.spill-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: var(--space-xs);
+}
+
+.post-views-count {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Spill body */
 .spill-body {
   background: var(--bg-card);
