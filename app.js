@@ -259,7 +259,26 @@ async function fetchComments() {
 
 async function fetchPostViews() {
   if (!isConfigured) {
-    return load(VIEWS_KEY) || {};
+    let localViews = load(VIEWS_KEY);
+    if (!localViews) {
+      localViews = {};
+      // Backfill local default posts
+      DEFAULT_POSTS.forEach(post => {
+        const numericId = Number(post.id);
+        const simulatedCount = ((post.agrees + post.disagrees) * 4) + 25;
+        localViews[numericId] = [];
+        for (let i = 1; i <= simulatedCount; i++) {
+          localViews[numericId].push(`vis_seed_local_${numericId}_${i}`);
+        }
+      });
+      save(VIEWS_KEY, localViews);
+    }
+    // Map to count map
+    const viewsMap = {};
+    for (const pid in localViews) {
+      viewsMap[pid] = localViews[pid].length;
+    }
+    return viewsMap;
   }
   try {
     const { data, error } = await supabase
@@ -835,9 +854,6 @@ function renderEntry(post, index) {
             <span class="spill-num">${qNum}.</span>
             <div class="spill-header-content">
               <h2 class="spill-question">${escapeHTML(post.question)}</h2>
-              <div class="spill-meta-row">
-                <span class="post-views-count" id="viewsCount-${post.id}">👁️ ${(appPostViews[post.id] || 0)} view${(appPostViews[post.id] || 0) === 1 ? '' : 's'}</span>
-              </div>
             </div>
           </div>
 
@@ -931,6 +947,10 @@ function renderEntry(post, index) {
                 <span class="total-comment-count" id="totalCount-${post.id}">0</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="comments-arrow"><path d="M6 9l6 6 6-6"/></svg>
               </button>
+              <div class="post-views-badge">
+                <span class="views-badge-icon">👁️</span>
+                <span class="views-badge-count" id="viewsCount-${post.id}">${(appPostViews[post.id] || 0)} view${(appPostViews[post.id] || 0) === 1 ? '' : 's'}</span>
+              </div>
               <div class="share-btn-wrapper">
                 <button type="button" class="btn-share-link" data-entry-id="${post.id}" title="Share this take">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" class="share-svg-icon" style="margin-right: 6px; display: inline-block; vertical-align: middle;">
