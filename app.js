@@ -632,7 +632,7 @@ async function triggerPostView(postId) {
 function updateViewsUI(postId, count) {
   const viewsEl = document.getElementById(`viewsCount-${postId}`);
   if (viewsEl) {
-    viewsEl.textContent = `👁️ ${count || 0} view${count === 1 ? '' : 's'}`;
+    viewsEl.textContent = `${count || 0} view${count === 1 ? '' : 's'}`;
   }
 }
 
@@ -786,6 +786,7 @@ function getCategoryThemeClass(categories) {
 function renderEntry(post, index) {
   const qNum = index + 1;
   const isComingSoon = isComingSoonText(post.perspective);
+  const isUserAdmin = isAdmin(currentSession);
 
   let editInfo = '';
   if (post.edit_count > 0 && !isComingSoon) {
@@ -947,6 +948,7 @@ function renderEntry(post, index) {
                 <span class="total-comment-count" id="totalCount-${post.id}">0</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="comments-arrow"><path d="M6 9l6 6 6-6"/></svg>
               </button>
+              ${isUserAdmin ? `
               <div class="post-views-badge">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" class="views-svg-icon" style="margin-right: 6px; display: inline-block; vertical-align: middle;">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -954,6 +956,7 @@ function renderEntry(post, index) {
                 </svg>
                 <span class="views-badge-count" id="viewsCount-${post.id}">${(appPostViews[post.id] || 0)} view${(appPostViews[post.id] || 0) === 1 ? '' : 's'}</span>
               </div>
+              ` : ''}
               <div class="share-btn-wrapper">
                 <button type="button" class="btn-share-link" data-entry-id="${post.id}" title="Share this take">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" class="share-svg-icon" style="margin-right: 6px; display: inline-block; vertical-align: middle;">
