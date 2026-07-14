@@ -159,3 +159,10 @@ DROP POLICY IF EXISTS "Allow anyone to insert post views" ON public.post_views;
 CREATE POLICY "Allow anyone to insert post views" ON public.post_views
     FOR INSERT TO anon, authenticated
     WITH CHECK (true);
+
+-- ===================================================================
+-- 9. Add private column to posts table
+-- ===================================================================
+ALTER TABLE public.posts 
+ADD COLUMN IF NOT EXISTS private BOOLEAN DEFAULT false;
+

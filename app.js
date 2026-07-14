@@ -151,8 +151,18 @@ async function fetchPosts() {
   if (!isConfigured) {
     let posts = load(POSTS_KEY);
     if (!posts) {
-      posts = DEFAULT_POSTS;
+      posts = DEFAULT_POSTS.map(p => ({ ...p, private: p.private || false }));
       save(POSTS_KEY, posts);
+    } else {
+      let modified = false;
+      posts = posts.map(p => {
+        if (p.private === undefined) {
+          p.private = false;
+          modified = true;
+        }
+        return p;
+      });
+      if (modified) save(POSTS_KEY, posts);
     }
     return posts;
   }
@@ -798,7 +808,7 @@ function renderEntry(post, index) {
   const disagreeClass = currentVote === 'disagree' ? 'active' : '';
 
   return `
-    <article class="entry cup-container" data-entry-id="${post.id}" id="entry-${post.id}">
+    <article class="entry cup-container${post.private ? ' entry-private' : ''}" data-entry-id="${post.id}" id="entry-${post.id}">
       
       <!-- ===== MUG (Grid View) ===== -->
       <div class="teacup" data-entry-id="${post.id}">
@@ -815,7 +825,7 @@ function renderEntry(post, index) {
         </div>
         <div class="mug-body">
           <div class="mug-front">
-            <span class="cup-number">${qNum}</span>
+            <span class="cup-number">${qNum} ${post.private ? '<span class="private-tag">[Private]</span>' : ''}</span>
             <p class="cup-question">${escapeHTML(post.question)}</p>
           </div>
           <div class="mug-liquid"></div>
@@ -852,7 +862,7 @@ function renderEntry(post, index) {
           </button>
 
           <div class="spill-header">
-            <span class="spill-num">${qNum}.</span>
+            <span class="spill-num">${qNum}.${post.private ? ' <span class="private-tag">[Private]</span>' : ''}</span>
             <div class="spill-header-content">
               <h2 class="spill-question">${escapeHTML(post.question)}</h2>
             </div>
@@ -873,6 +883,7 @@ function renderEntry(post, index) {
               
               <div class="entry-admin-actions" data-entry-id="${post.id}">
                 <button type="button" class="btn-entry-edit" data-entry-id="${post.id}">Edit</button>
+                <button type="button" class="btn-entry-private" data-entry-id="${post.id}">${post.private ? 'Make Public' : 'Make Private'}</button>
                 <button type="button" class="btn-entry-delete" data-entry-id="${post.id}">Delete</button>
               </div>
             </div>
@@ -1189,8 +1200,11 @@ function renderAllEntries(posts) {
       if (id) openCommentsIds.push(id);
     });
 
+    const isUserAdmin = isAdmin(currentSession);
+    const visiblePosts = posts.filter(p => !p.private || isUserAdmin);
+
     // 3. Render all entries
-    container.innerHTML = posts.map((p, i) => renderEntry(p, i)).join('');
+    container.innerHTML = visiblePosts.map((p, i) => renderEntry(p, i)).join('');
 
     // 4. Restore expanded entry ID if any
     if (expandedId) {
@@ -2196,7 +2210,7 @@ async function deletePost(entryId) {
   // Re-render all elements
   renderAllEntries(appPosts);
   appPosts.forEach(post => renderComments(post.id, appComments));
-  
+
   // Re-bind listeners and update Admin UI
   attachEventListeners();
   let session = null;
@@ -2206,6 +2220,44 @@ async function deletePost(entryId) {
   }
   updateAuthUI(session);
 }
+
+// ---- Toggle Private Post ----
+async function togglePrivatePost(entryId) {
+  const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
+  if (postIndex === -1) return;
+
+  const newPrivate = !appPosts[postIndex].private;
+
+  if (!isConfigured) {
+    // Local fallback
+    appPosts[postIndex].private = newPrivate;
+    save(POSTS_KEY, appPosts);
+  } else {
+    // Supabase
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ private: newPrivate })
+        .eq('id', entryId);
+
+      if (error) throw error;
+      appPosts[postIndex].private = newPrivate;
+    } catch (err) {
+      console.error('Error toggling post privacy in Supabase:', err);
+      alert('Could not update post privacy. Check console.');
+      return;
+    }
+  }
+
+  // Re-render all elements
+  renderAllEntries(appPosts);
+  appPosts.forEach(post => renderComments(post.id, appComments));
+  
+  // Re-bind listeners and update Admin UI
+  attachEventListeners();
+  updateAuthUI(currentSession);
+}
+
 
 // ---- Auth Helpers ----
 function isLoggedIn(session) {
@@ -2747,7 +2799,7 @@ function setupAuth() {
 
     if (!isConfigured) {
       const newId = appPosts.length > 0 ? Math.max(...appPosts.map(x => x.id)) + 1 : 1;
-      appPosts.push({ id: newId, question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats });
+      appPosts.push({ id: newId, question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats, private: false });
       save(POSTS_KEY, appPosts);
     } else {
       try {
@@ -3067,6 +3119,20 @@ function attachEventListeners() {
       const entryId = Number(btn.dataset.entryId);
       if (confirm('Are you sure you want to delete this perspective? This will also delete all comments.')) {
         await deletePost(entryId);
+      }
+    });
+  });
+
+  document.querySelectorAll('.btn-entry-private').forEach(btn => {
+    if (btn.dataset.privateListenerAttached) return;
+    btn.dataset.privateListenerAttached = 'true';
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const entryId = Number(btn.dataset.entryId);
+      const post = appPosts.find(x => Number(x.id) === entryId);
+      const statusText = post && post.private ? 'public' : 'private';
+      if (confirm(`Are you sure you want to make this perspective ${statusText}?`)) {
+        await togglePrivatePost(entryId);
       }
     });
   });

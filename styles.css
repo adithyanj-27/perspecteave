@@ -2458,6 +2458,50 @@ body.cup-open::after {
   background: rgba(194, 94, 94, 0.05);
 }
 
+.btn-entry-private {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.btn-entry-private:hover {
+  color: #b08030;
+  border-color: #b08030;
+  background: rgba(176, 128, 48, 0.05);
+}
+
+/* Style for private posts in admin view */
+.entry.entry-private {
+  opacity: 0.65;
+}
+
+.entry.entry-private .teacup {
+  border: 1px dashed var(--accent-tea);
+}
+
+.private-tag {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #d68e49;
+  background: rgba(214, 142, 73, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: var(--space-xs);
+  display: inline-block;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+
 /* Inline Edit Form */
 .entry-edit-form {
   display: flex;
