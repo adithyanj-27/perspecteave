@@ -2477,10 +2477,6 @@ body.cup-open::after {
   background: rgba(176, 128, 48, 0.05);
 }
 
-/* Style for private posts in admin view */
-.entry.entry-private .teacup {
-  opacity: 0.65;
-}
 
 .private-tag {
   font-family: var(--font-body);
