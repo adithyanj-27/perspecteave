@@ -2399,42 +2399,44 @@ input:checked + .slider:before {
   transform: translateX(20px);
 }
 
-/* Admin Lock Switch on Top Bar */
-.admin-lock-wrapper {
+/* Profile Dropdown Lock Row */
+.profile-lock-row {
   display: none; /* Controlled by JS */
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  padding: 6px 12px;
-  border-radius: 20px;
-  box-shadow: var(--shadow-sm);
-  height: 40px;
-  box-sizing: border-box;
+  padding: var(--space-xs) 0 var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-glass);
 }
 
-.admin-lock-wrapper .lock-icon {
-  color: var(--text-secondary);
+.profile-lock-row .lock-label {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
-/* Make sure switch works within wrapper */
-.admin-lock-wrapper .switch {
+.profile-lock-row .lock-icon {
+  color: var(--text-muted);
+}
+
+/* Switch within dropdown lock row */
+.profile-lock-row .switch {
   position: relative;
   display: inline-block;
   width: 34px;
   height: 18px;
 }
 
-.admin-lock-wrapper .switch input {
+.profile-lock-row .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.admin-lock-wrapper .slider {
+.profile-lock-row .slider {
   position: absolute;
   cursor: pointer;
   inset: 0;
@@ -2443,7 +2445,7 @@ input:checked + .slider:before {
   border-radius: 18px;
 }
 
-.admin-lock-wrapper .slider:before {
+.profile-lock-row .slider:before {
   position: absolute;
   content: "";
   height: 12px;
@@ -2456,22 +2458,12 @@ input:checked + .slider:before {
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 
-.admin-lock-wrapper input:checked + .slider {
+.profile-lock-row input:checked + .slider {
   background-color: var(--accent-tea);
 }
 
-.admin-lock-wrapper input:checked + .slider:before {
+.profile-lock-row input:checked + .slider:before {
   transform: translateX(16px);
-}
-
-@media (max-width: 640px) {
-  .top-bar-right {
-    gap: 6px;
-  }
-  .admin-lock-wrapper {
-    padding: 6px 10px;
-    gap: 4px;
-  }
 }
 
 .admin-form {

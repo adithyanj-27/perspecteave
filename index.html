@@ -43,6 +43,20 @@
               <p class="profile-email" id="profileDetailEmail">admin@perspecteave.com</p>
               <div id="profileVerifyContainer" style="margin-top: 6px;"></div>
             </div>
+            <!-- Site Lock Option inside profile panel -->
+            <div class="profile-lock-row" id="adminLockWrapper" style="display: none;" title="Site Lock (Show 404)">
+              <span class="lock-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" class="lock-icon">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Site Lock</span>
+              </span>
+              <label class="switch">
+                <input type="checkbox" id="siteLockToggle">
+                <span class="slider round"></span>
+              </label>
+            </div>
             <button class="btn-dropdown-notifications" id="dropdownNotificationsBtn" style="display: none;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
               <span id="notificationsBtnText">Enable Notifications</span>
@@ -67,17 +81,6 @@
 
       <!-- Right Side Actions -->
       <div class="top-bar-right">
-        <!-- Site Lock Toggle (only visible to admin) -->
-        <div class="admin-lock-wrapper" id="adminLockWrapper" style="display: none;" title="Site Lock (Show 404)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" class="lock-icon" style="margin-right: 6px;">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          <label class="switch">
-            <input type="checkbox" id="siteLockToggle">
-            <span class="slider round"></span>
-          </label>
-        </div>
 
         <!-- Theme Toggle Button -->
         <button class="btn-theme-toggle" id="themeToggleBtn" aria-label="Toggle dark/light theme" title="Toggle theme">
