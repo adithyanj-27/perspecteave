@@ -166,3 +166,34 @@ CREATE POLICY "Allow anyone to insert post views" ON public.post_views
 ALTER TABLE public.posts 
 ADD COLUMN IF NOT EXISTS private BOOLEAN DEFAULT false;
 
+-- ===================================================================
+-- 10. Setup site_settings table and policies
+-- ===================================================================
+CREATE TABLE IF NOT EXISTS public.site_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+
+-- Read policy: Anyone can read settings
+DROP POLICY IF EXISTS "Allow anyone to read settings" ON public.site_settings;
+CREATE POLICY "Allow anyone to read settings" ON public.site_settings
+    FOR SELECT TO anon, authenticated
+    USING (true);
+
+-- Update/Insert policy: Only teaboy27@perspecteave.com can update settings
+DROP POLICY IF EXISTS "Allow teaboy27 to update settings" ON public.site_settings;
+CREATE POLICY "Allow teaboy27 to update settings" ON public.site_settings
+    FOR ALL TO anon, authenticated
+    USING (auth.jwt() ->> 'email' = 'teaboy27@perspecteave.com')
+    WITH CHECK (auth.jwt() ->> 'email' = 'teaboy27@perspecteave.com');
+
+-- Seed the admin_lock key
+INSERT INTO public.site_settings (key, value) 
+VALUES ('admin_lock', 'false')
+ON CONFLICT (key) DO NOTHING;
+
+
+

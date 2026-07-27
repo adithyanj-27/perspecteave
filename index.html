@@ -27,6 +27,7 @@
 <body>
 
   <div class="container">
+    <div id="mainContentWrapper">
 
     <!-- ===================== TOP BAR ===================== -->
     <nav class="top-bar" id="topBar">
@@ -173,7 +174,16 @@
 
     <!-- ===================== ADMIN PANEL ===================== -->
     <section class="admin-panel" id="adminPanel">
-      <h2 class="admin-title">New Perspective</h2>
+      <div class="admin-header-row">
+        <h2 class="admin-title">New Perspective</h2>
+        <div class="admin-settings-toggle">
+          <span class="settings-toggle-label">Site Lock (Show 404):</span>
+          <label class="switch">
+            <input type="checkbox" id="siteLockToggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
       <form class="admin-form" id="adminForm" onsubmit="return false;">
         <input type="text" id="adminQuestion" placeholder="The question you're thinking about…" required>
         <div class="edit-field-with-toolbar">
@@ -218,6 +228,16 @@
       </div>
       <p class="footer-copy">© 2026 PerspecTEAve. All perspectives welcome.</p>
     </footer>
+
+    </div>
+
+    <!-- ===================== 404 PAGE ===================== -->
+    <div id="error404Page" class="error-404-container" style="display: none;">
+      <h1 class="error-code">404</h1>
+      <h2 class="error-title">Page Not Found</h2>
+      <p class="error-message">The page you are looking for does not exist or has been moved.</p>
+      <a href="/" class="btn-error-home">Go back to home</a>
+    </div>
 
   </div>
 

@@ -94,6 +94,7 @@ const VIEWS_KEY = 'perspecteave_post_views_v3';
 let appPosts = [];
 let appComments = {};
 let appPostViews = {};
+let isSiteLocked = false;
 // Categories / Themes data
 const AVAILABLE_THEMES = [
   { value: 'Scholarly', label: 'Scholarly (Politics, History, Geopolitics)' },
@@ -308,6 +309,93 @@ async function fetchPostViews() {
   } catch (err) {
     console.error('Error fetching post views from Supabase:', err);
     return load(VIEWS_KEY) || {};
+  }
+}
+
+async function fetchSiteSettings() {
+  if (!isConfigured) {
+    const local = load('perspecteave_site_settings_v3');
+    return local || { admin_lock: 'false' };
+  }
+  try {
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('*')
+      .eq('key', 'admin_lock')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return { admin_lock: data ? data.value : 'false' };
+  } catch (err) {
+    console.error('Error fetching site settings from Supabase:', err);
+    const local = load('perspecteave_site_settings_v3');
+    return local || { admin_lock: 'false' };
+  }
+}
+
+async function toggleAdminLock(value) {
+  const valueStr = String(value);
+  if (!isConfigured) {
+    save('perspecteave_site_settings_v3', { admin_lock: valueStr });
+  } else {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ key: 'admin_lock', value: valueStr });
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error toggling admin lock in Supabase:', err);
+      alert('Could not update lock setting. Check console.');
+      return;
+    }
+  }
+  isSiteLocked = (valueStr === 'true');
+  applySiteLockUI();
+}
+
+function applySiteLockUI() {
+  const isUserAdmin = isAdmin(currentSession);
+  const urlParams = new URLSearchParams(window.location.search);
+  const bypassLock = urlParams.get('admin') === 'true' || urlParams.get('login') === 'true';
+
+  const wrapper = document.getElementById('mainContentWrapper');
+  const errorPage = document.getElementById('error404Page');
+  
+  if (isSiteLocked && !isUserAdmin && !bypassLock) {
+    if (wrapper) wrapper.style.display = 'none';
+    if (errorPage) errorPage.style.display = 'flex';
+  } else {
+    if (wrapper) wrapper.style.display = 'block';
+    if (errorPage) errorPage.style.display = 'none';
+    
+    // Automatically open login overlay if bypassing lock
+    if (isSiteLocked && !isUserAdmin && bypassLock) {
+      const loginOverlay = document.getElementById('loginOverlay');
+      if (loginOverlay) loginOverlay.classList.add('open');
+    }
+  }
+
+  // Update toggle state in admin panel
+  const toggle = document.getElementById('siteLockToggle');
+  if (toggle) {
+    toggle.checked = isSiteLocked;
+  }
+}
+
+function setupAdminLock() {
+  const toggle = document.getElementById('siteLockToggle');
+  if (toggle && !toggle.dataset.listenerAttached) {
+    toggle.dataset.listenerAttached = 'true';
+    toggle.addEventListener('change', async (e) => {
+      const checked = e.target.checked;
+      if (confirm(`Are you sure you want to ${checked ? 'lock' : 'unlock'} the site? (Locked site shows 404 for others)`)) {
+        await toggleAdminLock(checked);
+      } else {
+        // Revert toggle state if cancelled
+        e.target.checked = !checked;
+      }
+    });
   }
 }
 
@@ -2452,6 +2540,7 @@ async function updateAuthUI(session) {
     renderUserRequests();
     updateUserMessagesBadge();
   }
+  applySiteLockUI();
 }
 
 // ---- Setup Auth Events ----
@@ -4422,6 +4511,14 @@ async function init() {
   // Load comments
   appComments = await fetchComments();
 
+  // Load site settings
+  try {
+    const settings = await fetchSiteSettings();
+    isSiteLocked = (settings.admin_lock === 'true');
+  } catch (err) {
+    console.error('Failed to load site settings:', err);
+  }
+
   // Load topic requests
   await loadTopicRequests();
 
@@ -4465,6 +4562,7 @@ async function init() {
   setupRequestForm();
   setupAdminMessages();
   setupNotificationsBtn();
+  setupAdminLock();
   // Realtime notifications are set up via updateAuthUI when admin logs in
 
   // Trigger initial UI render based on current auth state
