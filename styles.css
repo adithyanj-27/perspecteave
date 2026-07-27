@@ -3962,24 +3962,36 @@ footer {
   line-height: 1.6;
 }
 
-.btn-error-home {
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: white;
-  background: var(--accent-tea);
-  padding: 10px 24px;
-  border-radius: 20px;
-  text-decoration: none;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 12px rgba(214, 142, 73, 0.2);
+/* Error Page Easter Egg Cup */
+.error-cup-wrapper {
+  margin: var(--space-xl) auto 0 auto;
+  display: inline-block;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.3s var(--ease-spring);
 }
 
-.btn-error-home:hover {
-  background: #c07a38;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(214, 142, 73, 0.3);
+.error-cup-wrapper:hover {
+  transform: scale(1.1) rotate(-5deg);
+  color: var(--accent-tea);
 }
+
+/* Cozy steam line animation */
+@keyframes steamFloat {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.5; }
+  50% { transform: translateY(-4px) scaleY(1.1); opacity: 0.8; }
+  100% { transform: translateY(0) scaleY(1); opacity: 0.5; }
+}
+
+.error-cup-svg .steam-line-1,
+.error-cup-svg .steam-line-2,
+.error-cup-svg .steam-line-3 {
+  animation: steamFloat 2.5s ease-in-out infinite;
+}
+
+.error-cup-svg .steam-line-1 { animation-delay: 0s; }
+.error-cup-svg .steam-line-2 { animation-delay: 0.8s; }
+.error-cup-svg .steam-line-3 { animation-delay: 1.6s; }
 
 
 

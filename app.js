@@ -397,6 +397,32 @@ function setupAdminLock() {
       }
     });
   }
+
+  // Setup triple-click easter egg on the 404 cup to open the admin login panel
+  const errorCup = document.getElementById('errorCup');
+  if (errorCup && !errorCup.dataset.listenerAttached) {
+    errorCup.dataset.listenerAttached = 'true';
+    let clickCount = 0;
+    let clickTimer = null;
+    errorCup.addEventListener('click', () => {
+      clickCount++;
+      if (clickTimer) clearTimeout(clickTimer);
+      
+      if (clickCount === 3) {
+        clickCount = 0;
+        const loginOverlay = document.getElementById('loginOverlay');
+        if (loginOverlay) {
+          loginOverlay.classList.add('open');
+          const loginUsername = document.getElementById('loginUsername');
+          if (loginUsername) loginUsername.focus();
+        }
+      } else {
+        clickTimer = setTimeout(() => {
+          clickCount = 0;
+        }, 500); // 500ms threshold for triple click
+      }
+    });
+  }
 }
 
 // ---- HTML Helpers ----
