@@ -2462,6 +2462,11 @@ async function updateAuthUI(session) {
     el.style.display = adminLoggedIn ? 'flex' : 'none';
   });
 
+  const adminLockWrapper = document.getElementById('adminLockWrapper');
+  if (adminLockWrapper) {
+    adminLockWrapper.style.display = adminLoggedIn ? 'flex' : 'none';
+  }
+
   if (loggedIn) {
     loginBtn.style.display = 'none';
     if (profileWidget) profileWidget.style.display = 'block';
