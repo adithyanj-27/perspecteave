@@ -248,14 +248,16 @@
 
     <!-- ===================== 404 PAGE ===================== -->
     <div id="error404Page" class="error-404-container" style="display: none;">
-      <h1 class="error-code">404</h1>
+      <h1 class="error-code">
+        <span>4</span><span id="dropzoneZero" class="dropzone-zero">0</span><span>4</span>
+      </h1>
       <h2 class="error-title">Page Not Found</h2>
       <p class="error-message">The page you are looking for does not exist or has been moved.</p>
       
       <!-- Interactive Easter Egg Cup to login -->
-      <div class="error-cup-wrapper" id="errorCup" title="A cozy cup of tea">
-        <img class="logo-light" src="/logo.png" alt="PerspecTEAve Logo" style="width: 72px; height: 72px; object-fit: contain;">
-        <img class="logo-dark" src="/logo_dark.png" alt="PerspecTEAve Logo" style="width: 72px; height: 72px; object-fit: contain;">
+      <div class="error-cup-wrapper" id="errorCup" title="Drag me to the 0" draggable="true">
+        <img class="logo-light" src="/logo.png" alt="PerspecTEAve Logo" style="width: 72px; height: 72px; object-fit: contain; pointer-events: none;">
+        <img class="logo-dark" src="/logo_dark.png" alt="PerspecTEAve Logo" style="width: 72px; height: 72px; object-fit: contain; pointer-events: none;">
       </div>
     </div>
 

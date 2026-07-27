@@ -398,28 +398,94 @@ function setupAdminLock() {
     });
   }
 
-  // Setup triple-click easter egg on the 404 cup to open the admin login panel
+  // Setup drag-and-drop / touch-drag bypass to login panel
   const errorCup = document.getElementById('errorCup');
-  if (errorCup && !errorCup.dataset.listenerAttached) {
-    errorCup.dataset.listenerAttached = 'true';
-    let clickCount = 0;
-    let clickTimer = null;
-    errorCup.addEventListener('click', () => {
-      clickCount++;
-      if (clickTimer) clearTimeout(clickTimer);
+  const dropzoneZero = document.getElementById('dropzoneZero');
+  
+  if (errorCup && dropzoneZero && !errorCup.dataset.dragAttached) {
+    errorCup.dataset.dragAttached = 'true';
+    
+    // --- HTML5 Drag and Drop (Desktop) ---
+    errorCup.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', 'cup');
+      e.dataTransfer.effectAllowed = 'move';
+      errorCup.classList.add('dragging');
+    });
+
+    errorCup.addEventListener('dragend', () => {
+      errorCup.classList.remove('dragging');
+      dropzoneZero.classList.remove('drag-over');
+    });
+
+    dropzoneZero.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      dropzoneZero.classList.add('drag-over');
+    });
+
+    dropzoneZero.addEventListener('dragleave', () => {
+      dropzoneZero.classList.remove('drag-over');
+    });
+
+    dropzoneZero.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzoneZero.classList.remove('drag-over');
       
-      if (clickCount === 3) {
-        clickCount = 0;
+      const loginOverlay = document.getElementById('loginOverlay');
+      if (loginOverlay) {
+        loginOverlay.classList.add('open');
+        const loginUsername = document.getElementById('loginUsername');
+        if (loginUsername) loginUsername.focus();
+      }
+    });
+
+    // --- Touch Dragging (Mobile) ---
+    let touchStartX = 0;
+    let touchStartY = 0;
+    
+    errorCup.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      errorCup.classList.add('dragging');
+    }, { passive: true });
+
+    errorCup.addEventListener('touchmove', (e) => {
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      
+      // Move the cup visually under the finger
+      errorCup.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.1) rotate(-5deg)`;
+      errorCup.style.zIndex = '999';
+      
+      // Check if finger is hovering over the Zero dropzone
+      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (elem === dropzoneZero || dropzoneZero.contains(elem)) {
+        dropzoneZero.classList.add('drag-over');
+      } else {
+        dropzoneZero.classList.remove('drag-over');
+      }
+    }, { passive: true });
+
+    errorCup.addEventListener('touchend', (e) => {
+      errorCup.classList.remove('dragging');
+      errorCup.style.transform = '';
+      errorCup.style.zIndex = '';
+      
+      const touch = e.changedTouches[0];
+      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+      
+      const isOverZero = (elem === dropzoneZero || dropzoneZero.contains(elem));
+      dropzoneZero.classList.remove('drag-over');
+      
+      if (isOverZero) {
         const loginOverlay = document.getElementById('loginOverlay');
         if (loginOverlay) {
           loginOverlay.classList.add('open');
           const loginUsername = document.getElementById('loginUsername');
           if (loginUsername) loginUsername.focus();
         }
-      } else {
-        clickTimer = setTimeout(() => {
-          clickCount = 0;
-        }, 500); // 500ms threshold for triple click
       }
     });
   }

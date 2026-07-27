@@ -3966,12 +3966,41 @@ footer {
 .error-cup-wrapper {
   margin: var(--space-xl) auto 0 auto;
   display: inline-block;
-  cursor: pointer;
-  transition: all 0.3s var(--ease-spring);
+  cursor: grab;
+  transition: transform 0.3s var(--ease-spring), opacity 0.3s ease;
+  user-select: none;
+  -webkit-user-drag: element;
 }
 
 .error-cup-wrapper:hover {
   transform: scale(1.1) rotate(-5deg);
+}
+
+.error-cup-wrapper:active {
+  cursor: grabbing;
+}
+
+.error-cup-wrapper.dragging {
+  opacity: 0.5;
+  transform: scale(0.9);
+  cursor: grabbing;
+}
+
+/* Dropzone Zero Target inside 404 */
+.error-code span {
+  display: inline-block;
+  transition: all 0.3s var(--ease-spring);
+}
+
+.error-code .dropzone-zero {
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
+}
+
+.error-code .dropzone-zero.drag-over {
+  color: var(--accent-matcha);
+  transform: scale(1.25);
+  text-shadow: 0 0 25px rgba(69, 100, 60, 0.4);
 }
 
 
