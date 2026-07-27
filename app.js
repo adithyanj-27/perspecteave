@@ -96,6 +96,7 @@ let appComments = {};
 let appPostViews = {};
 let isSiteLocked = false;
 let allowedVisitors = ['garry', 'remin', 'jishnu', 'jiya'];
+let hasVisitorBypass = false;
 // Categories / Themes data
 const AVAILABLE_THEMES = [
   { value: 'Scholarly', label: 'Scholarly (Politics, History, Geopolitics)' },
@@ -356,9 +357,7 @@ async function toggleAdminLock(value) {
 }
 
 function checkVisitorBypass() {
-  const activeBypass = sessionStorage.getItem('perspecteave_visitor_bypass');
-  if (!activeBypass) return false;
-  return allowedVisitors.map(v => v.toLowerCase()).includes(activeBypass.toLowerCase());
+  return hasVisitorBypass;
 }
 
 function applySiteLockUI() {
@@ -706,14 +705,13 @@ function setupBypassManagement() {
     });
   }
 
-  // Submit visitor bypass credentials
   const handleVisitorBypassSubmit = () => {
     const enteredName = visitorBypassName.value.trim();
     if (!enteredName) return;
     
     const isWhitelisted = allowedVisitors.map(v => v.toLowerCase()).includes(enteredName.toLowerCase());
     if (isWhitelisted) {
-      sessionStorage.setItem('perspecteave_visitor_bypass', enteredName);
+      hasVisitorBypass = true;
       visitorBypassOverlay.classList.remove('open');
       visitorBypassName.value = '';
       if (visitorBypassError) visitorBypassError.style.display = 'none';
