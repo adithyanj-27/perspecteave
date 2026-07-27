@@ -27,6 +27,25 @@
 <body>
 
   <div class="container">
+
+    <!-- ===================== LOGIN MODAL ===================== -->
+    <div class="modal-overlay" id="loginOverlay">
+      <div class="modal-card">
+        <h2 class="modal-title" id="modalTitle">Welcome back</h2>
+        <p class="modal-subtitle" id="modalSubtitle">Sign in to manage your perspectives.</p>
+        <form class="login-form" id="loginForm" onsubmit="return false;">
+          <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username" required>
+          <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password" required>
+          <p class="login-error" id="loginError">Incorrect username or password</p>
+          <button type="button" class="btn-login-submit" id="loginSubmitBtn">Sign in</button>
+        </form>
+        <div class="modal-toggle-wrapper" style="display: flex; flex-direction: column; gap: var(--space-xs); align-items: center;">
+          <a href="#" class="modal-toggle-link" id="modalToggleLink" style="display: none;">Don't have an account? Sign up</a>
+        </div>
+        <button class="modal-close" id="loginCloseBtn">×</button>
+      </div>
+    </div>
+
     <div id="mainContentWrapper">
 
     <!-- ===================== TOP BAR ===================== -->
@@ -148,23 +167,7 @@
       </div>
     </nav>
 
-    <!-- ===================== LOGIN MODAL ===================== -->
-    <div class="modal-overlay" id="loginOverlay">
-      <div class="modal-card">
-        <h2 class="modal-title" id="modalTitle">Welcome back</h2>
-        <p class="modal-subtitle" id="modalSubtitle">Sign in to manage your perspectives.</p>
-        <form class="login-form" id="loginForm" onsubmit="return false;">
-          <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username" required>
-          <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password" required>
-          <p class="login-error" id="loginError">Incorrect username or password</p>
-          <button type="button" class="btn-login-submit" id="loginSubmitBtn">Sign in</button>
-        </form>
-        <div class="modal-toggle-wrapper" style="display: flex; flex-direction: column; gap: var(--space-xs); align-items: center;">
-          <a href="#" class="modal-toggle-link" id="modalToggleLink" style="display: none;">Don't have an account? Sign up</a>
-        </div>
-        <button class="modal-close" id="loginCloseBtn">×</button>
-      </div>
-    </div>
+
 
 
     <!-- ===================== HEADER ===================== -->
