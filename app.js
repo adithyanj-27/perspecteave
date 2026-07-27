@@ -716,6 +716,9 @@ function setupBypassManagement() {
       visitorBypassName.value = '';
       if (visitorBypassError) visitorBypassError.style.display = 'none';
       
+      // Notify the admin of the bypass access
+      sendPushNotification('Site Lock Bypass', `Visitor "${enteredName}" has accessed the site.`);
+      
       // Refresh lock UI and show page
       applySiteLockUI();
     } else {
