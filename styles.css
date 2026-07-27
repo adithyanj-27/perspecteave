@@ -4002,8 +4002,39 @@ footer {
   transform: scale(1.25);
   text-shadow: 0 0 25px rgba(69, 100, 60, 0.4);
 }
+#manageBypassBtn:hover {
+  color: var(--accent-tea) !important;
+  border-color: var(--accent-tea) !important;
+  background: rgba(214, 142, 73, 0.04) !important;
+}
 
+/* Whitelist Styles */
+.whitelist-names-list::-webkit-scrollbar {
+  width: 6px;
+}
 
+.whitelist-names-list::-webkit-scrollbar-track {
+  background: transparent;
+}
 
+.whitelist-names-list::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 3px;
+}
 
+.whitelist-item {
+  transition: border-color 0.2s ease;
+}
 
+.whitelist-item:hover {
+  border-color: var(--border-card) !important;
+}
+
+.btn-delete-whitelist {
+  transition: all 0.2s ease;
+}
+
+.btn-delete-whitelist:hover {
+  color: var(--cat-flaw-hover) !important;
+  transform: scale(1.2);
+}

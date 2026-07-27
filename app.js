@@ -95,6 +95,7 @@ let appPosts = [];
 let appComments = {};
 let appPostViews = {};
 let isSiteLocked = false;
+let allowedVisitors = ['garry', 'remin', 'jishnu', 'jiya'];
 // Categories / Themes data
 const AVAILABLE_THEMES = [
   { value: 'Scholarly', label: 'Scholarly (Politics, History, Geopolitics)' },
@@ -354,10 +355,17 @@ async function toggleAdminLock(value) {
   applySiteLockUI();
 }
 
+function checkVisitorBypass() {
+  const activeBypass = sessionStorage.getItem('perspecteave_visitor_bypass');
+  if (!activeBypass) return false;
+  return allowedVisitors.map(v => v.toLowerCase()).includes(activeBypass.toLowerCase());
+}
+
 function applySiteLockUI() {
   const isUserAdmin = isAdmin(currentSession);
   const urlParams = new URLSearchParams(window.location.search);
-  const bypassLock = urlParams.get('admin') === 'true' || urlParams.get('login') === 'true';
+  const hasVisitorBypass = checkVisitorBypass();
+  const bypassLock = urlParams.get('admin') === 'true' || urlParams.get('login') === 'true' || hasVisitorBypass;
 
   const wrapper = document.getElementById('mainContentWrapper');
   const errorPage = document.getElementById('error404Page');
@@ -370,7 +378,7 @@ function applySiteLockUI() {
     if (errorPage) errorPage.style.display = 'none';
     
     // Automatically open login overlay if bypassing lock
-    if (isSiteLocked && !isUserAdmin && bypassLock) {
+    if (isSiteLocked && !isUserAdmin && bypassLock && !hasVisitorBypass) {
       const loginOverlay = document.getElementById('loginOverlay');
       if (loginOverlay) loginOverlay.classList.add('open');
     }
@@ -449,12 +457,13 @@ function setupAdminLock() {
     // --- Touch Dragging (Mobile) ---
     let touchStartX = 0;
     let touchStartY = 0;
+    let isTouchDragging = false;
     
     errorCup.addEventListener('touchstart', (e) => {
       const touch = e.touches[0];
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
-      errorCup.classList.add('dragging');
+      isTouchDragging = false;
     }, { passive: true });
 
     errorCup.addEventListener('touchmove', (e) => {
@@ -462,41 +471,268 @@ function setupAdminLock() {
       const deltaX = touch.clientX - touchStartX;
       const deltaY = touch.clientY - touchStartY;
       
-      // Move the cup visually under the finger
-      errorCup.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.1) rotate(-5deg)`;
-      errorCup.style.zIndex = '999';
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        isTouchDragging = true;
+        errorCup.classList.add('dragging');
+      }
       
-      // Check if finger is hovering over the Zero dropzone or the header
-      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-      const isOverTarget = (elem === dropzoneZero || dropzoneZero.contains(elem) || 
-                            elem === errorCodeHeader || errorCodeHeader.contains(elem));
-      if (isOverTarget) {
-        dropzoneZero.classList.add('drag-over');
-      } else {
-        dropzoneZero.classList.remove('drag-over');
+      if (isTouchDragging) {
+        // Move the cup visually under the finger
+        errorCup.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.1) rotate(-5deg)`;
+        errorCup.style.zIndex = '999';
+        
+        // Check if finger is hovering over the Zero dropzone or the header
+        const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+        const isOverTarget = (elem === dropzoneZero || dropzoneZero.contains(elem) || 
+                              elem === errorCodeHeader || errorCodeHeader.contains(elem));
+        if (isOverTarget) {
+          dropzoneZero.classList.add('drag-over');
+        } else {
+          dropzoneZero.classList.remove('drag-over');
+        }
       }
     }, { passive: true });
 
     errorCup.addEventListener('touchend', (e) => {
-      errorCup.classList.remove('dragging');
-      errorCup.style.transform = '';
-      errorCup.style.zIndex = '';
-      
-      const touch = e.changedTouches[0];
-      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-      
-      const isOverTarget = (elem === dropzoneZero || dropzoneZero.contains(elem) || 
-                            elem === errorCodeHeader || errorCodeHeader.contains(elem));
-      dropzoneZero.classList.remove('drag-over');
-      
-      if (isOverTarget) {
-        const loginOverlay = document.getElementById('loginOverlay');
-        if (loginOverlay) {
-          loginOverlay.classList.add('open');
-          const loginUsername = document.getElementById('loginUsername');
-          if (loginUsername) loginUsername.focus();
+      if (isTouchDragging) {
+        errorCup.classList.remove('dragging');
+        errorCup.style.transform = '';
+        errorCup.style.zIndex = '';
+        
+        const touch = e.changedTouches[0];
+        const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        const isOverTarget = (elem === dropzoneZero || dropzoneZero.contains(elem) || 
+                              elem === errorCodeHeader || errorCodeHeader.contains(elem));
+        dropzoneZero.classList.remove('drag-over');
+        
+        if (isOverTarget) {
+          const loginOverlay = document.getElementById('loginOverlay');
+          if (loginOverlay) {
+            loginOverlay.classList.add('open');
+            const loginUsername = document.getElementById('loginUsername');
+            if (loginUsername) loginUsername.focus();
+          }
         }
       }
+    });
+
+    // --- Double-Click / Double-Tap Bypass Modal ---
+    let lastTapTime = 0;
+    
+    // Desktop double-click
+    errorCup.addEventListener('dblclick', (e) => {
+      const bypassOverlay = document.getElementById('visitorBypassOverlay');
+      if (bypassOverlay) {
+        bypassOverlay.classList.add('open');
+        const nameInput = document.getElementById('visitorBypassName');
+        if (nameInput) nameInput.focus();
+      }
+    });
+
+    // Mobile double-tap
+    errorCup.addEventListener('click', (e) => {
+      if (isTouchDragging) return;
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTapTime;
+      if (tapLength < 300 && tapLength > 0) {
+        const bypassOverlay = document.getElementById('visitorBypassOverlay');
+        if (bypassOverlay) {
+          bypassOverlay.classList.add('open');
+          const nameInput = document.getElementById('visitorBypassName');
+          if (nameInput) nameInput.focus();
+        }
+        e.preventDefault();
+      }
+      lastTapTime = currentTime;
+    });
+  }
+}
+
+async function fetchAllowedVisitors() {
+  if (isConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'allowed_visitors')
+        .single();
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Key doesn't exist yet, seed the default list
+          await supabase
+            .from('site_settings')
+            .insert({ key: 'allowed_visitors', value: JSON.stringify(allowedVisitors) });
+        } else {
+          throw error;
+        }
+      } else if (data) {
+        allowedVisitors = JSON.parse(data.value);
+      }
+    } catch (err) {
+      console.error('Error fetching allowed visitors from Supabase:', err);
+    }
+  } else {
+    const local = localStorage.getItem('perspecteave_allowed_visitors');
+    if (local) {
+      allowedVisitors = JSON.parse(local);
+    } else {
+      localStorage.setItem('perspecteave_allowed_visitors', JSON.stringify(allowedVisitors));
+    }
+  }
+}
+
+async function saveAllowedVisitors() {
+  if (isConfigured) {
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ key: 'allowed_visitors', value: JSON.stringify(allowedVisitors) });
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error saving allowed visitors to Supabase:', err);
+      alert('Could not save whitelist updates. Check console.');
+    }
+  } else {
+    localStorage.setItem('perspecteave_allowed_visitors', JSON.stringify(allowedVisitors));
+  }
+  renderWhitelistUI();
+}
+
+function renderWhitelistUI() {
+  const container = document.getElementById('whitelistNamesList');
+  if (!container) return;
+  
+  if (allowedVisitors.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin: 12px 0;">No names whitelisted yet.</p>`;
+    return;
+  }
+  
+  container.innerHTML = allowedVisitors.map(name => `
+    <div class="whitelist-item" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-primary); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--border-light);">
+      <span style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-primary); font-weight: 500;">${escapeHTML(name)}</span>
+      <button class="btn-delete-whitelist" data-name="${escapeHTML(name)}" style="background: none; border: none; color: var(--cat-flaw); cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; padding: 0;">×</button>
+    </div>
+  `).join('');
+}
+
+function setupBypassManagement() {
+  const manageBypassBtn = document.getElementById('manageBypassBtn');
+  const whitelistModal = document.getElementById('whitelistModal');
+  const closeWhitelistBtn = document.getElementById('closeWhitelistBtn');
+  const addWhitelistNameBtn = document.getElementById('addWhitelistNameBtn');
+  const newWhitelistName = document.getElementById('newWhitelistName');
+  const whitelistNamesList = document.getElementById('whitelistNamesList');
+
+  const visitorBypassOverlay = document.getElementById('visitorBypassOverlay');
+  const visitorBypassCloseBtn = document.getElementById('visitorBypassCloseBtn');
+  const visitorBypassForm = document.getElementById('visitorBypassForm');
+  const visitorBypassSubmitBtn = document.getElementById('visitorBypassSubmitBtn');
+  const visitorBypassName = document.getElementById('visitorBypassName');
+  const visitorBypassError = document.getElementById('visitorBypassError');
+
+  // Open Whitelist management modal
+  if (manageBypassBtn && whitelistModal) {
+    manageBypassBtn.addEventListener('click', () => {
+      whitelistModal.classList.add('open');
+      renderWhitelistUI();
+    });
+  }
+
+  // Close Whitelist management modal
+  if (closeWhitelistBtn && whitelistModal) {
+    closeWhitelistBtn.addEventListener('click', () => {
+      whitelistModal.classList.remove('open');
+    });
+    // Click outside to close
+    whitelistModal.addEventListener('click', (e) => {
+      if (e.target === whitelistModal) whitelistModal.classList.remove('open');
+    });
+  }
+
+  // Add name to whitelist
+  if (addWhitelistNameBtn && newWhitelistName) {
+    addWhitelistNameBtn.addEventListener('click', async () => {
+      const name = newWhitelistName.value.trim();
+      if (!name) return;
+      
+      if (allowedVisitors.map(v => v.toLowerCase()).includes(name.toLowerCase())) {
+        alert('This name is already on the access list.');
+        return;
+      }
+      
+      allowedVisitors.push(name);
+      await saveAllowedVisitors();
+      newWhitelistName.value = '';
+    });
+    
+    // Add on Enter key
+    newWhitelistName.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addWhitelistNameBtn.click();
+      }
+    });
+  }
+
+  // Delete name from whitelist
+  if (whitelistNamesList) {
+    whitelistNamesList.addEventListener('click', async (e) => {
+      const deleteBtn = e.target.closest('.btn-delete-whitelist');
+      if (deleteBtn) {
+        const nameToDelete = deleteBtn.getAttribute('data-name');
+        if (nameToDelete) {
+          allowedVisitors = allowedVisitors.filter(v => v.toLowerCase() !== nameToDelete.toLowerCase());
+          await saveAllowedVisitors();
+        }
+      }
+    });
+  }
+
+  // Close Visitor Bypass overlay
+  if (visitorBypassCloseBtn && visitorBypassOverlay) {
+    visitorBypassCloseBtn.addEventListener('click', () => {
+      visitorBypassOverlay.classList.remove('open');
+      if (visitorBypassError) visitorBypassError.style.display = 'none';
+      if (visitorBypassName) visitorBypassName.value = '';
+    });
+    // Click outside to close
+    visitorBypassOverlay.addEventListener('click', (e) => {
+      if (e.target === visitorBypassOverlay) {
+        visitorBypassOverlay.classList.remove('open');
+        if (visitorBypassError) visitorBypassError.style.display = 'none';
+        if (visitorBypassName) visitorBypassName.value = '';
+      }
+    });
+  }
+
+  // Submit visitor bypass credentials
+  const handleVisitorBypassSubmit = () => {
+    const enteredName = visitorBypassName.value.trim();
+    if (!enteredName) return;
+    
+    const isWhitelisted = allowedVisitors.map(v => v.toLowerCase()).includes(enteredName.toLowerCase());
+    if (isWhitelisted) {
+      sessionStorage.setItem('perspecteave_visitor_bypass', enteredName);
+      visitorBypassOverlay.classList.remove('open');
+      visitorBypassName.value = '';
+      if (visitorBypassError) visitorBypassError.style.display = 'none';
+      
+      // Refresh lock UI and show page
+      applySiteLockUI();
+    } else {
+      if (visitorBypassError) visitorBypassError.style.display = 'block';
+    }
+  };
+
+  if (visitorBypassSubmitBtn) {
+    visitorBypassSubmitBtn.addEventListener('click', handleVisitorBypassSubmit);
+  }
+  
+  if (visitorBypassForm) {
+    visitorBypassForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleVisitorBypassSubmit();
     });
   }
 }
@@ -4618,10 +4854,11 @@ async function init() {
   // Load comments
   appComments = await fetchComments();
 
-  // Load site settings
+  // Load site settings and allowed visitors whitelist
   try {
     const settings = await fetchSiteSettings();
     isSiteLocked = (settings.admin_lock === 'true');
+    await fetchAllowedVisitors();
   } catch (err) {
     console.error('Failed to load site settings:', err);
   }
@@ -4670,6 +4907,7 @@ async function init() {
   setupAdminMessages();
   setupNotificationsBtn();
   setupAdminLock();
+  setupBypassManagement();
   // Realtime notifications are set up via updateAuthUI when admin logs in
 
   // Trigger initial UI render based on current auth state

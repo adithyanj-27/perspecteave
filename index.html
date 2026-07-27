@@ -46,6 +46,39 @@
       </div>
     </div>
 
+    <!-- ===================== VISITOR BYPASS MODAL ===================== -->
+    <div class="modal-overlay" id="visitorBypassOverlay">
+      <div class="modal-card">
+        <h2 class="modal-title">Enter Access Name</h2>
+        <p class="modal-subtitle">Type your name to view the site during maintenance.</p>
+        <form class="login-form" id="visitorBypassForm" onsubmit="return false;">
+          <input type="text" id="visitorBypassName" placeholder="Enter your name" required>
+          <p class="login-error" id="visitorBypassError">Access denied. Name not whitelisted.</p>
+          <button type="button" class="btn-login-submit" id="visitorBypassSubmitBtn">Enter Site</button>
+        </form>
+        <button class="modal-close" id="visitorBypassCloseBtn">×</button>
+      </div>
+    </div>
+
+    <!-- ===================== WHITELIST MANAGER MODAL ===================== -->
+    <div class="modal-overlay" id="whitelistModal">
+      <div class="modal-card">
+        <h2 class="modal-title">Manage Whitelist</h2>
+        <p class="modal-subtitle">Add or remove names allowed to bypass lock mode.</p>
+        
+        <div class="whitelist-input-row" style="display: flex; gap: 8px; margin-bottom: 16px; width: 100%;">
+          <input type="text" id="newWhitelistName" placeholder="Enter name (e.g. Garry)" style="margin-bottom: 0; flex: 1; padding: 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); outline: none;">
+          <button type="button" id="addWhitelistNameBtn" style="padding: 0 16px; min-width: auto; height: 42px; background: var(--accent-tea); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-body); font-weight: 600;">Add</button>
+        </div>
+        
+        <div class="whitelist-names-list" id="whitelistNamesList" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 8px; width: 100%; box-sizing: border-box;">
+          <!-- Dynamically populated tags with delete icons -->
+        </div>
+        
+        <button class="modal-close" id="closeWhitelistBtn">×</button>
+      </div>
+    </div>
+
     <div id="mainContentWrapper">
 
     <!-- ===================== TOP BAR ===================== -->
@@ -192,15 +225,9 @@
 
     <!-- ===================== ADMIN PANEL ===================== -->
     <section class="admin-panel" id="adminPanel">
-      <div class="admin-header-row">
+      <div class="admin-header-row" style="flex-wrap: wrap; gap: var(--space-md);">
         <h2 class="admin-title">New Perspective</h2>
-        <div class="admin-settings-toggle">
-          <span class="settings-toggle-label">Site Lock (Show 404):</span>
-          <label class="switch">
-            <input type="checkbox" id="siteLockToggle">
-            <span class="slider round"></span>
-          </label>
-        </div>
+        <button type="button" id="manageBypassBtn" style="padding: 6px 14px; min-width: auto; height: auto; font-size: 0.82rem; background: transparent; border: 1px solid var(--border-card); color: var(--text-secondary); border-radius: 20px; cursor: pointer; transition: all 0.3s var(--ease-out);">Manage Access Whitelist</button>
       </div>
       <form class="admin-form" id="adminForm" onsubmit="return false;">
         <input type="text" id="adminQuestion" placeholder="The question you're thinking about…" required>
