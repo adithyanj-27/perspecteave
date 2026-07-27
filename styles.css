@@ -3966,32 +3966,13 @@ footer {
 .error-cup-wrapper {
   margin: var(--space-xl) auto 0 auto;
   display: inline-block;
-  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.3s var(--ease-spring);
 }
 
 .error-cup-wrapper:hover {
   transform: scale(1.1) rotate(-5deg);
-  color: var(--accent-tea);
 }
-
-/* Cozy steam line animation */
-@keyframes steamFloat {
-  0% { transform: translateY(0) scaleY(1); opacity: 0.5; }
-  50% { transform: translateY(-4px) scaleY(1.1); opacity: 0.8; }
-  100% { transform: translateY(0) scaleY(1); opacity: 0.5; }
-}
-
-.error-cup-svg .steam-line-1,
-.error-cup-svg .steam-line-2,
-.error-cup-svg .steam-line-3 {
-  animation: steamFloat 2.5s ease-in-out infinite;
-}
-
-.error-cup-svg .steam-line-1 { animation-delay: 0s; }
-.error-cup-svg .steam-line-2 { animation-delay: 0.8s; }
-.error-cup-svg .steam-line-3 { animation-delay: 1.6s; }
 
 
 
