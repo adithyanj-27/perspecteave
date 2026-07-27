@@ -401,10 +401,16 @@ function setupAdminLock() {
   // Setup drag-and-drop / touch-drag bypass to login panel
   const errorCup = document.getElementById('errorCup');
   const dropzoneZero = document.getElementById('dropzoneZero');
+  const errorCodeHeader = document.querySelector('.error-code');
   
-  if (errorCup && dropzoneZero && !errorCup.dataset.dragAttached) {
+  if (errorCup && errorCodeHeader && dropzoneZero && !errorCup.dataset.dragAttached) {
     errorCup.dataset.dragAttached = 'true';
     
+    // Disable default image dragging on logo images
+    errorCup.querySelectorAll('img').forEach(img => {
+      img.setAttribute('draggable', 'false');
+    });
+
     // --- HTML5 Drag and Drop (Desktop) ---
     errorCup.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/plain', 'cup');
@@ -417,17 +423,18 @@ function setupAdminLock() {
       dropzoneZero.classList.remove('drag-over');
     });
 
-    dropzoneZero.addEventListener('dragover', (e) => {
+    // We listen on the entire 404 header for dragover to make it a large, easy target
+    errorCodeHeader.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       dropzoneZero.classList.add('drag-over');
     });
 
-    dropzoneZero.addEventListener('dragleave', () => {
+    errorCodeHeader.addEventListener('dragleave', () => {
       dropzoneZero.classList.remove('drag-over');
     });
 
-    dropzoneZero.addEventListener('drop', (e) => {
+    errorCodeHeader.addEventListener('drop', (e) => {
       e.preventDefault();
       dropzoneZero.classList.remove('drag-over');
       
@@ -459,9 +466,11 @@ function setupAdminLock() {
       errorCup.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.1) rotate(-5deg)`;
       errorCup.style.zIndex = '999';
       
-      // Check if finger is hovering over the Zero dropzone
+      // Check if finger is hovering over the Zero dropzone or the header
       const elem = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (elem === dropzoneZero || dropzoneZero.contains(elem)) {
+      const isOverTarget = (elem === dropzoneZero || dropzoneZero.contains(elem) || 
+                            elem === errorCodeHeader || errorCodeHeader.contains(elem));
+      if (isOverTarget) {
         dropzoneZero.classList.add('drag-over');
       } else {
         dropzoneZero.classList.remove('drag-over');
@@ -476,10 +485,11 @@ function setupAdminLock() {
       const touch = e.changedTouches[0];
       const elem = document.elementFromPoint(touch.clientX, touch.clientY);
       
-      const isOverZero = (elem === dropzoneZero || dropzoneZero.contains(elem));
+      const isOverTarget = (elem === dropzoneZero || dropzoneZero.contains(elem) || 
+                            elem === errorCodeHeader || errorCodeHeader.contains(elem));
       dropzoneZero.classList.remove('drag-over');
       
-      if (isOverZero) {
+      if (isOverTarget) {
         const loginOverlay = document.getElementById('loginOverlay');
         if (loginOverlay) {
           loginOverlay.classList.add('open');
