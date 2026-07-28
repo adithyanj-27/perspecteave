@@ -2806,6 +2806,11 @@ async function updateAuthUI(session) {
     adminLockWrapper.style.display = adminLoggedIn ? 'flex' : 'none';
   }
 
+  const manageBypassBtn = document.getElementById('manageBypassBtn');
+  if (manageBypassBtn) {
+    manageBypassBtn.style.display = adminLoggedIn ? 'flex' : 'none';
+  }
+
   if (loggedIn) {
     loginBtn.style.display = 'none';
     if (profileWidget) profileWidget.style.display = 'block';

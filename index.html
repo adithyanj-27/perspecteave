@@ -95,6 +95,17 @@
               <p class="profile-email" id="profileDetailEmail">admin@perspecteave.com</p>
               <div id="profileVerifyContainer" style="margin-top: 6px;"></div>
             </div>
+            <!-- Whitelist Option inside profile panel -->
+            <button class="btn-dropdown-whitelist" id="manageBypassBtn" style="display: none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>Access Whitelist</span>
+            </button>
+
             <!-- Site Lock Option inside profile panel -->
             <div class="profile-lock-row" id="adminLockWrapper" style="display: none;" title="Site Lock (Show 404)">
               <span class="lock-label">
@@ -225,9 +236,8 @@
 
     <!-- ===================== ADMIN PANEL ===================== -->
     <section class="admin-panel" id="adminPanel">
-      <div class="admin-header-row" style="flex-wrap: wrap; gap: var(--space-md);">
+      <div class="admin-header-row">
         <h2 class="admin-title">New Perspective</h2>
-        <button type="button" id="manageBypassBtn" style="padding: 6px 14px; min-width: auto; height: auto; font-size: 0.82rem; background: transparent; border: 1px solid var(--border-card); color: var(--text-secondary); border-radius: 20px; cursor: pointer; transition: all 0.3s var(--ease-out);">Manage Access Whitelist</button>
       </div>
       <form class="admin-form" id="adminForm" onsubmit="return false;">
         <input type="text" id="adminQuestion" placeholder="The question you're thinking about…" required>
