@@ -611,19 +611,19 @@ function renderWhitelistUI() {
   container.innerHTML = allowedVisitors.map((name, idx) => {
     if (editingWhitelistIndex === idx) {
       return `
-        <div class="whitelist-item editing" data-index="${idx}" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: var(--bg-primary); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--accent-tea);">
-          <input type="text" class="edit-whitelist-input" value="${escapeHTML(name)}" style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-primary); background: transparent; border: none; outline: none; flex: 1; padding: 2px 4px;">
-          <div style="display: flex; gap: 4px; align-items: center;">
-            <button class="btn-save-edit-whitelist" data-index="${idx}" style="background: var(--accent-tea); color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.78rem; font-weight: 600; padding: 3px 8px;">Save</button>
-            <button class="btn-cancel-edit-whitelist" data-index="${idx}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.78rem; padding: 3px 6px;">Cancel</button>
+        <div class="whitelist-item editing" data-index="${idx}" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: var(--bg-primary); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--accent-tea); width: 100%; box-sizing: border-box; gap: 8px;">
+          <input type="text" class="edit-whitelist-input" value="${escapeHTML(name)}" style="font-family: var(--font-body); font-size: 0.85rem; color: var(--text-primary); background: transparent; border: none; outline: none; flex: 1 1 0%; min-width: 0; padding: 2px 4px;">
+          <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+            <button class="btn-save-edit-whitelist" data-index="${idx}" style="background: var(--accent-tea); color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 4px 8px; white-space: nowrap;">Save</button>
+            <button class="btn-cancel-edit-whitelist" data-index="${idx}" style="background: transparent; border: 1px solid var(--border-light); color: var(--text-secondary); border-radius: 3px; cursor: pointer; font-size: 0.75rem; font-weight: 500; padding: 3px 7px; white-space: nowrap;">Cancel</button>
           </div>
         </div>
       `;
     }
     return `
-      <div class="whitelist-item" data-index="${idx}" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-primary); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--border-light);">
-        <span style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-primary); font-weight: 500;">${escapeHTML(name)}</span>
-        <div style="display: flex; gap: 8px; align-items: center;">
+      <div class="whitelist-item" data-index="${idx}" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-primary); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--border-light); width: 100%; box-sizing: border-box; gap: 8px;">
+        <span style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-primary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">${escapeHTML(name)}</span>
+        <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
           <button class="btn-edit-whitelist" data-index="${idx}" data-name="${escapeHTML(name)}" title="Edit name" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; padding: 2px; transition: color 0.2s;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" stroke-linecap="round" stroke-linejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
