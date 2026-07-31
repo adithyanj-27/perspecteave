@@ -97,6 +97,7 @@ let appPostViews = {};
 let isSiteLocked = false;
 let allowedVisitors = ['garry', 'remin', 'jishnu', 'jiya'];
 let hasVisitorBypass = false;
+let editingWhitelistIndex = null;
 // Categories / Themes data
 const AVAILABLE_THEMES = [
   { value: 'Scholarly', label: 'Scholarly (Politics, History, Geopolitics)' },
@@ -607,12 +608,66 @@ function renderWhitelistUI() {
     return;
   }
   
-  container.innerHTML = allowedVisitors.map(name => `
-    <div class="whitelist-item" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-primary); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--border-light);">
-      <span style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-primary); font-weight: 500;">${escapeHTML(name)}</span>
-      <button class="btn-delete-whitelist" data-name="${escapeHTML(name)}" style="background: none; border: none; color: var(--cat-flaw); cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; padding: 0;">×</button>
-    </div>
-  `).join('');
+  container.innerHTML = allowedVisitors.map((name, idx) => {
+    if (editingWhitelistIndex === idx) {
+      return `
+        <div class="whitelist-item editing" data-index="${idx}" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: var(--bg-primary); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--accent-tea);">
+          <input type="text" class="edit-whitelist-input" value="${escapeHTML(name)}" style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-primary); background: transparent; border: none; outline: none; flex: 1; padding: 2px 4px;">
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <button class="btn-save-edit-whitelist" data-index="${idx}" style="background: var(--accent-tea); color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.78rem; font-weight: 600; padding: 3px 8px;">Save</button>
+            <button class="btn-cancel-edit-whitelist" data-index="${idx}" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.78rem; padding: 3px 6px;">Cancel</button>
+          </div>
+        </div>
+      `;
+    }
+    return `
+      <div class="whitelist-item" data-index="${idx}" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-primary); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--border-light);">
+        <span style="font-family: var(--font-body); font-size: 0.88rem; color: var(--text-primary); font-weight: 500;">${escapeHTML(name)}</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn-edit-whitelist" data-index="${idx}" data-name="${escapeHTML(name)}" title="Edit name" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; padding: 2px; transition: color 0.2s;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <button class="btn-delete-whitelist" data-index="${idx}" data-name="${escapeHTML(name)}" title="Delete name" style="background: none; border: none; color: var(--cat-flaw); cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; padding: 0;">×</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (editingWhitelistIndex !== null) {
+    const editInput = container.querySelector('.edit-whitelist-input');
+    if (editInput) {
+      editInput.focus();
+      editInput.select();
+    }
+  }
+}
+
+async function handleSaveEditWhitelist(idx) {
+  const container = document.getElementById('whitelistNamesList');
+  if (!container || isNaN(idx) || idx < 0 || idx >= allowedVisitors.length) return;
+
+  const item = container.querySelector(`.whitelist-item[data-index="${idx}"]`);
+  const input = item ? item.querySelector('.edit-whitelist-input') : null;
+  if (!input) return;
+
+  const newName = input.value.trim();
+  if (!newName) {
+    alert('Name cannot be empty.');
+    return;
+  }
+
+  const alreadyExists = allowedVisitors.some((v, i) => i !== idx && v.toLowerCase() === newName.toLowerCase());
+  if (alreadyExists) {
+    alert('This name is already on the access list.');
+    return;
+  }
+
+  allowedVisitors[idx] = newName;
+  editingWhitelistIndex = null;
+  await saveAllowedVisitors();
 }
 
 function setupBypassManagement() {
@@ -633,6 +688,7 @@ function setupBypassManagement() {
   // Open Whitelist management modal
   if (manageBypassBtn && whitelistModal) {
     manageBypassBtn.addEventListener('click', () => {
+      editingWhitelistIndex = null;
       whitelistModal.classList.add('open');
       renderWhitelistUI();
     });
@@ -641,11 +697,15 @@ function setupBypassManagement() {
   // Close Whitelist management modal
   if (closeWhitelistBtn && whitelistModal) {
     closeWhitelistBtn.addEventListener('click', () => {
+      editingWhitelistIndex = null;
       whitelistModal.classList.remove('open');
     });
     // Click outside to close
     whitelistModal.addEventListener('click', (e) => {
-      if (e.target === whitelistModal) whitelistModal.classList.remove('open');
+      if (e.target === whitelistModal) {
+        editingWhitelistIndex = null;
+        whitelistModal.classList.remove('open');
+      }
     });
   }
 
@@ -660,6 +720,7 @@ function setupBypassManagement() {
         return;
       }
       
+      editingWhitelistIndex = null;
       allowedVisitors.push(name);
       await saveAllowedVisitors();
       newWhitelistName.value = '';
@@ -674,15 +735,65 @@ function setupBypassManagement() {
     });
   }
 
-  // Delete name from whitelist
+  // Whitelist item action buttons (Edit, Save, Cancel, Delete)
   if (whitelistNamesList) {
     whitelistNamesList.addEventListener('click', async (e) => {
+      // 1. Edit button
+      const editBtn = e.target.closest('.btn-edit-whitelist');
+      if (editBtn) {
+        const idx = parseInt(editBtn.getAttribute('data-index'), 10);
+        if (!isNaN(idx)) {
+          editingWhitelistIndex = idx;
+          renderWhitelistUI();
+        }
+        return;
+      }
+
+      // 2. Cancel edit button
+      const cancelBtn = e.target.closest('.btn-cancel-edit-whitelist');
+      if (cancelBtn) {
+        editingWhitelistIndex = null;
+        renderWhitelistUI();
+        return;
+      }
+
+      // 3. Save edit button
+      const saveBtn = e.target.closest('.btn-save-edit-whitelist');
+      if (saveBtn) {
+        const idx = parseInt(saveBtn.getAttribute('data-index'), 10);
+        await handleSaveEditWhitelist(idx);
+        return;
+      }
+
+      // 4. Delete button
       const deleteBtn = e.target.closest('.btn-delete-whitelist');
       if (deleteBtn) {
+        const idx = parseInt(deleteBtn.getAttribute('data-index'), 10);
         const nameToDelete = deleteBtn.getAttribute('data-name');
-        if (nameToDelete) {
+        if (!isNaN(idx)) {
+          allowedVisitors.splice(idx, 1);
+        } else if (nameToDelete) {
           allowedVisitors = allowedVisitors.filter(v => v.toLowerCase() !== nameToDelete.toLowerCase());
-          await saveAllowedVisitors();
+        }
+        editingWhitelistIndex = null;
+        await saveAllowedVisitors();
+        return;
+      }
+    });
+
+    // Enter key to save edit / Escape key to cancel edit
+    whitelistNamesList.addEventListener('keydown', async (e) => {
+      if (e.target.classList.contains('edit-whitelist-input')) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const item = e.target.closest('.whitelist-item');
+          if (item) {
+            const idx = parseInt(item.getAttribute('data-index'), 10);
+            await handleSaveEditWhitelist(idx);
+          }
+        } else if (e.key === 'Escape') {
+          editingWhitelistIndex = null;
+          renderWhitelistUI();
         }
       }
     });
