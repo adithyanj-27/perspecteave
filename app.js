@@ -328,7 +328,9 @@ async function fetchSiteSettings() {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-    return { admin_lock: data ? data.value : 'false' };
+    const valueStr = data ? data.value : 'false';
+    save('perspecteave_site_settings_v3', { admin_lock: valueStr });
+    return { admin_lock: valueStr };
   } catch (err) {
     console.error('Error fetching site settings from Supabase:', err);
     const local = load('perspecteave_site_settings_v3');
@@ -338,9 +340,8 @@ async function fetchSiteSettings() {
 
 async function toggleAdminLock(value) {
   const valueStr = String(value);
-  if (!isConfigured) {
-    save('perspecteave_site_settings_v3', { admin_lock: valueStr });
-  } else {
+  save('perspecteave_site_settings_v3', { admin_lock: valueStr });
+  if (isConfigured) {
     try {
       const { error } = await supabase
         .from('site_settings')
@@ -371,9 +372,11 @@ function applySiteLockUI() {
   const errorPage = document.getElementById('error404Page');
   
   if (isSiteLocked && !isUserAdmin && !bypassLock) {
+    document.documentElement.classList.add('site-locked-preload');
     if (wrapper) wrapper.style.display = 'none';
     if (errorPage) errorPage.style.display = 'flex';
   } else {
+    document.documentElement.classList.remove('site-locked-preload');
     if (wrapper) wrapper.style.display = 'block';
     if (errorPage) errorPage.style.display = 'none';
     
@@ -4962,27 +4965,6 @@ function setupAdminMessages() {
 // ---- Initialization ----
 async function init() {
 
-  // Load posts
-  appPosts = await fetchPosts();
-
-  // Load post views
-  appPostViews = await fetchPostViews();
-
-  // Load comments
-  appComments = await fetchComments();
-
-  // Load site settings and allowed visitors whitelist
-  try {
-    const settings = await fetchSiteSettings();
-    isSiteLocked = (settings.admin_lock === 'true');
-    await fetchAllowedVisitors();
-  } catch (err) {
-    console.error('Failed to load site settings:', err);
-  }
-
-  // Load topic requests
-  await loadTopicRequests();
-
   // Initialize session if configured
   if (isConfigured) {
     const { data } = await supabase.auth.getSession();
@@ -5006,6 +4988,28 @@ async function init() {
       }
     }
   }
+
+  // Load site settings and allowed visitors whitelist FIRST and apply lock UI immediately
+  try {
+    const settings = await fetchSiteSettings();
+    isSiteLocked = (settings.admin_lock === 'true');
+    await fetchAllowedVisitors();
+    applySiteLockUI();
+  } catch (err) {
+    console.error('Failed to load site settings:', err);
+  }
+
+  // Load posts
+  appPosts = await fetchPosts();
+
+  // Load post views
+  appPostViews = await fetchPostViews();
+
+  // Load comments
+  appComments = await fetchComments();
+
+  // Load topic requests
+  await loadTopicRequests();
 
   // Populate admin categories checklist
   const adminCheckboxGrid = document.getElementById('adminCategoryCheckboxes');

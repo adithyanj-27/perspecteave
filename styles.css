@@ -4072,3 +4072,12 @@ footer {
   color: var(--accent-tea) !important;
   transform: scale(1.15);
 }
+
+/* Instant Site Lock Preload Override */
+html.site-locked-preload #mainContentWrapper {
+  display: none !important;
+}
+
+html.site-locked-preload #error404Page {
+  display: flex !important;
+}

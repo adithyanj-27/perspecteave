@@ -21,6 +21,17 @@
       if (metaThemeColor) {
         metaThemeColor.setAttribute('content', themeColor);
       }
+
+      // Check site lock preload synchronously to prevent flash of main page
+      try {
+        const rawSettings = localStorage.getItem('perspecteave_site_settings_v3');
+        const settings = rawSettings ? JSON.parse(rawSettings) : null;
+        const params = new URLSearchParams(window.location.search);
+        const bypass = params.get('admin') === 'true' || params.get('login') === 'true';
+        if (settings && settings.admin_lock === 'true' && !bypass) {
+          document.documentElement.classList.add('site-locked-preload');
+        }
+      } catch(e) {}
     })();
   </script>
 </head>
