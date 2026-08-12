@@ -4139,34 +4139,64 @@ html.site-locked-preload #error404Page {
 .resource-add-bar {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: 8px;
   margin-top: var(--space-xs);
   width: 100%;
 }
 
-.resource-input-row-1 {
+.resource-input-row {
   display: flex;
-  gap: var(--space-xs);
-  width: 100%;
-  flex-wrap: wrap;
-}
-
-.resource-input-row-1 input[type="text"] {
-  flex: 1;
-  min-width: 130px;
-}
-
-.resource-input-row-1 input[type="url"] {
-  flex: 1.5;
-  min-width: 160px;
-}
-
-.resource-input-row-2 {
-  display: flex;
-  gap: var(--space-xs);
+  gap: 8px;
   width: 100%;
   align-items: center;
-  justify-content: space-between;
+}
+
+.resource-input-row input[type="text"] {
+  flex: 1;
+  min-width: 120px;
+}
+
+.resource-input-row input[type="url"],
+.btn-attach-file-box {
+  flex: 1.5;
+  min-width: 150px;
+}
+
+.btn-attach-file-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  box-sizing: border-box;
+  height: 38px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.btn-attach-file-box:hover {
+  border-color: var(--accent-tea);
+  color: var(--accent-tea);
+  background: var(--bg-hover);
+}
+
+.btn-attach-file-box.file-selected {
+  border-color: var(--accent-matcha);
+  color: var(--accent-matcha);
+  background: rgba(69, 100, 60, 0.08);
+}
+
+.btn-attach-file-box span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .resource-add-bar input[type="text"],
@@ -4178,36 +4208,14 @@ html.site-locked-preload #error404Page {
   border: 1px solid var(--border-card);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
+  height: 38px;
+  box-sizing: border-box;
   transition: border-color 0.2s ease;
 }
 
 .resource-add-bar input:focus {
   border-color: var(--accent-tea);
   outline: none;
-}
-
-.btn-attach-file {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-family: var(--font-body);
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-}
-
-.btn-attach-file:hover {
-  border-color: var(--accent-tea);
-  color: var(--accent-tea);
-  background: var(--bg-hover);
 }
 
 .btn-attach-file.file-selected {

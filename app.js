@@ -5172,69 +5172,79 @@ function renderAdminResourcesUI() {
 
 let selectedFileData = null;
 
-function commitPendingResource() {
+function commitPendingLink() {
   const titleInput = document.getElementById('adminResourceTitle');
   const urlInput = document.getElementById('adminResourceUrl');
-  const fileInput = document.getElementById('adminResourceFile');
-  const attachLabel = document.querySelector('.btn-attach-file');
-
   const title = (titleInput ? titleInput.value : '').trim();
   const url = (urlInput ? urlInput.value : '').trim();
 
-  if (selectedFileData) {
-    draftResources.push({
-      type: 'document',
-      title: title || selectedFileData.name,
-      url: selectedFileData.url,
-      name: selectedFileData.name
-    });
-    selectedFileData = null;
-    if (fileInput) fileInput.value = '';
-    if (attachLabel) {
-      attachLabel.classList.remove('file-selected');
-      const span = attachLabel.querySelector('span');
-      if (span) span.textContent = '📄 File';
-    }
-    if (titleInput) titleInput.value = '';
-    if (urlInput) urlInput.value = '';
-    renderAdminResourcesUI();
-    return true;
-  }
+  if (!url) return false;
 
-  if (url) {
-    const isPdfUrl = url.match(/\.(pdf|doc|docx)$/i);
-    draftResources.push({
-      type: isPdfUrl ? 'document' : 'link',
-      title: title || url,
-      url: url
-    });
-    if (titleInput) titleInput.value = '';
-    if (urlInput) urlInput.value = '';
-    renderAdminResourcesUI();
-    return true;
-  }
+  const isPdfUrl = url.match(/\.(pdf|doc|docx)$/i);
+  draftResources.push({
+    type: isPdfUrl ? 'document' : 'link',
+    title: title || url,
+    url: url
+  });
 
-  return false;
+  if (titleInput) titleInput.value = '';
+  if (urlInput) urlInput.value = '';
+  renderAdminResourcesUI();
+  return true;
+}
+
+function commitPendingFile() {
+  const fileTitleInput = document.getElementById('adminFileTitle');
+  const fileInput = document.getElementById('adminResourceFile');
+  const fileBoxLabel = document.getElementById('adminFileBoxLabel');
+  const fileBoxSpan = document.getElementById('adminFileBoxSpan');
+  const title = (fileTitleInput ? fileTitleInput.value : '').trim();
+
+  if (!selectedFileData) return false;
+
+  draftResources.push({
+    type: 'document',
+    title: title || selectedFileData.name,
+    url: selectedFileData.url,
+    name: selectedFileData.name
+  });
+
+  selectedFileData = null;
+  if (fileInput) fileInput.value = '';
+  if (fileTitleInput) fileTitleInput.value = '';
+  if (fileBoxLabel) fileBoxLabel.classList.remove('file-selected');
+  if (fileBoxSpan) fileBoxSpan.textContent = '📄 Select File / PDF';
+
+  renderAdminResourcesUI();
+  return true;
+}
+
+function commitPendingResource() {
+  const addedFile = commitPendingFile();
+  const addedLink = commitPendingLink();
+  return addedFile || addedLink;
 }
 
 function setupAdminResourceHandlers() {
-  const titleInput = document.getElementById('adminResourceTitle');
+  const linkTitleInput = document.getElementById('adminResourceTitle');
   const urlInput = document.getElementById('adminResourceUrl');
+  const addLinkBtn = document.getElementById('adminAddLinkBtn');
+
+  const fileTitleInput = document.getElementById('adminFileTitle');
   const fileInput = document.getElementById('adminResourceFile');
-  const addBtn = document.getElementById('adminAddResourceBtn');
+  const fileBoxLabel = document.getElementById('adminFileBoxLabel');
+  const fileBoxSpan = document.getElementById('adminFileBoxSpan');
+  const addFileBtn = document.getElementById('adminAddFileBtn');
+
   const listContainer = document.getElementById('adminResourcesList');
-  const attachLabel = document.querySelector('.btn-attach-file');
 
   if (fileInput) {
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) {
         selectedFileData = null;
-        if (attachLabel) {
-          attachLabel.classList.remove('file-selected');
-          const span = attachLabel.querySelector('span');
-          if (span) span.textContent = '📄 File';
-        }
+        if (fileBoxLabel) fileBoxLabel.classList.remove('file-selected');
+        if (fileBoxSpan) fileBoxSpan.textContent = '📄 Select File / PDF';
         return;
       }
 
@@ -5246,24 +5256,32 @@ function setupAdminResourceHandlers() {
           name: file.name,
           url: event.target.result
         };
-        if (attachLabel) {
-          attachLabel.classList.add('file-selected');
-          const span = attachLabel.querySelector('span');
-          if (span) span.textContent = `📄 ${file.name.length > 14 ? file.name.substring(0, 12) + '...' : file.name}`;
+        if (fileBoxLabel) fileBoxLabel.classList.add('file-selected');
+        if (fileBoxSpan) {
+          fileBoxSpan.textContent = `📄 ${file.name.length > 22 ? file.name.substring(0, 20) + '...' : file.name}`;
         }
-        if (titleInput && !titleInput.value) {
-          titleInput.value = file.name;
+        if (fileTitleInput && !fileTitleInput.value) {
+          fileTitleInput.value = file.name;
         }
       };
       reader.readAsDataURL(file);
     });
   }
 
-  if (addBtn) {
-    addBtn.addEventListener('click', () => {
-      const added = commitPendingResource();
+  if (addLinkBtn) {
+    addLinkBtn.addEventListener('click', () => {
+      const added = commitPendingLink();
       if (!added) {
-        alert('Please enter a valid link URL or select a document file.');
+        alert('Please enter a valid URL link.');
+      }
+    });
+  }
+
+  if (addFileBtn) {
+    addFileBtn.addEventListener('click', () => {
+      const added = commitPendingFile();
+      if (!added) {
+        alert('Please click "Select File / PDF" to choose a document.');
       }
     });
   }
