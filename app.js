@@ -1334,6 +1334,44 @@ function getCategoryThemeClass(categories) {
   return 'theme-default';
 }
 
+// ---- Helper: Open Resource URLs (Converts Base64 Data URLs to HTTPS Blob URLs to remove "Not secure" browser flags) ----
+function openResourceUrl(url, title) {
+  if (!url) return;
+
+  if (url.startsWith('data:')) {
+    try {
+      const arr = url.split(',');
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      let mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+      if (mime === 'application/octet-stream' || !mime) {
+        mime = 'application/pdf';
+      }
+
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const blob = new Blob([u8arr], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const win = window.open(blobUrl, '_blank');
+      if (!win || win.closed || typeof win.closed === 'undefined') {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.target = '_blank';
+        a.click();
+      }
+    } catch (err) {
+      console.error('Error converting data URL to Blob:', err);
+      window.open(url, '_blank');
+    }
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
 // ---- Render a Single Entry ----
 function renderEntry(post, index) {
   const qNum = index + 1;
@@ -1445,7 +1483,7 @@ function renderEntry(post, index) {
                       domain = isDoc ? 'Document Attachment' : 'External Link';
                     }
                     return `
-                      <a href="${escapeHTML(res.url)}" target="_blank" rel="noopener" class="resource-card" title="${escapeHTML(res.title || res.name || 'Resource')}">
+                      <a href="javascript:void(0)" class="resource-card" data-resource-url="${escapeHTML(res.url)}" data-resource-title="${escapeHTML(res.title || res.name || 'Resource')}" title="${escapeHTML(res.title || res.name || 'Resource')}">
                         <div class="resource-card-left">
                           <span class="resource-card-icon">${icon}</span>
                           <div class="resource-card-details">
@@ -3882,7 +3920,20 @@ function attachEventListeners() {
   if (entriesList && !entriesList.dataset.listenersAttached) {
     entriesList.dataset.listenersAttached = 'true';
     entriesList.addEventListener('click', async (e) => {
-      // 0. Guest login CTA clicks
+      // 0. Resource card click (opens PDFs via HTTPS Blob URLs)
+      const resourceCard = e.target.closest('.resource-card');
+      if (resourceCard) {
+        e.preventDefault();
+        e.stopPropagation();
+        const resUrl = resourceCard.dataset.resourceUrl;
+        const resTitle = resourceCard.dataset.resourceTitle;
+        if (resUrl) {
+          openResourceUrl(resUrl, resTitle);
+        }
+        return;
+      }
+
+      // 0b. Guest login CTA clicks
       if (e.target.classList.contains('btn-comment-login-trigger')) {
         e.preventDefault();
         e.stopPropagation();
