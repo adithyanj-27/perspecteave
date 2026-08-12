@@ -1780,7 +1780,7 @@ function renderAllEntries(posts) {
     });
 
     const isUserAdmin = isAdmin(currentSession);
-    const visiblePosts = posts.filter(p => !p.private || isUserAdmin);
+    const visiblePosts = posts.filter(p => (!p.private || isUserAdmin) && !p.trashed);
 
     // 3. Render all entries
     container.innerHTML = visiblePosts.map((p, i) => renderEntry(p, i)).join('');
@@ -2759,16 +2759,97 @@ async function savePostEdit(entryId) {
   }
 }
 
-// ---- Delete Post ----
+// ---- Delete Post (Move to Trash) ----
 async function deletePost(entryId) {
+  const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
+  if (postIndex === -1) return;
+
   if (!isConfigured) {
-    // Local fallback
-    appPosts = appPosts.filter(x => x.id !== entryId);
+    appPosts[postIndex].trashed = true;
+    save(POSTS_KEY, appPosts);
+  } else {
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ trashed: true })
+        .eq('id', entryId);
+
+      if (error) {
+        // Fallback if 'trashed' column doesn't exist in Supabase database schema yet
+        if (error.code === '42703' || error.code === 'PGRST204' || (error.message && error.message.includes('trashed'))) {
+          console.warn('Supabase posts table missing "trashed" column. Performing hard delete fallback.');
+          const hardDel = await supabase.from('posts').delete().eq('id', entryId);
+          if (hardDel.error) throw hardDel.error;
+          appPosts = appPosts.filter(x => Number(x.id) !== Number(entryId));
+          delete appComments[entryId];
+        } else {
+          throw error;
+        }
+      } else {
+        appPosts[postIndex].trashed = true;
+      }
+    } catch (err) {
+      console.error('Error moving post to trash in Supabase:', err);
+      alert('Could not move post to trash: ' + (err.message || 'Check console.'));
+      return;
+    }
+  }
+
+  renderAllEntries(appPosts);
+  appPosts.forEach(post => renderComments(post.id, appComments));
+  attachEventListeners();
+  updateTrashCountBadge();
+  let session = null;
+  if (isConfigured) {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  }
+  updateAuthUI(session);
+}
+
+// ---- Restore Post ----
+async function restorePost(entryId) {
+  const postIndex = appPosts.findIndex(x => Number(x.id) === Number(entryId));
+  if (postIndex === -1) return;
+
+  if (!isConfigured) {
+    appPosts[postIndex].trashed = false;
+    save(POSTS_KEY, appPosts);
+  } else {
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ trashed: false })
+        .eq('id', entryId);
+
+      if (error) throw error;
+      appPosts[postIndex].trashed = false;
+    } catch (err) {
+      console.error('Error restoring post from trash:', err);
+      alert('Could not restore post: ' + (err.message || 'Check console.'));
+      return;
+    }
+  }
+
+  renderAllEntries(appPosts);
+  appPosts.forEach(post => renderComments(post.id, appComments));
+  attachEventListeners();
+  renderTrashUI();
+  updateTrashCountBadge();
+}
+
+// ---- Delete Post Forever ----
+async function deletePostForever(entryId) {
+  if (!confirm('Are you sure you want to delete this perspective forever? This action cannot be undone.')) {
+    return;
+  }
+
+  if (!isConfigured) {
+    appPosts = appPosts.filter(x => Number(x.id) !== Number(entryId));
     save(POSTS_KEY, appPosts);
     delete appComments[entryId];
     save(COMMENTS_KEY, appComments);
   } else {
-    // Supabase
     try {
       const { error } = await supabase
         .from('posts')
@@ -2776,28 +2857,60 @@ async function deletePost(entryId) {
         .eq('id', entryId);
 
       if (error) throw error;
-
-      appPosts = appPosts.filter(x => x.id !== entryId);
+      appPosts = appPosts.filter(x => Number(x.id) !== Number(entryId));
       delete appComments[entryId];
     } catch (err) {
-      console.error('Error deleting post from Supabase:', err);
-      alert('Could not delete post. Check console.');
+      console.error('Error deleting post permanently:', err);
+      alert('Could not delete post permanently: ' + (err.message || 'Check console.'));
       return;
     }
   }
 
-  // Re-render all elements
   renderAllEntries(appPosts);
   appPosts.forEach(post => renderComments(post.id, appComments));
-
-  // Re-bind listeners and update Admin UI
   attachEventListeners();
-  let session = null;
-  if (isConfigured) {
-    const { data } = await supabase.auth.getSession();
-    session = data.session;
+  renderTrashUI();
+  updateTrashCountBadge();
+}
+
+// ---- Empty Trash ----
+async function emptyTrash() {
+  const trashedPosts = appPosts.filter(p => p.trashed === true);
+  if (trashedPosts.length === 0) return;
+
+  if (!confirm(`Are you sure you want to permanently delete all ${trashedPosts.length} trashed perspective(s)? This action cannot be undone.`)) {
+    return;
   }
-  updateAuthUI(session);
+
+  const trashedIds = trashedPosts.map(p => p.id);
+
+  if (!isConfigured) {
+    appPosts = appPosts.filter(p => !p.trashed);
+    save(POSTS_KEY, appPosts);
+    trashedIds.forEach(id => delete appComments[id]);
+    save(COMMENTS_KEY, appComments);
+  } else {
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .in('id', trashedIds);
+
+      if (error) throw error;
+      appPosts = appPosts.filter(p => !p.trashed);
+      trashedIds.forEach(id => delete appComments[id]);
+    } catch (err) {
+      console.error('Error emptying trash in Supabase:', err);
+      alert('Could not empty trash: ' + (err.message || 'Check console.'));
+      return;
+    }
+  }
+
+  renderAllEntries(appPosts);
+  appPosts.forEach(post => renderComments(post.id, appComments));
+  attachEventListeners();
+  renderTrashUI();
+  updateTrashCountBadge();
 }
 
 // ---- Toggle Private Post ----
@@ -2962,6 +3075,12 @@ async function updateAuthUI(session) {
   if (manageBypassBtn) {
     manageBypassBtn.style.display = adminLoggedIn ? 'flex' : 'none';
   }
+
+  const openTrashBtn = document.getElementById('openTrashBtn');
+  if (openTrashBtn) {
+    openTrashBtn.style.display = adminLoggedIn ? 'flex' : 'none';
+  }
+  updateTrashCountBadge();
 
   if (loggedIn) {
     loginBtn.style.display = 'none';
@@ -5163,6 +5282,91 @@ function setupAdminResourceHandlers() {
   }
 }
 
+function updateTrashCountBadge() {
+  const badge = document.getElementById('trashCountBadge');
+  const openTrashBtn = document.getElementById('openTrashBtn');
+  const count = appPosts.filter(p => p.trashed === true).length;
+  if (badge) badge.textContent = count;
+  if (openTrashBtn) {
+    openTrashBtn.style.display = isAdmin(currentSession) ? 'flex' : 'none';
+  }
+}
+
+function renderTrashUI() {
+  const container = document.getElementById('trashItemsList');
+  const emptyBtn = document.getElementById('emptyTrashBtn');
+  if (!container) return;
+
+  const trashedPosts = appPosts.filter(p => p.trashed === true);
+
+  if (emptyBtn) {
+    emptyBtn.style.display = trashedPosts.length > 0 ? 'inline-block' : 'none';
+  }
+
+  if (trashedPosts.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin: 20px 0;">Recycle bin is empty.</p>`;
+    return;
+  }
+
+  container.innerHTML = trashedPosts.map(post => `
+    <div class="trash-item-card" data-entry-id="${post.id}">
+      <div class="trash-item-header">
+        <h4 class="trash-item-question">${escapeHTML(post.question)}</h4>
+      </div>
+      <div class="trash-item-actions">
+        <button type="button" class="btn-restore-post" data-entry-id="${post.id}">↺ Restore</button>
+        <button type="button" class="btn-delete-forever" data-entry-id="${post.id}">🗑️ Delete Forever</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setupTrashManagement() {
+  const openTrashBtn = document.getElementById('openTrashBtn');
+  const trashModal = document.getElementById('trashModal');
+  const closeTrashBtn = document.getElementById('closeTrashBtn');
+  const emptyTrashBtn = document.getElementById('emptyTrashBtn');
+  const trashItemsList = document.getElementById('trashItemsList');
+
+  if (openTrashBtn && trashModal) {
+    openTrashBtn.addEventListener('click', () => {
+      trashModal.classList.add('open');
+      renderTrashUI();
+    });
+  }
+
+  if (closeTrashBtn && trashModal) {
+    closeTrashBtn.addEventListener('click', () => {
+      trashModal.classList.remove('open');
+    });
+    trashModal.addEventListener('click', (e) => {
+      if (e.target === trashModal) trashModal.classList.remove('open');
+    });
+  }
+
+  if (emptyTrashBtn) {
+    emptyTrashBtn.addEventListener('click', emptyTrash);
+  }
+
+  if (trashItemsList) {
+    trashItemsList.addEventListener('click', async (e) => {
+      const restoreBtn = e.target.closest('.btn-restore-post');
+      if (restoreBtn) {
+        const entryId = Number(restoreBtn.dataset.entryId);
+        await restorePost(entryId);
+        return;
+      }
+
+      const deleteForeverBtn = e.target.closest('.btn-delete-forever');
+      if (deleteForeverBtn) {
+        const entryId = Number(deleteForeverBtn.dataset.entryId);
+        await deletePostForever(entryId);
+        return;
+      }
+    });
+  }
+}
+
 // ---- Initialization ----
 async function init() {
 
@@ -5231,6 +5435,7 @@ async function init() {
   setupAdminLock();
   setupBypassManagement();
   setupAdminResourceHandlers();
+  setupTrashManagement();
   // Realtime notifications are set up via updateAuthUI when admin logs in
 
   // Trigger initial UI render based on current auth state

@@ -416,6 +416,41 @@ a:hover {
   background: rgba(214, 142, 73, 0.04);
 }
 
+.btn-dropdown-trash {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 8px;
+  transition: all 0.3s var(--ease-out);
+}
+
+.btn-dropdown-trash:hover {
+  color: var(--cat-flaw);
+  border-color: var(--cat-flaw);
+  background: rgba(217, 83, 79, 0.04);
+}
+
+.trash-badge-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--border-light);
+  color: var(--text-secondary);
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 2px;
+}
+
 .btn-dropdown-logout {
   display: flex;
   align-items: center;
@@ -4314,4 +4349,95 @@ html.site-locked-preload #error404Page {
 .resource-card:hover .resource-card-action {
   opacity: 1;
   transform: translateX(2px);
+}
+
+/* Recycle Bin / Trash Styles */
+.trash-items-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.trash-items-list::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 3px;
+}
+
+.trash-item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  transition: border-color 0.2s ease;
+}
+
+.trash-item-card:hover {
+  border-color: var(--border-card);
+}
+
+.trash-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.trash-item-question {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.trash-item-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  align-self: flex-end;
+}
+
+.btn-restore-post {
+  background: rgba(69, 100, 60, 0.12);
+  color: var(--accent-matcha);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-restore-post:hover {
+  background: var(--accent-matcha);
+  color: #fff;
+}
+
+.btn-delete-forever {
+  background: transparent;
+  color: var(--cat-flaw);
+  border: 1px solid rgba(217, 83, 79, 0.3);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-forever:hover {
+  background: var(--cat-flaw);
+  color: #fff;
+  border-color: var(--cat-flaw);
+}
+
+.btn-empty-trash:hover {
+  background: var(--cat-flaw) !important;
+  color: #fff !important;
 }

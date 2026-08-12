@@ -90,6 +90,23 @@
       </div>
     </div>
 
+    <!-- ===================== RECYCLE BIN / TRASH MODAL ===================== -->
+    <div class="modal-overlay" id="trashModal">
+      <div class="modal-card modal-card-large" style="max-width: 520px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
+          <h2 class="modal-title" style="margin: 0; display: flex; align-items: center; gap: 6px;">🗑️ Recycle Bin</h2>
+          <button type="button" class="btn-empty-trash" id="emptyTrashBtn" style="display: none; background: transparent; border: 1px solid var(--cat-flaw); color: var(--cat-flaw); padding: 4px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">Empty Trash</button>
+        </div>
+        <p class="modal-subtitle">Deleted perspectives stay here until restored or deleted forever.</p>
+        
+        <div class="trash-items-list" id="trashItemsList" style="max-height: 320px; overflow-y: auto; margin-bottom: 12px; width: 100%; box-sizing: border-box;">
+          <!-- Dynamically rendered trashed items -->
+        </div>
+        
+        <button class="modal-close" id="closeTrashBtn">×</button>
+      </div>
+    </div>
+
     <div id="mainContentWrapper">
 
     <!-- ===================== TOP BAR ===================== -->
@@ -134,6 +151,14 @@
             <button class="btn-dropdown-notifications" id="dropdownNotificationsBtn" style="display: none;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
               <span id="notificationsBtnText">Enable Notifications</span>
+            </button>
+            <button class="btn-dropdown-trash" id="openTrashBtn" style="display: none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Recycle Bin</span>
+              <span class="trash-badge-count" id="trashCountBadge">0</span>
             </button>
             <button class="btn-dropdown-logout" id="dropdownLogoutBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
