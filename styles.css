@@ -2378,7 +2378,9 @@ body.cup-open::after {
 }
 
 .admin-panel.open {
-  max-height: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   opacity: 1;
   padding: var(--space-xl);
   margin-bottom: var(--space-2xl);
@@ -2386,6 +2388,16 @@ body.cup-open::after {
   border: 1px solid var(--accent-tea);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-glow);
+}
+
+.admin-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-panel::-webkit-scrollbar-thumb {
+  background: var(--accent-tea);
+  border-radius: 3px;
+  opacity: 0.6;
 }
 
 .admin-header-row {
@@ -4126,10 +4138,35 @@ html.site-locked-preload #error404Page {
 
 .resource-add-bar {
   display: flex;
+  flex-direction: column;
   gap: var(--space-xs);
-  align-items: center;
-  flex-wrap: wrap;
   margin-top: var(--space-xs);
+  width: 100%;
+}
+
+.resource-input-row-1 {
+  display: flex;
+  gap: var(--space-xs);
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.resource-input-row-1 input[type="text"] {
+  flex: 1;
+  min-width: 130px;
+}
+
+.resource-input-row-1 input[type="url"] {
+  flex: 1.5;
+  min-width: 160px;
+}
+
+.resource-input-row-2 {
+  display: flex;
+  gap: var(--space-xs);
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .resource-add-bar input[type="text"],

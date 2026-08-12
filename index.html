@@ -297,13 +297,17 @@
           <span class="category-select-label">Further Reading & Attachments (Optional):</span>
           <div class="resources-inputs-wrapper">
             <div class="resource-add-bar">
-              <input type="text" id="adminResourceTitle" placeholder="Title (e.g. PDF Report, Wiki link)" style="flex: 1; min-width: 120px;">
-              <input type="url" id="adminResourceUrl" placeholder="URL link (https://...)" style="flex: 1.5; min-width: 150px;">
-              <label class="btn-attach-file" title="Attach Document/PDF">
-                <span>📄 File</span>
-                <input type="file" id="adminResourceFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
-              </label>
-              <button type="button" class="btn-add-resource" id="adminAddResourceBtn">+ Add</button>
+              <div class="resource-input-row-1">
+                <input type="text" id="adminResourceTitle" placeholder="Title (e.g. PDF Report, Wiki link)">
+                <input type="url" id="adminResourceUrl" placeholder="URL link (https://...)">
+              </div>
+              <div class="resource-input-row-2">
+                <label class="btn-attach-file" title="Attach Document/PDF">
+                  <span>📄 Attach File</span>
+                  <input type="file" id="adminResourceFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
+                </label>
+                <button type="button" class="btn-add-resource" id="adminAddResourceBtn">+ Add Resource</button>
+              </div>
             </div>
             <div class="admin-resources-list" id="adminResourcesList"></div>
           </div>
