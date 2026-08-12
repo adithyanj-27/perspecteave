@@ -98,6 +98,7 @@ let isSiteLocked = false;
 let allowedVisitors = ['garry', 'remin', 'jishnu', 'jiya'];
 let hasVisitorBypass = false;
 let editingWhitelistIndex = null;
+let draftResources = [];
 // Categories / Themes data
 const AVAILABLE_THEMES = [
   { value: 'Scholarly', label: 'Scholarly (Politics, History, Geopolitics)' },
@@ -1428,6 +1429,43 @@ function renderEntry(post, index) {
                 <button type="button" class="btn-entry-delete" data-entry-id="${post.id}">Delete</button>
               </div>
             </div>
+
+            <!-- Further Reading & Resources -->
+            ${(post.resources && post.resources.length > 0) ? `
+              <div class="further-reading-section">
+                <h4 class="further-reading-title">📚 Further Reading & Resources</h4>
+                <div class="further-reading-grid">
+                  ${post.resources.map(res => {
+                    const isDoc = res.type === 'document' || (res.url && res.url.match(/\.(pdf|doc|docx|ppt|pptx)$/i));
+                    const icon = isDoc ? '📄' : '🔗';
+                    let domain = '';
+                    try {
+                      domain = new URL(res.url).hostname.replace('www.', '');
+                    } catch(e) {
+                      domain = isDoc ? 'Document Attachment' : 'External Link';
+                    }
+                    return `
+                      <a href="${escapeHTML(res.url)}" target="_blank" rel="noopener" class="resource-card" title="${escapeHTML(res.title || res.name || 'Resource')}">
+                        <div class="resource-card-left">
+                          <span class="resource-card-icon">${icon}</span>
+                          <div class="resource-card-details">
+                            <span class="resource-card-title">${escapeHTML(res.title || res.name || 'Resource')}</span>
+                            <span class="resource-card-subtitle">${escapeHTML(domain)}</span>
+                          </div>
+                        </div>
+                        <span class="resource-card-action">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                          </svg>
+                        </span>
+                      </a>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
 
             <!-- Edit Form -->
             <form class="entry-edit-form" id="entryEdit-${post.id}" onsubmit="return false;" style="display: none;">
@@ -3349,16 +3387,18 @@ function setupAuth() {
       checkedCats.push('Scholarly');
     }
 
+    const postResources = [...draftResources];
+
     if (!isConfigured) {
       const newId = appPosts.length > 0 ? Math.max(...appPosts.map(x => x.id)) + 1 : 1;
-      appPosts.push({ id: newId, question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats, private: false });
+      appPosts.push({ id: newId, question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats, private: false, resources: postResources });
       save(POSTS_KEY, appPosts);
     } else {
       try {
         postBtn.disabled = true;
         const { data, error } = await supabase
           .from('posts')
-          .insert({ question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats })
+          .insert({ question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats, resources: postResources })
           .select('*')
           .single();
 
@@ -3372,6 +3412,10 @@ function setupAuth() {
         postBtn.disabled = false;
       }
     }
+
+    // Reset resources state
+    draftResources = [];
+    renderAdminResourcesUI();
 
     // Initialize comments structure for the new post
     if (!appComments[appPosts[appPosts.length - 1].id]) {
@@ -4962,6 +5006,127 @@ function setupAdminMessages() {
 }
 
 
+function renderAdminResourcesUI() {
+  const container = document.getElementById('adminResourcesList');
+  if (!container) return;
+
+  if (!draftResources || draftResources.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = draftResources.map((res, idx) => `
+    <div class="resource-tag-item">
+      <div class="resource-tag-info">
+        <span class="resource-type-badge ${res.type === 'document' ? 'type-pdf' : 'type-link'}">${res.type === 'document' ? 'PDF/DOC' : 'LINK'}</span>
+        <span style="font-weight: 500;">${escapeHTML(res.title || res.name || 'Resource')}</span>
+      </div>
+      <button type="button" class="btn-remove-resource" data-index="${idx}" title="Remove resource">×</button>
+    </div>
+  `).join('');
+}
+
+function setupAdminResourceHandlers() {
+  const titleInput = document.getElementById('adminResourceTitle');
+  const urlInput = document.getElementById('adminResourceUrl');
+  const fileInput = document.getElementById('adminResourceFile');
+  const addBtn = document.getElementById('adminAddResourceBtn');
+  const listContainer = document.getElementById('adminResourcesList');
+  const attachLabel = document.querySelector('.btn-attach-file');
+
+  let selectedFileData = null;
+
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) {
+        selectedFileData = null;
+        if (attachLabel) {
+          attachLabel.classList.remove('file-selected');
+          const span = attachLabel.querySelector('span');
+          if (span) span.textContent = '📄 File';
+        }
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        selectedFileData = {
+          type: 'document',
+          title: file.name,
+          name: file.name,
+          url: event.target.result
+        };
+        if (attachLabel) {
+          attachLabel.classList.add('file-selected');
+          const span = attachLabel.querySelector('span');
+          if (span) span.textContent = `📄 ${file.name.length > 14 ? file.name.substring(0, 12) + '...' : file.name}`;
+        }
+        if (titleInput && !titleInput.value) {
+          titleInput.value = file.name;
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      const title = (titleInput ? titleInput.value : '').trim();
+      const url = (urlInput ? urlInput.value : '').trim();
+
+      if (selectedFileData) {
+        draftResources.push({
+          type: 'document',
+          title: title || selectedFileData.name,
+          url: selectedFileData.url,
+          name: selectedFileData.name
+        });
+        selectedFileData = null;
+        if (fileInput) fileInput.value = '';
+        if (attachLabel) {
+          attachLabel.classList.remove('file-selected');
+          const span = attachLabel.querySelector('span');
+          if (span) span.textContent = '📄 File';
+        }
+        if (titleInput) titleInput.value = '';
+        if (urlInput) urlInput.value = '';
+        renderAdminResourcesUI();
+        return;
+      }
+
+      if (!url) {
+        alert('Please enter a valid link URL or select a document file.');
+        return;
+      }
+
+      const isPdfUrl = url.match(/\.(pdf|doc|docx)$/i);
+      draftResources.push({
+        type: isPdfUrl ? 'document' : 'link',
+        title: title || url,
+        url: url
+      });
+
+      if (titleInput) titleInput.value = '';
+      if (urlInput) urlInput.value = '';
+      renderAdminResourcesUI();
+    });
+  }
+
+  if (listContainer) {
+    listContainer.addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('.btn-remove-resource');
+      if (removeBtn) {
+        const idx = parseInt(removeBtn.getAttribute('data-index'), 10);
+        if (!isNaN(idx) && idx >= 0 && idx < draftResources.length) {
+          draftResources.splice(idx, 1);
+          renderAdminResourcesUI();
+        }
+      }
+    });
+  }
+}
+
 // ---- Initialization ----
 async function init() {
 
@@ -5029,6 +5194,7 @@ async function init() {
   setupNotificationsBtn();
   setupAdminLock();
   setupBypassManagement();
+  setupAdminResourceHandlers();
   // Realtime notifications are set up via updateAuthUI when admin logs in
 
   // Trigger initial UI render based on current auth state
