@@ -1545,6 +1545,31 @@ function renderEntry(post, index) {
                 </div>
               </div>
 
+              <!-- Edit Resources Section -->
+              <div class="edit-resources-section" style="margin-top: 16px;">
+                <span class="category-select-label">Further Reading & Attachments (Optional):</span>
+                <div class="resources-inputs-wrapper">
+                  <div class="resource-add-bar">
+                    <!-- Row 1: Web Link -->
+                    <div class="resource-input-row">
+                      <input type="text" id="editResourceTitle-${post.id}" placeholder="Title (e.g. Wiki link)">
+                      <input type="url" id="editResourceUrl-${post.id}" placeholder="URL link (https://...)">
+                      <button type="button" class="btn-add-resource btn-edit-add-link" data-entry-id="${post.id}">+ Add Link</button>
+                    </div>
+                    <!-- Row 2: File Attachment -->
+                    <div class="resource-input-row">
+                      <input type="text" id="editFileTitle-${post.id}" placeholder="Title (e.g. PDF Report)">
+                      <label class="btn-attach-file-box" id="editFileBoxLabel-${post.id}" title="Select Document/PDF">
+                        <span id="editFileBoxSpan-${post.id}">📄 Select File / PDF</span>
+                        <input type="file" class="edit-resource-file-input" id="editResourceFile-${post.id}" data-entry-id="${post.id}" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" style="display: none;">
+                      </label>
+                      <button type="button" class="btn-add-resource btn-add-file btn-edit-add-file" data-entry-id="${post.id}">+ Add File</button>
+                    </div>
+                  </div>
+                  <div class="admin-resources-list" id="editResourcesList-${post.id}"></div>
+                </div>
+              </div>
+
               <div class="edit-actions">
                 <button type="button" class="btn-edit-save" data-entry-id="${post.id}">Save</button>
                 <button type="button" class="btn-edit-cancel" data-entry-id="${post.id}">Cancel</button>
@@ -2734,12 +2759,16 @@ async function savePostEdit(entryId) {
       checkedCats.push('Scholarly');
     }
 
+    commitPendingEditResource(entryId);
+    const updatedResources = editDraftResourcesMap[entryId] || [];
+
     if (!isConfigured) {
       // Local fallback
       appPosts[postIndex].question = q;
       appPosts[postIndex].perspective = p;
       appPosts[postIndex].edit_count = newEditCount;
       appPosts[postIndex].categories = checkedCats;
+      appPosts[postIndex].resources = updatedResources;
       save(POSTS_KEY, appPosts);
     } else {
       // Supabase
@@ -2749,22 +2778,39 @@ async function savePostEdit(entryId) {
         saveBtn.textContent = 'Saving...';
       }
       
-      const { error } = await supabase
+      let updatePayload = {
+        question: q,
+        perspective: p,
+        edit_count: newEditCount,
+        categories: checkedCats,
+        resources: updatedResources
+      };
+
+      let { error } = await supabase
         .from('posts')
-        .update({
-          question: q,
-          perspective: p,
-          edit_count: newEditCount,
-          categories: checkedCats
-        })
+        .update(updatePayload)
         .eq('id', entryId);
 
-      if (error) throw error;
+      if (error) {
+        // Fallback if 'resources' column does not exist in Supabase database schema yet
+        if (error.code === '42703' || error.code === 'PGRST204' || (error.message && error.message.includes('resources'))) {
+          console.warn('Supabase posts table missing "resources" column. Retrying post edit update without resources payload...');
+          delete updatePayload.resources;
+          const retryRes = await supabase
+            .from('posts')
+            .update(updatePayload)
+            .eq('id', entryId);
+          if (retryRes.error) throw retryRes.error;
+        } else {
+          throw error;
+        }
+      }
       
       appPosts[postIndex].question = q;
       appPosts[postIndex].perspective = p;
       appPosts[postIndex].edit_count = newEditCount;
       appPosts[postIndex].categories = checkedCats;
+      appPosts[postIndex].resources = updatedResources;
     }
 
     // Re-render all elements
@@ -3862,9 +3908,24 @@ function attachEventListeners() {
     btn.dataset.editListenerAttached = 'true';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const entryId = btn.dataset.entryId;
-      document.getElementById(`entryStatic-${entryId}`).style.display = 'none';
-      document.getElementById(`entryEdit-${entryId}`).style.display = 'flex';
+      const entryId = Number(btn.dataset.entryId);
+      const post = appPosts.find(p => Number(p.id) === entryId);
+      if (post) {
+        editDraftResourcesMap[entryId] = JSON.parse(JSON.stringify(post.resources || []));
+      }
+      const staticEl = document.getElementById(`entryStatic-${entryId}`);
+      if (staticEl) staticEl.style.display = 'none';
+
+      const entryEl = document.getElementById(`entry-${entryId}`);
+      if (entryEl) {
+        const staticFR = entryEl.querySelector('.further-reading-section');
+        if (staticFR) staticFR.style.display = 'none';
+      }
+
+      const editEl = document.getElementById(`entryEdit-${entryId}`);
+      if (editEl) editEl.style.display = 'flex';
+
+      renderEditResourcesUI(entryId);
     });
   });
 
@@ -3873,9 +3934,18 @@ function attachEventListeners() {
     btn.dataset.cancelListenerAttached = 'true';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const entryId = btn.dataset.entryId;
-      document.getElementById(`entryStatic-${entryId}`).style.display = 'block';
-      document.getElementById(`entryEdit-${entryId}`).style.display = 'none';
+      const entryId = Number(btn.dataset.entryId);
+      const staticEl = document.getElementById(`entryStatic-${entryId}`);
+      if (staticEl) staticEl.style.display = 'block';
+
+      const entryEl = document.getElementById(`entry-${entryId}`);
+      if (entryEl) {
+        const staticFR = entryEl.querySelector('.further-reading-section');
+        if (staticFR) staticFR.style.display = 'block';
+      }
+
+      const editEl = document.getElementById(`entryEdit-${entryId}`);
+      if (editEl) editEl.style.display = 'none';
     });
   });
 
@@ -3915,11 +3985,89 @@ function attachEventListeners() {
     });
   });
 
+  // Edit resource file input listener
+  document.querySelectorAll('.edit-resource-file-input').forEach(fileInput => {
+    if (fileInput.dataset.listenerAttached) return;
+    fileInput.dataset.listenerAttached = 'true';
+    fileInput.addEventListener('change', (e) => {
+      const entryId = Number(e.target.dataset.entryId);
+      const file = e.target.files[0];
+      const fileBoxLabel = document.getElementById(`editFileBoxLabel-${entryId}`);
+      const fileBoxSpan = document.getElementById(`editFileBoxSpan-${entryId}`);
+      const fileTitleInput = document.getElementById(`editFileTitle-${entryId}`);
+
+      if (!file) {
+        editSelectedFileDataMap[entryId] = null;
+        if (fileBoxLabel) fileBoxLabel.classList.remove('file-selected');
+        if (fileBoxSpan) fileBoxSpan.textContent = '📄 Select File / PDF';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        editSelectedFileDataMap[entryId] = {
+          type: 'document',
+          title: file.name,
+          name: file.name,
+          url: event.target.result
+        };
+        if (fileBoxLabel) fileBoxLabel.classList.add('file-selected');
+        if (fileBoxSpan) {
+          fileBoxSpan.textContent = `📄 ${file.name.length > 22 ? file.name.substring(0, 20) + '...' : file.name}`;
+        }
+        if (fileTitleInput && !fileTitleInput.value) {
+          fileTitleInput.value = file.name;
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
   // Event delegation for comment actions (Edit, Cancel, Save, History Toggles) and guest limits
   const entriesList = document.getElementById('entriesList');
   if (entriesList && !entriesList.dataset.listenersAttached) {
     entriesList.dataset.listenersAttached = 'true';
     entriesList.addEventListener('click', async (e) => {
+      // Edit resource add link click
+      const addEditLinkBtn = e.target.closest('.btn-edit-add-link');
+      if (addEditLinkBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const entryId = Number(addEditLinkBtn.dataset.entryId);
+        const added = commitPendingEditLink(entryId);
+        if (!added) {
+          alert('Please enter a valid URL link.');
+        }
+        return;
+      }
+
+      // Edit resource add file click
+      const addEditFileBtn = e.target.closest('.btn-edit-add-file');
+      if (addEditFileBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const entryId = Number(addEditFileBtn.dataset.entryId);
+        const added = commitPendingEditFile(entryId);
+        if (!added) {
+          alert('Please click "Select File / PDF" to choose a document.');
+        }
+        return;
+      }
+
+      // Edit resource remove tag click
+      const removeEditResourceBtn = e.target.closest('.btn-remove-edit-resource');
+      if (removeEditResourceBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const entryId = Number(removeEditResourceBtn.dataset.entryId);
+        const idx = parseInt(removeEditResourceBtn.dataset.index, 10);
+        if (!isNaN(idx) && editDraftResourcesMap[entryId] && idx >= 0 && idx < editDraftResourcesMap[entryId].length) {
+          editDraftResourcesMap[entryId].splice(idx, 1);
+          renderEditResourcesUI(entryId);
+        }
+        return;
+      }
+
       // 0. Resource card click (opens PDFs via HTTPS Blob URLs)
       const resourceCard = e.target.closest('.resource-card');
       if (resourceCard) {
@@ -5349,6 +5497,89 @@ function setupAdminResourceHandlers() {
       }
     });
   }
+}
+
+// ---- Edit Post Resource Handlers ----
+let editDraftResourcesMap = {};
+let editSelectedFileDataMap = {};
+
+function renderEditResourcesUI(postId) {
+  const container = document.getElementById(`editResourcesList-${postId}`);
+  if (!container) return;
+
+  const resources = editDraftResourcesMap[postId] || [];
+  if (resources.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = resources.map((res, idx) => `
+    <div class="resource-tag-item">
+      <div class="resource-tag-info">
+        <span class="resource-type-badge ${res.type === 'document' ? 'type-pdf' : 'type-link'}">${res.type === 'document' ? 'PDF/DOC' : 'LINK'}</span>
+        <span style="font-weight: 500;">${escapeHTML(res.title || res.name || 'Resource')}</span>
+      </div>
+      <button type="button" class="btn-remove-edit-resource" data-entry-id="${postId}" data-index="${idx}" title="Remove resource">×</button>
+    </div>
+  `).join('');
+}
+
+function commitPendingEditLink(postId) {
+  const titleInput = document.getElementById(`editResourceTitle-${postId}`);
+  const urlInput = document.getElementById(`editResourceUrl-${postId}`);
+  const title = (titleInput ? titleInput.value : '').trim();
+  const url = (urlInput ? urlInput.value : '').trim();
+
+  if (!url) return false;
+
+  if (!editDraftResourcesMap[postId]) editDraftResourcesMap[postId] = [];
+
+  const isPdfUrl = url.match(/\.(pdf|doc|docx)$/i);
+  editDraftResourcesMap[postId].push({
+    type: isPdfUrl ? 'document' : 'link',
+    title: title || url,
+    url: url
+  });
+
+  if (titleInput) titleInput.value = '';
+  if (urlInput) urlInput.value = '';
+  renderEditResourcesUI(postId);
+  return true;
+}
+
+function commitPendingEditFile(postId) {
+  const fileTitleInput = document.getElementById(`editFileTitle-${postId}`);
+  const fileInput = document.getElementById(`editResourceFile-${postId}`);
+  const fileBoxLabel = document.getElementById(`editFileBoxLabel-${postId}`);
+  const fileBoxSpan = document.getElementById(`editFileBoxSpan-${postId}`);
+  const title = (fileTitleInput ? fileTitleInput.value : '').trim();
+
+  const selectedData = editSelectedFileDataMap[postId];
+  if (!selectedData) return false;
+
+  if (!editDraftResourcesMap[postId]) editDraftResourcesMap[postId] = [];
+
+  editDraftResourcesMap[postId].push({
+    type: 'document',
+    title: title || selectedData.name,
+    url: selectedData.url,
+    name: selectedData.name
+  });
+
+  editSelectedFileDataMap[postId] = null;
+  if (fileInput) fileInput.value = '';
+  if (fileTitleInput) fileTitleInput.value = '';
+  if (fileBoxLabel) fileBoxLabel.classList.remove('file-selected');
+  if (fileBoxSpan) fileBoxSpan.textContent = '📄 Select File / PDF';
+
+  renderEditResourcesUI(postId);
+  return true;
+}
+
+function commitPendingEditResource(postId) {
+  const addedFile = commitPendingEditFile(postId);
+  const addedLink = commitPendingEditLink(postId);
+  return addedFile || addedLink;
 }
 
 function updateTrashCountBadge() {
