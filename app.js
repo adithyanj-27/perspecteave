@@ -2836,6 +2836,7 @@ async function restorePost(entryId) {
   attachEventListeners();
   renderTrashUI();
   updateTrashCountBadge();
+  await updateAuthUI(currentSession);
 }
 
 // ---- Delete Post Forever ----
@@ -2871,6 +2872,7 @@ async function deletePostForever(entryId) {
   attachEventListeners();
   renderTrashUI();
   updateTrashCountBadge();
+  await updateAuthUI(currentSession);
 }
 
 // ---- Empty Trash ----
@@ -2911,6 +2913,7 @@ async function emptyTrash() {
   attachEventListeners();
   renderTrashUI();
   updateTrashCountBadge();
+  await updateAuthUI(currentSession);
 }
 
 // ---- Toggle Private Post ----
