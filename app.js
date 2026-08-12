@@ -3371,6 +3371,9 @@ function setupAuth() {
 
   // Publish post
   postBtn.addEventListener('click', async () => {
+    // Commit any pending resource input that wasn't added via + Add button yet
+    commitPendingResource();
+
     const q = (qInput.value || '').trim();
     const p = (pInput.value || '').trim();
     if (!q || !p) {
@@ -3396,17 +3399,39 @@ function setupAuth() {
     } else {
       try {
         postBtn.disabled = true;
-        const { data, error } = await supabase
+        let insertObj = { question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats };
+        if (postResources && postResources.length > 0) {
+          insertObj.resources = postResources;
+        }
+
+        let { data, error } = await supabase
           .from('posts')
-          .insert({ question: q, perspective: p, edit_count: 0, agrees: 0, disagrees: 0, categories: checkedCats, resources: postResources })
+          .insert(insertObj)
           .select('*')
           .single();
 
-        if (error) throw error;
+        if (error) {
+          // Fallback if 'resources' column does not exist in Supabase database schema yet
+          if (insertObj.resources && (error.code === '42703' || error.code === 'PGRST204' || (error.message && error.message.includes('resources')))) {
+            console.warn('Supabase posts table missing "resources" column. Retrying post creation without resources payload...');
+            delete insertObj.resources;
+            const retryRes = await supabase
+              .from('posts')
+              .insert(insertObj)
+              .select('*')
+              .single();
+
+            if (retryRes.error) throw retryRes.error;
+            data = retryRes.data;
+            data.resources = postResources;
+          } else {
+            throw error;
+          }
+        }
         appPosts.push(data);
       } catch (err) {
         console.error('Error saving post to Supabase:', err);
-        alert('Could not save post. Check console.');
+        alert('Could not save post: ' + (err.message || 'Check console or SQL schema.'));
         return;
       } finally {
         postBtn.disabled = false;
@@ -5026,6 +5051,53 @@ function renderAdminResourcesUI() {
   `).join('');
 }
 
+let selectedFileData = null;
+
+function commitPendingResource() {
+  const titleInput = document.getElementById('adminResourceTitle');
+  const urlInput = document.getElementById('adminResourceUrl');
+  const fileInput = document.getElementById('adminResourceFile');
+  const attachLabel = document.querySelector('.btn-attach-file');
+
+  const title = (titleInput ? titleInput.value : '').trim();
+  const url = (urlInput ? urlInput.value : '').trim();
+
+  if (selectedFileData) {
+    draftResources.push({
+      type: 'document',
+      title: title || selectedFileData.name,
+      url: selectedFileData.url,
+      name: selectedFileData.name
+    });
+    selectedFileData = null;
+    if (fileInput) fileInput.value = '';
+    if (attachLabel) {
+      attachLabel.classList.remove('file-selected');
+      const span = attachLabel.querySelector('span');
+      if (span) span.textContent = '📄 File';
+    }
+    if (titleInput) titleInput.value = '';
+    if (urlInput) urlInput.value = '';
+    renderAdminResourcesUI();
+    return true;
+  }
+
+  if (url) {
+    const isPdfUrl = url.match(/\.(pdf|doc|docx)$/i);
+    draftResources.push({
+      type: isPdfUrl ? 'document' : 'link',
+      title: title || url,
+      url: url
+    });
+    if (titleInput) titleInput.value = '';
+    if (urlInput) urlInput.value = '';
+    renderAdminResourcesUI();
+    return true;
+  }
+
+  return false;
+}
+
 function setupAdminResourceHandlers() {
   const titleInput = document.getElementById('adminResourceTitle');
   const urlInput = document.getElementById('adminResourceUrl');
@@ -5033,8 +5105,6 @@ function setupAdminResourceHandlers() {
   const addBtn = document.getElementById('adminAddResourceBtn');
   const listContainer = document.getElementById('adminResourcesList');
   const attachLabel = document.querySelector('.btn-attach-file');
-
-  let selectedFileData = null;
 
   if (fileInput) {
     fileInput.addEventListener('change', (e) => {
@@ -5072,44 +5142,10 @@ function setupAdminResourceHandlers() {
 
   if (addBtn) {
     addBtn.addEventListener('click', () => {
-      const title = (titleInput ? titleInput.value : '').trim();
-      const url = (urlInput ? urlInput.value : '').trim();
-
-      if (selectedFileData) {
-        draftResources.push({
-          type: 'document',
-          title: title || selectedFileData.name,
-          url: selectedFileData.url,
-          name: selectedFileData.name
-        });
-        selectedFileData = null;
-        if (fileInput) fileInput.value = '';
-        if (attachLabel) {
-          attachLabel.classList.remove('file-selected');
-          const span = attachLabel.querySelector('span');
-          if (span) span.textContent = '📄 File';
-        }
-        if (titleInput) titleInput.value = '';
-        if (urlInput) urlInput.value = '';
-        renderAdminResourcesUI();
-        return;
-      }
-
-      if (!url) {
+      const added = commitPendingResource();
+      if (!added) {
         alert('Please enter a valid link URL or select a document file.');
-        return;
       }
-
-      const isPdfUrl = url.match(/\.(pdf|doc|docx)$/i);
-      draftResources.push({
-        type: isPdfUrl ? 'document' : 'link',
-        title: title || url,
-        url: url
-      });
-
-      if (titleInput) titleInput.value = '';
-      if (urlInput) urlInput.value = '';
-      renderAdminResourcesUI();
     });
   }
 
