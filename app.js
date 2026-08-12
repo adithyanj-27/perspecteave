@@ -3857,7 +3857,7 @@ function attachEventListeners() {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const entryId = Number(btn.dataset.entryId);
-      if (confirm('Are you sure you want to delete this perspective? This will also delete all comments.')) {
+      if (confirm('Move this perspective to the Recycle Bin? You can restore it anytime from your profile panel.')) {
         await deletePost(entryId);
       }
     });
