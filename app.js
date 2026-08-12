@@ -1426,7 +1426,7 @@ function renderEntry(post, index) {
               <div class="entry-admin-actions" data-entry-id="${post.id}">
                 <button type="button" class="btn-entry-edit" data-entry-id="${post.id}">Edit</button>
                 <button type="button" class="btn-entry-private" data-entry-id="${post.id}">${post.private ? 'Make Public' : 'Make Private'}</button>
-                <button type="button" class="btn-entry-delete" data-entry-id="${post.id}">Delete</button>
+                <button type="button" class="btn-entry-delete" data-entry-id="${post.id}">🗑️ Trash</button>
               </div>
             </div>
 
@@ -1793,13 +1793,10 @@ function renderAllEntries(posts) {
       }
     }
 
-    // 4b. Restore spilled entry ID if any (checks previous state OR URL query parameter on load)
-    const urlParams = new URLSearchParams(window.location.search);
-    const postIdParam = urlParams.get('post');
-    const targetSpilledId = spilledId || postIdParam;
-
-    if (targetSpilledId) {
-      const entryToSpill = container.querySelector(`.cup-container[data-entry-id="${targetSpilledId}"]`);
+    // 4b. Restore spilled entry ID if any (only restore previous spill state, not URL param)
+    // URL param ?post= is handled once in init(), not on every re-render
+    if (spilledId) {
+      const entryToSpill = container.querySelector(`.cup-container[data-entry-id="${spilledId}"]`);
       if (entryToSpill) {
         entryToSpill.classList.add('spilled');
       }
