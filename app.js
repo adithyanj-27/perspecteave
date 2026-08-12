@@ -1426,7 +1426,7 @@ function renderEntry(post, index) {
               <div class="entry-admin-actions" data-entry-id="${post.id}">
                 <button type="button" class="btn-entry-edit" data-entry-id="${post.id}">Edit</button>
                 <button type="button" class="btn-entry-private" data-entry-id="${post.id}">${post.private ? 'Make Public' : 'Make Private'}</button>
-                <button type="button" class="btn-entry-delete" data-entry-id="${post.id}">🗑️ Trash</button>
+                <button type="button" class="btn-entry-delete" data-entry-id="${post.id}">Delete</button>
               </div>
             </div>
 
